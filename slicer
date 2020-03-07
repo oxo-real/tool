@@ -1,0 +1,78 @@
+#!/bin/bash
+#
+##
+###      _ _
+###  ___| (_) ___ ___ _ __
+### / __| | |/ __/ _ \ '__|
+### \__ \ | | (_|  __/ |
+### |___/_|_|\___\___|_|
+###
+###  _ _|_ _ ._    _  _
+### (_\/|_(_)|_)\/(_|(/_
+###   /      |  /  _|
+###
+### slicer (c) 2020 cytopyge
+###
+### usage: slicer "from_string" "to_string" <target_file>
+### returns text between from_ and to_string in target_file
+###
+##
+#
+
+
+# variable initialization
+lb_string="$1"
+rb_string="$2"
+file="$3"
+
+
+# define colors
+RED='\033[0;31m' # red
+GREEN='\033[0;32m' # green
+NOC='\033[0m' # no color
+
+
+# define left boundary (from)
+
+if [[ -z $lb_string ]]; then
+
+	lb_end=1
+
+else
+
+	## position of first character of first match in search_string
+	lb_start=$(grep -ob "$lb_string" $file | cut -d ':' -f 1 | head -n 1)
+
+	## lb_string length
+	lb_length=$(echo -n "$lb_string" | wc -c)
+
+	## position of last character of search_string
+	lb_end=$(( $lb_start + $lb_length + 1 ))
+
+fi
+
+
+# define right boundary (to)
+
+if [[ -z $rb_string ]]; then
+
+	rb_start=$(wc -c $file | awk -F " " '{print $1}')
+
+else
+
+	## position of first character of search_string in matching line
+	rb_start=$(grep -ob "$rb_string" $file | cut -d ':' -f 1)
+
+fi
+
+
+# print and wl-copy result
+
+result=$( cut -c $lb_end-$rb_start $file )
+#result=$( cut -z -c $lb_end-$rb_start $file )
+printf "$result" | wl-copy
+if [[ -n $result ]]; then
+	printf "'$result'\n${GREEN}added to wl-copy${NOC}\n"
+else
+	printf "${RED}slicer error: unable to slice\n${NOC}"
+fi
