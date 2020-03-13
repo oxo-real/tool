@@ -7,21 +7,30 @@
 ### | (_| |  __/ |_   | (_) | | (_| |  __/\__ \ |_    |  _| | |  __/
 ###  \__, |\___|\__|___\___/|_|\__,_|\___||___/\__|___|_| |_|_|\___|
 ###  |___/        |_____|                        |_____|
-###
 ###  _ _|_ _ ._    _  _
 ### (_\/|_(_)|_)\/(_|(/_
 ###   /      |  /  _|
 ###
 ### get_oldest_file
-### get oldest file in pwd
+### get oldest file in pwd or given location
 ### (c) 2019 - 2020 cytopyge
 ###
 ##
 #
 
 
+# initialization
+script_name="get_oldest_file"
+## read_flags
+location=$1
+
+
 unset -v oldest
-for file in $(find . -maxdepth 1 -type f); do
+
+
+for file in $(find $location -maxdepth 1 -type f); do
   [[ -z $oldest || $file -ot $oldest ]] && oldest=$file
 done
+
+
 printf "$oldest\n"
