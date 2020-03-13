@@ -20,8 +20,46 @@
 #
 
 
+script_name="get_newest_file"
+
+
+# read_flags
+
+while getopts ":d:bh" opt; do
+
+	case $opt in
+		d)
+			## compulsory / optioonal flag
+			## -a <value_to_pass (semicolon in getopts)>
+			location=${OPTARG}
+                	##<optional: script to execute>
+			##<exit 0>
+			;;
+		h)
+			## -h display help text
+			printf "$script_name: usage: netconn [-a <value_to_pass>] [-b]\n"
+			exit 0
+			;;
+		\?)
+			printf "$script_name: ${RED}invalid option: -${OPTARG}${NOC}"
+			exit 1
+			;;
+		:)
+			## display help
+			printf "$script_name: ${RED}option -${OPTARG} requires an argument${NOC}"
+			exit 1
+			;;
+	esac
+
+done
+
+
+if [ -z $location ]; then
+	location=pwd
+fi
+
 unset -v newest
-for file in $(find . -maxdepth 1 -type f); do
+for file in $(find $location -maxdepth 1 -type f); do
   [[ $file -nt $newest ]] && newest=$file
 done
 printf "$newest\n"
