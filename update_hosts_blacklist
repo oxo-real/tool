@@ -1,0 +1,27 @@
+#!/bin/bash
+#
+##
+###  _               _           _     _            _    _ _     _
+### | |__   ___  ___| |_ ___    | |__ | | __ _  ___| | _| (_)___| |_
+### | '_ \ / _ \/ __| __/ __|   | '_ \| |/ _` |/ __| |/ / | / __| __|
+### | | | | (_) \__ \ |_\__ \   | |_) | | (_| | (__|   <| | \__ \ |_
+### |_| |_|\___/|___/\__|___/___|_.__/|_|\__,_|\___|_|\_\_|_|___/\__|
+###                        |_____|
+### (c) 2020 cytopyge
+###
+### update_hosts_blacklist
+### update dns hosts file forbidden entries
+###
+##
+#
+
+source ~/_git/code/snippets/text_appearance
+
+cd ~/.config/hosts
+git checkout blacklist
+cp hosts archive/`date +%Y%m%d_%H%M%S`_archived_hosts
+curl https://raw.githubusercontent.com/StevenBlack/hosts/master/alternates/fakenews-gambling-porn-social/hosts > ~/.config/hosts/hosts
+git add ~/.config/hosts/hosts
+git commit -a -m 'updated with script'
+sudo ln -sf ~/.config/hosts/hosts /etc/hosts
+printf "${GREEN}hosts blacklist updated succesfully${NOC}\n"
