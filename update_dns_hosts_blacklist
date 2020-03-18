@@ -16,12 +16,13 @@
 #
 
 source ~/_git/code/snippets/text_appearance
+timestamp=`date "+%Y%m%d_%H%M%S"`
 
 cd ~/.config/hosts
 git checkout blacklist
-cp hosts archive/`date +%Y%m%d_%H%M%S`_archived_hosts
+cp hosts archive/$timestamp_archived_hosts
 curl https://raw.githubusercontent.com/StevenBlack/hosts/master/alternates/fakenews-gambling-porn-social/hosts > ~/.config/hosts/hosts
 git add ~/.config/hosts/hosts
-git commit -a -m 'updated with script'
+git commit -a -m "updated with script $timestamp"
 sudo ln -sf ~/.config/hosts/hosts /etc/hosts
-printf "${GREEN}hosts blacklist updated succesfully${NOC}\n"
+printf "${GREEN}update dns hosts blacklist succesfull${NOC}\n"
