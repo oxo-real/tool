@@ -1,15 +1,41 @@
 #!/bin/bash
+#
+##
+###      _          _
+###   __| | ___  __| |_   _ _ __
+###  / _` |/ _ \/ _` | | | | '_ \
+### | (_| |  __/ (_| | |_| | |_) |
+###  \__,_|\___|\__,_|\__,_| .__/
+###                        |_|
+###  _ _|_ _ ._    _  _
+### (_\/|_(_)|_)\/(_|(/_
+###   /      |  /  _|
+###
+### dedup (c) 2020 cytopyge
+###
+### usage: dedup <target_file>
+### remove duplicate lines from file, while preserving line order
+###
+##
+#
+
 
 file=$1
 
 dedup() {
 
+	## cat -n --> print file with added linenumbers (used for sorting)
 	cat -n $file | \
-		## sort -u -k 2,2 --> output uniq rows based on colomn 2 to EOL
+
+		## sort -u -k 2 --> output uniq rows based on colomn 2 to EOL
 		sort -u -k 2 | \
+
 		## sort -n k 1,1 --> output numerical based on column 1
 		sort -n -k 1,1 | \
+
+		## remove linenumbers from file, by showing only second column
 		cut -f 2
+
 }
 
 dedup
