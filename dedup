@@ -1,0 +1,15 @@
+#!/bin/bash
+
+file=$1
+
+dedup() {
+
+	cat -n $file | \
+		## sort -u -k 2,2 --> output uniq rows based on colomn 2 to EOL
+		sort -u -k 2 | \
+		## sort -n k 1,1 --> output numerical based on column 1
+		sort -n -k 1,1 | \
+		cut -f 2
+}
+
+dedup
