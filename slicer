@@ -69,10 +69,16 @@ fi
 # print and wl-copy result
 
 result=$( cut -c $lb_end-$rb_start $file )
-#result=$( cut -z -c $lb_end-$rb_start $file )
+
 printf "$result" | wl-copy
+
+## feedback to user
 if [[ -n $result ]]; then
+
 	printf "'$result'\n${GREEN}added to wl-copy${NOC}\n"
+
 else
+
 	printf "${RED}slicer error: unable to slice\n${NOC}"
+
 fi
