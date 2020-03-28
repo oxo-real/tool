@@ -22,6 +22,7 @@
 
 file=$1
 
+
 dedup() {
 
 	## cat -n --> print file with added linenumbers (used for sorting)
