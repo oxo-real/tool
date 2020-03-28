@@ -1,13 +1,57 @@
 #!/bin/bash
-## mount blockdevice to mountpoint
+#
+##
+###
+###                              _
+###  _ __ ___   ___  _   _ _ __ | |_ _ __
+### | '_ ` _ \ / _ \| | | | '_ \| __| '__|
+### | | | | | | (_) | |_| | | | | |_| |
+### |_| |_| |_|\___/ \__,_|_| |_|\__|_|
+###
+###  _ _|_ _ ._    _  _
+### (_\/|_(_)|_)\/(_|(/_
+###   /      |  /  _|
+###
+### mountr
+### (un)mount blockdevice to mountpoint
+###
+### (c) 2020 cytopyge
+###
+##
+#
+
+
+# usage: via rofi or dmenu
+
+
+# initial definitions
+
+## initialize hardcoded variables
+script_name="mountr"
+initial_release_year="2020"
+source_dir="$HOME/_git/code/snippets/"
+
+
+# sourcing
+for file in $source_dir; do
+	source $file
+done
+
+## get sources
+get_sudo
+read_flags
+reply_functions
+splash_screen
+text_appearance
 
 
 # get block devices that can be mounted
 get_block_devs() {
 	block_devs=$(\
 		lsblk -rpo "name,type,size,mountpoint" | \
-		grep -v nvme | \  ## no nvme devices
-		grep -e disk -e part \  ## disks or partitions
+		grep -v nvme | \ ## exclude non-volatile storage media on
+				  ## peripheral component interconnect express bus
+		grep -e disk -e part \  ## only disks or partitions
 		)
 }
 
