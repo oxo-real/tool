@@ -23,7 +23,7 @@
 # usage: via rofi or dmenu
 
 
-# initial definitions
+# initial general definitions
 
 ## initialize hardcoded variables
 script_name="mountr"
@@ -42,6 +42,9 @@ read_flags
 reply_functions
 splash_screen
 text_appearance
+
+
+# specific function definitions
 
 
 # get mountable source (block) devices
@@ -101,6 +104,11 @@ sel_mountpoint() {
 }
 
 
+validity_check() {
+
+
+
+}
 ## check mountpoint dir existing
 if [[ -d $(ls -A $mp_dir) ]]; then
 	printf "directory does not exist\n"
