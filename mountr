@@ -28,7 +28,7 @@
 ## initialize hardcoded variables
 script_name="mountr"
 initial_release_year="2020"
-source_dir="$HOME/_git/code/snippets/"
+source_dir="$HOME/_git/code/sources/functions"
 
 
 # sourcing
