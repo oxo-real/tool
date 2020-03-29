@@ -77,7 +77,8 @@ sel_source_dev() {
 
 	select source_dev in source_devs_avail;
 	do
-		printf "$source_dev selected"
+		printf "mount $source_dev? (Y/n) "
+
 	done
 
 }
@@ -91,7 +92,8 @@ sel_mountpoint() {
 
 	select mountpoint in mountpoints;
 	do
-		printf "$mountpoint selected"
+		printf "umount $mountpoint? (y/N) "
+
 	done
 
 }
