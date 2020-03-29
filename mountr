@@ -117,12 +117,12 @@ if [[ -n $(ls -A $mp_dir) ]]; then
 	printf "directory not empty\n" && exit
 fi
 
-
-}
-
 ## check mountpoint already mounted
 if [[ -n $( mountpoint $mp_dir | grep not ) ]]; then
 	printf "$mp_dir is already a mountpoint\n"
+
+}
+
 
 ## mount
 
