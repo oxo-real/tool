@@ -44,7 +44,7 @@ splash_screen
 text_appearance
 
 
-# get block devices that can be mounted
+# get sources (block devices) that can be mounted
 get_blk_devs() {
 	blk_devs=$(\
 		lsblk -rpo "name,type,size,mountpoint" | \
@@ -54,6 +54,13 @@ get_blk_devs() {
 		)
 }
 
+
+# get mountpoints that can be unmounted
+get_mps_w_blk_devs() {
+
+
+
+}
 
 # select block device
 sel_blk_dev() {
@@ -91,3 +98,5 @@ if [[ -n $( mountpoint $mp_dir | grep not ) ]]; then
 # umount mountpoint
 
 ## umount
+
+## veracrypt mount / umount
