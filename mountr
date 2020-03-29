@@ -73,7 +73,7 @@ get_mountpoints() {
 
 sel_source_dev() {
 
-	printf "select device\n"
+	printf "select device to mount\n"
 
 	select source_dev in source_devs_avail;
 	do
@@ -88,11 +88,11 @@ sel_source_dev() {
 
 sel_mountpoint() {
 
-	printf "select mountpoint\n"
+	printf "select mountpoint to unmount\n"
 
 	select mountpoint in mountpoints;
 	do
-		printf "umount $mountpoint? (y/N) "
+		printf "unmount $mountpoint? (y/N) "
 
 	done
 
