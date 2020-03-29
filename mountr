@@ -44,9 +44,9 @@ splash_screen
 text_appearance
 
 
-# get sources (block devices) that can be mounted
-get_blk_devs() {
-	blk_devs=$(\
+# get source devices that can be mounted
+get_source_devs() {
+	source_devs_avail=$(\
 		lsblk -rpo "name,type,size,mountpoint" | \
 		grep -v nvme | \ ## exclude non-volatile storage media on
 				  ## peripheral component interconnect express bus
@@ -63,12 +63,12 @@ get_mps_w_blk_devs() {
 }
 
 # select block device
-sel_blk_dev() {
+sel_source_dev() {
 
 	printf "select device\n"
-	select blk_dev in blk_devs
+	select source_dev in source_devs_avail
 	do
-		printf "$blk_dev selected"
+		printf "$source_dev selected"
 	done
 
 }
