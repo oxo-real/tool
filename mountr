@@ -68,7 +68,7 @@ sel_blk_dev() {
 
 
 # get mountpoint
-read mountpoint
+read mp_dir
 
 ## check mountpoint dir existing
 if [[ -d $(ls -A $mp_dir) ]]; then
@@ -81,6 +81,8 @@ if [[ -n $(ls -A $mp_dir) ]]; then
 	printf "directory not empty\n" && exit
 fi
 
+## check mountpoint not already mounted
+if [[
 
 ## mount
 
