@@ -79,7 +79,13 @@ action() {
 	printf "${BOLD}M${NORMAL}ount / ${BOLD}U${NORMAL}nmount? (m/u) \n"
 	reply_hidden
 
-	if $reply == "
+	if [[ "$reply" == "m" ]]; then
+		action="mount"
+	elif [[ "$reply" == "u" ]]; then
+		action="umount"
+	else
+		exit
+	fi
 
 }
 
@@ -135,11 +141,25 @@ validity_check() {
 }
 
 
-## mount
+# mount
 
 
-# umount mountpoint
+# umount
 
-## umount
 
-## veracrypt mount / umount
+# veracrypt mount
+
+veracrypt_mount() {
+
+	veracrypt -t --mount $source_dev
+
+}
+
+
+# veracrypt umount
+
+veracrypt_umount() {
+
+	veracrypt -t -d $mountpoint
+
+}
