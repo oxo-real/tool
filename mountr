@@ -72,6 +72,17 @@ get_mountpoints() {
 }
 
 
+# action: mount or unmount
+
+action() {
+
+	printf "${BOLD}M${NORMAL}ount / ${BOLD}U${NORMAL}nmount? (m/u) \n"
+	reply_hidden
+
+	if $reply == "
+
+}
+
 # mount: select block device
 
 sel_source_dev() {
