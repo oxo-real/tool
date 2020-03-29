@@ -74,6 +74,7 @@ get_mountpoints() {
 sel_source_dev() {
 
 	printf "select device\n"
+
 	select source_dev in source_devs_avail;
 	do
 		printf "$source_dev selected"
