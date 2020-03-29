@@ -69,7 +69,7 @@ get_mountpoints() {
 }
 
 
-# select block device to mount
+# mount: select block device
 
 sel_source_dev() {
 
@@ -85,7 +85,7 @@ sel_source_dev() {
 }
 
 
-# select mountpoint to unmount
+# unmount: select mountpoint
 
 sel_mountpoint() {
 
