@@ -44,7 +44,7 @@ splash_screen
 text_appearance
 
 
-# get source devices that can be mounted
+# get mountable source (block) devices
 get_source_devs() {
 	source_devs_avail=$(\
 		lsblk -rpo "name,type,size,mountpoint" | \
@@ -56,17 +56,17 @@ get_source_devs() {
 
 
 # get mountpoints that can be unmounted
-get_mps_w_blk_devs() {
+get_mountpoints() {
 
-
+	mountpoints=$(findmnt --list -o TARGET,SIZE,SOURCE | grep '/dev/sd*')
 
 }
 
-# select block device
+# select block device to mount
 sel_source_dev() {
 
 	printf "select device\n"
-	select source_dev in source_devs_avail
+	select source_dev in source_devs_avail;
 	do
 		printf "$source_dev selected"
 	done
@@ -74,8 +74,17 @@ sel_source_dev() {
 }
 
 
-# get mountpoint
-read mp_dir
+# select mountpoint to unmount
+sel_mountpoint() {
+
+	printf "select mountpoint\n"
+	select mountpoint in mountpoints;
+	do
+		printf "$mountpoint selected"
+	done
+
+}
+
 
 ## check mountpoint dir existing
 if [[ -d $(ls -A $mp_dir) ]]; then
@@ -90,7 +99,7 @@ fi
 
 ## check mountpoint already mounted
 if [[ -n $( mountpoint $mp_dir | grep not ) ]]; then
-	printf "$mp_dir is a mountpoint\n"
+	printf "$mp_dir is already a mountpoint\n"
 
 ## mount
 
