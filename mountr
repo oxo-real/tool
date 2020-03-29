@@ -45,24 +45,30 @@ text_appearance
 
 
 # get mountable source (block) devices
+
 get_source_devs() {
+
 	source_devs_avail=$(\
 		lsblk -rpo "name,type,size,mountpoint" | \
 		grep -v nvme | \ ## exclude non-volatile storage media on
 				  ## peripheral component interconnect express bus
 		grep -e disk -e part \  ## only disks or partitions
 		)
+
 }
 
 
 # get mountpoints that can be unmounted
+
 get_mountpoints() {
 
 	mountpoints=$(findmnt --list -o TARGET,SIZE,SOURCE | grep '/dev/sd*')
 
 }
 
+
 # select block device to mount
+
 sel_source_dev() {
 
 	printf "select device\n"
@@ -75,6 +81,7 @@ sel_source_dev() {
 
 
 # select mountpoint to unmount
+
 sel_mountpoint() {
 
 	printf "select mountpoint\n"
