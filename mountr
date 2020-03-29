@@ -49,10 +49,12 @@ text_appearance
 get_source_devs() {
 
 	source_devs_avail=$(\
+
 		lsblk -rpo "name,type,size,mountpoint" | \
 		grep -v nvme | \ ## exclude non-volatile storage media on
 				  ## peripheral component interconnect express bus
 		grep -e disk -e part \  ## only disks or partitions
+
 		)
 
 }
