@@ -78,6 +78,7 @@ sel_source_dev() {
 	select source_dev in source_devs_avail;
 	do
 		printf "mount $source_dev? (Y/n) "
+		reply_hidden
 
 	done
 
@@ -93,6 +94,7 @@ sel_mountpoint() {
 	select mountpoint in mountpoints;
 	do
 		printf "unmount $mountpoint? (y/N) "
+		reply_hidden
 
 	done
 
