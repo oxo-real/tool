@@ -36,7 +36,7 @@ for file in $source_dir; do
 	source $file
 done
 
-## get sources
+## get source functions
 get_sudo
 read_flags
 reply_functions
@@ -45,8 +45,8 @@ text_appearance
 
 
 # get block devices that can be mounted
-get_block_devs() {
-	block_devs=$(\
+get_blk_devs() {
+	blk_devs=$(\
 		lsblk -rpo "name,type,size,mountpoint" | \
 		grep -v nvme | \ ## exclude non-volatile storage media on
 				  ## peripheral component interconnect express bus
@@ -56,12 +56,12 @@ get_block_devs() {
 
 
 # select block device
-select_block_dev() {
+sel_blk_dev() {
 
 	printf "select device\n"
-	select block_dev in block_devs
+	select blk_dev in blk_devs
 	do
-		printf "$block_dev selected"
+		printf "$blk_dev selected"
 	done
 
 }
@@ -71,13 +71,13 @@ select_block_dev() {
 read mountpoint
 
 ## check mountpoint dir existing
-if [[ -d $(ls -A $mountpoint_dir) ]]; then
+if [[ -d $(ls -A $mp_dir) ]]; then
 	printf "directory does not exist\n"
-	printf "create $mountpoint_dir? (y/N)\n"
+	printf "create $mp_dir? (y/N)\n"
 fi
 
 ## check mountpoint dir empty
-if [[ -n $(ls -A $mountpoint_dir) ]]; then
+if [[ -n $(ls -A $mp_dir) ]]; then
 	printf "directory not empty\n" && exit
 fi
 
