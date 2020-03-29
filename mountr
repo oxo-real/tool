@@ -112,13 +112,13 @@ if [[ -d $(ls -A $mp_dir) ]]; then
 	printf "create $mp_dir? (y/N)\n"
 fi
 
-
-
-}
 ## check mountpoint dir empty
 if [[ -n $(ls -A $mp_dir) ]]; then
 	printf "directory not empty\n" && exit
 fi
+
+
+}
 
 ## check mountpoint already mounted
 if [[ -n $( mountpoint $mp_dir | grep not ) ]]; then
