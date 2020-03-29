@@ -106,15 +106,15 @@ sel_mountpoint() {
 
 validity_check() {
 
-
-
-}
 ## check mountpoint dir existing
 if [[ -d $(ls -A $mp_dir) ]]; then
 	printf "directory does not exist\n"
 	printf "create $mp_dir? (y/N)\n"
 fi
 
+
+
+}
 ## check mountpoint dir empty
 if [[ -n $(ls -A $mp_dir) ]]; then
 	printf "directory not empty\n" && exit
