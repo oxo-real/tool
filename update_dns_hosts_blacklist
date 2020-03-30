@@ -15,7 +15,7 @@
 ##
 #
 
-source ~/_git/code/snippets/text_appearance
+source ~/_git/code/sources/functions/text_appearance
 timestamp=`date "+%Y%m%d_%H%M%S"`
 
 cd ~/.config/hosts
