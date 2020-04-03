@@ -84,19 +84,19 @@ get_source_devs() {
 
 	source_devs_avail=$(\
 
-		lsblk -nrpo "name,type,size,mountpoint" | \
+		lsblk -nrpo "name,type,size,label,mountpoint" | \
 		## exclude non-volatile storage media on
 		## peripheral component interconnect express bus
 		grep -v nvme | \
 		## only disks or partitions
-		grep -e disk -e part
+		grep -e disk -e part | \
 		## not already mounted
-		awk 'length($3)=0'
+		awk 'length($5)==0' \
 
 		)
 
 	if [[ -z $source_devs_avail ]]; then
-		printf "no applicable source devices detected\n"
+		printf "no mountable source devices detected\n"
 		printf "exiting\n"
 		exit
 	else
@@ -110,25 +110,36 @@ sel_source_dev() {
 
 	## prepare variables
 	list="$source_devs_avail"
-	prompt="select source_device"
+	prompt="mount source_device"
 
 	## call rofi inject
 	rofi_inject
-	source_dev=$rofi_sel
+	source_dev=$(echo $rofi_sel | awk '{print $1}')
+
+	get_mps_mount
 
 }
 
 
 get_mps_mount() {
 
+	mps_avail=$(printf "/boot\n/dock/1\n/dock/2\n/dock/3\n/dock/4\nother")
 
-
+	sel_mp_mount
 }
 
 
 sel_mp_mount() {
 
+	## prepare variables
+	list="$mps_avail"
+	prompt="mount $source_dev to mountpoint"
 
+	## call rofi inject
+	rofi_inject
+	mp_mount=$(echo $rofi_sel | awk '{print $1}')
+
+	mount
 
 }
 
@@ -136,13 +147,13 @@ sel_mp_mount() {
 mount() {
 
 	printf "#TEST mounting now..."
-	#sudo mount $source_dev #[TODO] mountpoint
+	sudo mount $source_dev $mp_mount
 
 }
 
 
 #>>>>>
-#get_source_devs
+get_source_devs
 
 
 #################
@@ -168,9 +179,10 @@ sel_mp_umount() {
 	list="$mps_umount"
 	prompt="U M O U N T "
 
-	## call rofi inject
+	## rofi inject; gives $rofi_sel back
 	rofi_inject
-	mp_umount=$rofi_sel
+	## extract mountpoint from $rofi_sel
+	mp_umount=$(echo $rofi_sel | awk '{print $1}')
 
 	umount
 
@@ -188,9 +200,9 @@ umount() {
 #get_mps_umount
 
 
-#################
-# /U M O U N T  #
-#################
+##################
+# / U M O U N T  #
+##################
 
 
 # action: mount or unmount
