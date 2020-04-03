@@ -71,6 +71,34 @@ rofi_inject() {
 }
 
 
+validity_check() {
+
+	## for mounting
+	## check mountpoint dir existing
+	if [[ -d $(ls -A $mp_mount) ]]; then
+		printf "${RED}directory does not exist${NOC}\n"
+		exit 44
+		#[TODO]printf "create $mp_mount? (y/N)\n"
+	fi
+
+	## check mountpoint already mounted
+	if [[ -z $( mountpoint $mp_mount | grep not ) ]]; then
+		printf "${RED}$mp_mount is already a mountpoint${NOC}\n"
+		exit 44
+	fi
+
+	## check mountpoint dir empty
+	if [[ -n $(ls -A $mp_mount) ]]; then
+		printf "${RED}directory not empty${NOC}\n"
+		exit 44
+		#[TODO] create?
+	fi
+
+	printf "${YELLOW}validity check complete${NOC}\n"
+
+}
+
+
 # specific function definitions
 
 #########
@@ -139,6 +167,7 @@ sel_mp_mount() {
 	rofi_inject
 	mp_mount=$(echo $rofi_sel | awk '{print $1}')
 
+	validity_check
 	mount
 
 }
@@ -146,8 +175,9 @@ sel_mp_mount() {
 
 mount() {
 
-	printf "#TEST mounting now..."
 	sudo mount $source_dev $mp_mount
+
+	printf "${GREEN}$source_dev mounted to $mp_mount\n${NOC}"
 
 }
 
@@ -173,7 +203,7 @@ sel_mp_umount() {
 
 	## prepare variables
 	list="$mps_umount"
-	prompt="U M O U N T "
+	prompt="UMOUNT"
 
 	## rofi inject; gives $rofi_sel back
 	rofi_inject
@@ -202,7 +232,7 @@ umount() {
 action() {
 
 	## prepare variables
-	list="mount\\nvcmount\nUMOUNT"
+	list="mount\nvcmount\n\nvcUMOUNT\nUMOUNT"
 	prompt=""
 
 	## call rofi inject
@@ -211,7 +241,11 @@ action() {
 
 	if [[ "$action" == "UMOUNT" ]]; then
 		get_mps_umount
-	else
+	elif [[ "$action" == "vc_mount" ]]; then
+		vc_mount
+	elif [[ "$action" == "vc_UMOUNT" ]]; then
+		vc_umount
+	elif [[ "$action" == "mount" ]]; then
 		get_source_devs
 	fi
 
@@ -220,31 +254,9 @@ action() {
 action
 
 
-validity_check() {
-
-	## for mounting
-	## check mountpoint dir existing
-	if [[ -d $(ls -A $mp_dir) ]]; then
-		printf "directory does not exist\n"
-		printf "create $mp_dir? (y/N)\n"
-	fi
-
-	## check mountpoint dir empty
-	if [[ -n $(ls -A $mp_dir) ]]; then
-		printf "directory not empty\n" && exit
-	fi
-
-	## check mountpoint already mounted
-	if [[ -n $( mountpoint $mp_dir | grep not ) ]]; then
-		printf "$mp_dir is already a mountpoint\n"
-	fi
-
-}
-
-
 # veracrypt mount
 
-veracrypt_mount() {
+vc_mount() {
 
 	veracrypt -t --mount $source_dev
 
@@ -253,7 +265,7 @@ veracrypt_mount() {
 
 # veracrypt umount
 
-veracrypt_umount() {
+vc_umount() {
 
 	veracrypt -t -d $mountpoint
 
