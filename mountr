@@ -20,7 +20,7 @@
 #
 
 
-# usage: via rofi or dmenu
+# dependencies: cytopyges' source functions & rofi
 
 
 # initial general definitions
@@ -73,6 +73,10 @@ rofi_inject() {
 
 # specific function definitions
 
+#########
+# MOUNT #
+#########
+
 
 # get mountable source (block) devices
 
@@ -80,16 +84,24 @@ get_source_devs() {
 
 	source_devs_avail=$(\
 
-		lsblk -rpo "name,type,size,mountpoint" | \
+		lsblk -nrpo "name,type,size,mountpoint" | \
 		## exclude non-volatile storage media on
 		## peripheral component interconnect express bus
 		grep -v nvme | \
 		## only disks or partitions
 		grep -e disk -e part
+		## not already mounted
+		awk 'length($3)=0'
 
 		)
 
-	sel_source_dev
+	if [[ -z $source_devs_avail ]]; then
+		printf "no applicable source devices detected\n"
+		printf "exiting\n"
+		exit
+	else
+		sel_source_dev
+	fi
 
 }
 
@@ -106,87 +118,101 @@ sel_source_dev() {
 
 }
 
+
+get_mps_mount() {
+
+
+
+}
+
+
+sel_mp_mount() {
+
+
+
+}
+
+
+mount() {
+
+	printf "#TEST mounting now..."
+	#sudo mount $source_dev #[TODO] mountpoint
+
+}
+
+
+#>>>>>
 #get_source_devs
+
+
+#################
+#  U M O U N T  #
+#################
 
 
 # get mountpoints that can be unmounted
 
-get_mountpoints() {
+get_mps_umount() {
 
-	mountpoints=$(findmnt --list -o TARGET,SIZE,SOURCE | grep '/dev/sd')
+	## for umount
+	mps_umount=$(findmnt --list -o TARGET,SIZE,SOURCE | grep '/dev/sd')
 
-	sel_mountpoint
+	sel_mp_umount
 
 }
 
 
-sel_mountpoint() {
+sel_mp_umount() {
 
 	## prepare variables
-	list="$mountpoints"
-	prompt="select mountpoint"
+	list="$mps_umount"
+	prompt="U M O U N T "
 
 	## call rofi inject
 	rofi_inject
-	mountpoint=$rofi_sel
+	mp_umount=$rofi_sel
+
+	umount
 
 }
 
-#get_mountpoints
 
+umount() {
+
+	sudo umount $mp_umount
+
+}
+
+
+#>>>>>
+#get_mps_umount
+
+
+#################
+# /U M O U N T  #
+#################
 
 
 # action: mount or unmount
 
 action() {
 
-	printf "${BOLD}m${NORMAL}ount / ${BOLD}u${NORMAL}nmount? (m/u) \n"
-	reply_hidden
+	## prepare variables
+	list="${BOLD}m${NORMAL}ount\\n${BOLD}u${NORMAL}nmount"
+	prompt=""
 
-	if [[ "$reply" == "m" ]]; then
-		action="mount"
-	elif [[ "$reply" == "u" ]]; then
-		action="umount"
-	else
-		exit
-	fi
+	## call rofi inject
+	rofi_inject
+	action=$rofi_sel
 
-}
-
-# mount: select block device
-
-sel_source_dev() {
-
-	printf "select device to mount\n"
-
-	select source_dev in source_devs_avail;
-	do
-		printf "mount $source_dev? (Y/n) "
-		reply_hidden
-
-	done
-
-}
-
-
-# unmount: select mountpoint
-
-sel_mountpoint() {
-
-	printf "select mountpoint to unmount\n"
-
-	select mountpoint in mountpoints;
-	do
-		printf "unmount $mountpoint? (y/N) "
-		reply_hidden
-
-	done
+	#if [[ $action
 
 }
 
 
 validity_check() {
 
+	## for mounting
 	## check mountpoint dir existing
 	if [[ -d $(ls -A $mp_dir) ]]; then
 		printf "directory does not exist\n"
