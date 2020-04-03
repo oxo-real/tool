@@ -152,10 +152,6 @@ mount() {
 }
 
 
-#>>>>>
-get_source_devs
-
-
 #################
 #  U M O U N T  #
 #################
@@ -196,10 +192,6 @@ umount() {
 }
 
 
-#>>>>>
-#get_mps_umount
-
-
 ##################
 # / U M O U N T  #
 ##################
@@ -210,16 +202,22 @@ umount() {
 action() {
 
 	## prepare variables
-	list="${BOLD}m${NORMAL}ount\\n${BOLD}u${NORMAL}nmount"
+	list="mount\\nvcmount\nUMOUNT"
 	prompt=""
 
 	## call rofi inject
 	rofi_inject
 	action=$rofi_sel
 
-	#if [[ $action
+	if [[ "$action" == "UMOUNT" ]]; then
+		get_mps_umount
+	else
+		get_source_devs
+	fi
 
 }
+
+action
 
 
 validity_check() {
@@ -242,11 +240,6 @@ validity_check() {
 	fi
 
 }
-
-# mount
-
-
-# umount
 
 
 # veracrypt mount
