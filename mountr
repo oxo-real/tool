@@ -37,11 +37,30 @@ source_dir="$HOME/_git/code/sources/functions"
 #done
 
 ## get source functions
+#text_appearance
 #get_sudo
 #rofi_inject
 #reply_functions
 #splash_screen
-#text_appearance
+
+
+text_appearance() {
+
+	source $source_dir/text_appearance
+
+}
+
+
+get_sudo() {
+
+	source $source_dir/get_sudo
+	get_sudo
+
+}
+
+
+text_appearance
+get_sudo
 
 
 # call rofi_inject
@@ -70,35 +89,58 @@ get_source_devs() {
 
 		)
 
-		## prepare variables
-		printf "$source_devs_avail\n"
-		list="$source_devs_avail"
-		prompt="source_device?"
-
-		## call rofi inject
-		rofi_inject
+	sel_source_dev
 
 }
-###[TEST]###
-get_source_devs
-printf "$selection\n"
-exit
+
+
+sel_source_dev() {
+
+	## prepare variables
+	list="$source_devs_avail"
+	prompt="select source_device"
+
+	## call rofi inject
+	rofi_inject
+	source_dev=$rofi_sel
+
+}
+
+#get_source_devs
 
 
 # get mountpoints that can be unmounted
 
 get_mountpoints() {
 
-	mountpoints=$(findmnt --list -o TARGET,SIZE,SOURCE | grep '/dev/sd*')
+	mountpoints=$(findmnt --list -o TARGET,SIZE,SOURCE | grep '/dev/sd')
+
+	sel_mountpoint
 
 }
+
+
+sel_mountpoint() {
+
+	## prepare variables
+	list="$mountpoints"
+	prompt="select mountpoint"
+
+	## call rofi inject
+	rofi_inject
+	mountpoint=$rofi_sel
+
+}
+
+#get_mountpoints
+
 
 
 # action: mount or unmount
 
 action() {
 
-	printf "${BOLD}M${NORMAL}ount / ${BOLD}U${NORMAL}nmount? (m/u) \n"
+	printf "${BOLD}m${NORMAL}ount / ${BOLD}u${NORMAL}nmount? (m/u) \n"
 	reply_hidden
 
 	if [[ "$reply" == "m" ]]; then
@@ -159,9 +201,9 @@ validity_check() {
 	## check mountpoint already mounted
 	if [[ -n $( mountpoint $mp_dir | grep not ) ]]; then
 		printf "$mp_dir is already a mountpoint\n"
+	fi
 
 }
-
 
 # mount
 
