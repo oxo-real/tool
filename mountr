@@ -53,6 +53,9 @@ text_appearance() {
 
 get_sudo() {
 
+	# inverted text to indicate rofi script
+	printf "\e[7m $script_name \e[27m\n"
+
 	source $source_dir/get_sudo
 	get_sudo
 
