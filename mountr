@@ -32,16 +32,24 @@ source_dir="$HOME/_git/code/sources/functions"
 
 
 # sourcing
-for file in $source_dir; do
-	source $file
-done
+#for file in $source_dir/*; do
+#	source $file
+#done
 
 ## get source functions
-get_sudo
-read_flags
-reply_functions
-splash_screen
-text_appearance
+#get_sudo
+#rofi_inject
+#reply_functions
+#splash_screen
+#text_appearance
+
+
+# call rofi_inject
+rofi_inject() {
+
+	source $source_dir/rofi_inject
+
+}
 
 
 # specific function definitions
@@ -54,13 +62,27 @@ get_source_devs() {
 	source_devs_avail=$(\
 
 		lsblk -rpo "name,type,size,mountpoint" | \
-		grep -v nvme | \ ## exclude non-volatile storage media on
-				  ## peripheral component interconnect express bus
-		grep -e disk -e part \  ## only disks or partitions
+		## exclude non-volatile storage media on
+		## peripheral component interconnect express bus
+		grep -v nvme | \
+		## only disks or partitions
+		grep -e disk -e part
 
 		)
 
+		## prepare variables
+		printf "$source_devs_avail\n"
+		list="$source_devs_avail"
+		prompt="source_device?"
+
+		## call rofi inject
+		rofi_inject
+
 }
+###[TEST]###
+get_source_devs
+printf "$selection\n"
+exit
 
 
 # get mountpoints that can be unmounted
