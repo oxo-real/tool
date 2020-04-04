@@ -63,7 +63,7 @@ get_sudo() {
 
 
 text_appearance
-get_sudo
+#get_sudo
 
 
 # call rofi_inject
@@ -127,11 +127,9 @@ get_source_devs() {
 		)
 
 	if [[ -z $source_devs_avail ]]; then
-		printf "no mountable source devices detected\n"
+		printf "${RED}no mountable source devices detected${NOC}\n"
 		printf "exiting\n"
 		exit
-	else
-		sel_source_dev
 	fi
 
 }
@@ -147,8 +145,6 @@ sel_source_dev() {
 	rofi_inject
 	source_dev=$(echo $rofi_sel | awk '{print $1}')
 
-	get_mps_mount
-
 }
 
 
@@ -156,7 +152,6 @@ get_mps_mount() {
 
 	mps_avail=$(printf "/boot\n/dock/1\n/dock/2\n/dock/3\n/dock/4\nother")
 
-	sel_mp_mount
 }
 
 
@@ -170,9 +165,6 @@ sel_mp_mount() {
 	rofi_inject
 	mp_mount=$(echo $rofi_sel | awk '{print $1}')
 
-	validity_check
-	mount
-
 }
 
 
@@ -180,7 +172,7 @@ mount() {
 
 	sudo mount $source_dev $mp_mount
 
-	printf "${GREEN}$source_dev mounted to $mp_mount\n${NOC}"
+	printf "${GREEN}$source_dev mounted to $mp_mount${NOC}\n"
 
 }
 
@@ -197,8 +189,6 @@ get_mps_umount() {
 	## for umount
 	mps_umount=$(findmnt --list -o TARGET,SIZE,SOURCE | grep '/dev/sd')
 
-	sel_mp_umount
-
 }
 
 
@@ -212,8 +202,7 @@ sel_mp_umount() {
 	rofi_inject
 	## extract mountpoint from $rofi_sel
 	mp_umount=$(echo $rofi_sel | awk '{print $1}')
-
-	umount
+	source_dev=$(echo $rofi_sel | awk '{print $3}')
 
 }
 
@@ -221,6 +210,8 @@ sel_mp_umount() {
 umount() {
 
 	sudo umount $mp_umount
+
+	printf "${GREEN}$source_dev unmounted from $mp_umount${NOC}\n"
 
 }
 
@@ -230,38 +221,13 @@ umount() {
 ##################
 
 
-# action: mount or unmount
-
-action() {
-
-	## prepare variables
-	list="mount\nvcmount\n\nvcUMOUNT\nUMOUNT"
-	prompt=""
-
-	## call rofi inject
-	rofi_inject
-	action=$rofi_sel
-
-	if [[ "$action" == "UMOUNT" ]]; then
-		get_mps_umount
-	elif [[ "$action" == "vc_mount" ]]; then
-		vc_mount
-	elif [[ "$action" == "vc_UMOUNT" ]]; then
-		vc_umount
-	elif [[ "$action" == "mount" ]]; then
-		get_source_devs
-	fi
-
-}
-
-action
-
-
 # veracrypt mount
 
 vc_mount() {
 
 	veracrypt -t --mount $source_dev
+
+	printf "${GREEN}$source_dev mounted to $mp_mount${NOC}\n"
 
 }
 
@@ -270,6 +236,51 @@ vc_mount() {
 
 vc_umount() {
 
-	veracrypt -t -d $mountpoint
+	veracrypt -t -d $mp_umount
+
+	printf "${GREEN}$source_dev unmounted from $mp_umount${NOC}\n"
 
 }
+
+
+# action: mount or unmount
+
+action() {
+
+	## prepare variables
+	list="mount\nvcmount\nvcUMOUNT\nUMOUNT"
+	prompt=""
+
+	## call rofi inject
+	rofi_inject
+	action=$rofi_sel
+
+	if [[ "$action" == "mount" ]]; then
+		get_source_devs
+		sel_source_dev
+		get_mps_mount
+		sel_mp_mount
+		validity_check
+		mount
+		exit 0
+	elif [[ "$action" == "UMOUNT" ]]; then
+		get_mps_umount
+		sel_mp_umount
+		umount
+		exit 0
+	elif [[ "$action" == "vcmount" ]]; then
+		get_source_devs
+		sel_source_dev
+		vc_mount
+		exit 0
+	elif [[ "$action" == "vcUMOUNT" ]]; then
+		get_mps_umount
+		sel_mp_umount
+		vc_umount
+		exit 0
+
+	fi
+
+}
+
+action
