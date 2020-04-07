@@ -31,4 +31,7 @@ git add $HOME/.config/hosts/hosts
 git commit -a -m "updated with script $timestamp"
 sudo ln -sf ~/.config/hosts/hosts /etc/hosts
 printf "${GREEN}update dns hosts blacklist succesfull${NOC}\n"
+[[ -f $HOME/_git/private/code/tools/custom_blacklist ]] && \
+	sh $HOME/_git/private/code/tools/custom_blacklist && \
+	printf "blacklist customized\n"
 exit 0
