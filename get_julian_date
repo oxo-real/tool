@@ -1,0 +1,5 @@
+#!/bin/bash
+# 19700101_000000 ^= 0 Unix Epoch ^= 2440587.5 JD
+timestamp=$(date +%s)
+julian_date=`echo "$timestamp/(24*60*60)+2440587.5" | bc -l`
+printf "JD=$julian_date\n"

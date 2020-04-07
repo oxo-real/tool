@@ -172,10 +172,14 @@ mount() {
 
 	sudo mount $source_dev $mp_mount
 
+}
+
+
+mount_info() {
+
 	printf "${GREEN}$source_dev mounted to $mp_mount${NOC}\n"
 
 }
-
 
 #################
 #  U M O U N T  #
@@ -211,11 +215,14 @@ umount() {
 
 	sudo umount $mp_umount
 
-	printf "${GREEN}$source_dev unmounted from $mp_umount${NOC}\n"
-
 }
 
 
+umount_info() {
+
+	printf "${GREEN}$source_dev unmounted from $mp_umount${NOC}\n"
+
+}
 ##################
 # / U M O U N T  #
 ##################
@@ -227,8 +234,6 @@ vc_mount() {
 
 	veracrypt -t --mount $source_dev
 
-	printf "${GREEN}$source_dev mounted to $mp_mount${NOC}\n"
-
 }
 
 
@@ -237,8 +242,6 @@ vc_mount() {
 vc_umount() {
 
 	veracrypt -t -d $mp_umount
-
-	printf "${GREEN}$source_dev unmounted from $mp_umount${NOC}\n"
 
 }
 
@@ -262,21 +265,26 @@ action() {
 		sel_mp_mount
 		validity_check
 		mount
+		mount_info
 		exit 0
 	elif [[ "$action" == "UMOUNT" ]]; then
 		get_mps_umount
 		sel_mp_umount
 		umount
+		umount_info
 		exit 0
 	elif [[ "$action" == "vcmount" ]]; then
 		get_source_devs
 		sel_source_dev
+		$HOME/_git/private/code/security/hmac
 		vc_mount
+		mount_info
 		exit 0
 	elif [[ "$action" == "vcUMOUNT" ]]; then
 		get_mps_umount
 		sel_mp_umount
 		vc_umount
+		umount_info
 		exit 0
 
 	fi
