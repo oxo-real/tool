@@ -63,7 +63,7 @@ get_sudo() {
 
 
 text_appearance
-#get_sudo
+get_sudo
 
 
 # call rofi_inject
@@ -78,7 +78,7 @@ validity_check() {
 
 	## for mounting
 	## check mountpoint dir existing
-	if [[ -d $(ls -A $mp_mount) ]]; then
+	if [[ ! -d $mp_mount ]]; then
 		printf "${RED}directory does not exist${NOC}\n"
 		exit 44
 		#[TODO]printf "create $mp_mount? (y/N)\n"
@@ -175,6 +175,27 @@ mount() {
 }
 
 
+remount_options() {
+
+	## prepare variables
+	list=$(printf "ro\nrw")
+	prompt="REmount options:"
+
+	## rofi inject; gives $rofi_sel back
+	rofi_inject
+	## extract option from $rofi_sel
+	rorw=$rofi_sel
+
+}
+
+
+remount() {
+
+	sudo mount -o remount,$rorw  $mp_umount
+
+}
+
+
 mount_info() {
 
 	printf "${GREEN}$source_dev mounted to $mp_mount${NOC}\n"
@@ -232,8 +253,9 @@ umount_info() {
 
 vc_mount() {
 
-	veracrypt -t --mount $source_dev
-
+	#to_buffer="veracrypt -t --mount $source_dev"
+	#print -z "$to_buffer"
+	#zsh _prefill() LBUFFER+="$to_buffer"
 }
 
 
@@ -251,7 +273,7 @@ vc_umount() {
 action() {
 
 	## prepare variables
-	list="mount\nvcmount\nvcUMOUNT\nUMOUNT"
+	list="mount\nvcmount\nREmount\nvcUMOUNT\nUMOUNT"
 	prompt=""
 
 	## call rofi inject
@@ -272,6 +294,15 @@ action() {
 		sel_mp_umount
 		umount
 		umount_info
+		exit 0
+	elif [[ "$action" == "REmount" ]]; then
+		#get_source_devs
+		#sel_source_dev
+		get_mps_umount
+		sel_mp_umount
+		remount_options
+		remount
+		#mount_info
 		exit 0
 	elif [[ "$action" == "vcmount" ]]; then
 		get_source_devs
