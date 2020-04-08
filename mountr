@@ -242,10 +242,13 @@ umount() {
 umount_info() {
 
 	printf "${GREEN}$source_dev unmounted from $mp_umount${NOC}\n"
+	exit 0
 
 }
+
+
 ##################
-# / U M O U N T  #
+# V C M O U N T  #
 ##################
 
 
@@ -253,9 +256,11 @@ umount_info() {
 
 vc_mount() {
 
+	echo
 	#to_buffer="veracrypt -t --mount $source_dev"
 	#print -z "$to_buffer"
 	#zsh _prefill() LBUFFER+="$to_buffer"
+
 }
 
 
