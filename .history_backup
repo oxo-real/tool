@@ -1,0 +1,29 @@
+#!/bin/bash
+
+timestamp="`date "+%Y%m%d_%H%M%S"`"
+
+# file locations
+
+## original
+h_location="$HOME/_data/journal/history"
+h_file=".history"
+history_file="$h_location/$h_file"
+
+# backups
+
+### local
+hl_backup_location="$HOME/_backup/data/journal/history"
+hl_backup_file=""$timestamp"_history.bu"
+history_local_backup_file="$hl_backup_location/$hl_backup_file"
+
+### for remote (encrypted) backup
+hr_backup_location="$HOME/_git/private/notes/history/archive"
+hr_backup_file=""$timestamp"_history.chacha20"
+history_remote_backup_file="$hr_backup_location/$hr_backup_file"
+
+## local backup
+cp $history_file $history_local_backup_file
+
+## remote backup
+touch $history_remote_backup_file
+openssl enc -chacha20 -salt -pbkdf2 -in $history_file -out $history_remote_backup_file
