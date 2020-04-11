@@ -1,18 +1,38 @@
 #!/bin/bash
 
-target=$1
+passes=10
 
+for target in "$@"; do
 
-# ten passes overwrite files with random data
+	## all files in target
+	#all_files=$(find $target -depth -type f)
 
-shred -n 9 -v $target
+	## nine passes overwrite files with random data
+	#shred -n 9 -v $target
+	find $target -depth -type f -exec shred -n $passes -v {} \;
 
+	## sync disk buffers
+	sync
 
-# sync disk buffers
+	## final pass overwrite with zero data and remove files
+	#shred -n 0 -vuz $target
+	find $target -depth -type f -exec shred -n 0 -v {} \;
 
-sync
+	## nine passes overwrite directory names with zeroes
+	#for (( i=1; i<=$passes; i++ ))
+	#do
+	##for i in {1..$total_passes}; do
+	#	printf "$passes\n"
+	#	counter=$(( $passes - $i ))
+	#	printf "$counter\n"
+	#
+	#	#dir_name=$(printf "%0.s0" {1..$name} $(seq 1 $name))
+	#	tmp_dir_name=$(printf "%0.s0" $(seq 1 $counter))
+	#	printf "mv: $target: pass 1/$passes ($tmp_dir_name)...\n"
+	#	find $target -depth -type d -exec mv -fv {} $tmp_dir_name \;
+	#done
 
+	## remove all subdirs
+	sudo rm -rfv $target
 
-# final pass overwrite with zero data and remove files
-
-shred -n 0 -vuz $target
+done
