@@ -1,0 +1,18 @@
+#!/bin/bash
+
+target=$1
+
+
+# ten passes overwrite files with random data
+
+shred -n 9 -v $target
+
+
+# sync disk buffers
+
+sync
+
+
+# final pass overwrite with zero data and remove files
+
+shred -n 0 -vuz $target
