@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# run this script when logged in as superuser (i.e. sudo su)
+
+user_home_dir="/home/cytopyge"
+
+cd /root
+
+ln -s $user_home_dir/.vimrc .vimrc
+ln -s $user_home_dir/.zshrc .zshrc
+ln -s $user_home_dir/.dot/ .dot
+
+zsh
