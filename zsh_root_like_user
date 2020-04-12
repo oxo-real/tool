@@ -9,5 +9,8 @@ cd /root
 ln -s $user_home_dir/.vimrc .vimrc
 ln -s $user_home_dir/.zshrc .zshrc
 ln -s $user_home_dir/.dot/ .dot
+ln -s $user_home_dir/.dot/ .dot
+#mkdir -p /root/_data/journal/history/.history
+#ln -s $user_home_dir/_data/journal/history/.history /root/_data/journal/history/.history
 
 zsh
