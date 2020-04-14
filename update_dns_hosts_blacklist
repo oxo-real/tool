@@ -32,12 +32,13 @@ create_git_repo() {
 	git init
 	git add .
 	git commit -m 'initial_commit'
+	rm remove_me
 
 	## create branch bl_off and copy original etc_hosts
 	git branch blacklist_off
 	## copy original etc/hosts to bl_off
 	git checkout blacklist_off
-	sudo cp /etc/hosts .
+	[[ -f /etc/hosts ]] && sudo cp /etc/hosts .
 	git add .
 	git commit -m 'created branch blacklist_off'
 
@@ -63,6 +64,6 @@ sudo ln -sf ~/.config/hosts/hosts /etc/hosts
 
 printf "${GREEN}update dns hosts blacklist succesfull${NOC}\n"
 #[[ -f $HOME/_git/private/code/tools/custom_blacklist ]] && \
-	sh $HOME/_git/private/code/tools/custom_blacklist && \
-	printf "blacklist customized\n"
+#	sh $HOME/_git/private/code/tools/custom_blacklist && \
+#	printf "blacklist customized\n"
 exit 0
