@@ -16,22 +16,53 @@
 ##
 #
 
-source ~/_git/code/sources/functions/text_appearance
+
+## usage: cd ~/.config/hosts && git checkout blacklist_off
+## usage: cd ~/.config/hosts && git checkout blacklist_on
+
+
+source $HOME/_git/code/sources/functions/text_appearance
 timestamp=`date "+%Y%m%d_%H%M%S"`
+loc_blacklist="$HOME/.config/hosts"
 
-[[ ! -d $HOME/.config/hosts ]] && \
-	cd $HOME/.config && \
-	git clone https://github.com/StevenBlack/hosts
+create_git_repo() {
+	mkdir -p $loc_blacklist
+	cd $loc_blacklist
+	touch remove_me
+	git init
+	git add .
+	git commit -m 'initial_commit'
 
-cd $HOME/.config/hosts
-git checkout blacklist
-cp hosts archive/$timestamp_archived_hosts
+	## create branch bl_off and copy original etc_hosts
+	git branch blacklist_off
+	## copy original etc/hosts to bl_off
+	git checkout blacklist_off
+	sudo cp /etc/hosts .
+	git add .
+	git commit -m 'created branch blacklist_off'
+
+	## create branch bl_on ...
+	git branch blacklist_on
+	git checkout blacklist_on
+	git add .
+	git commit -m 'created branch blacklist_on'
+
+}
+
+[[ ! -d $loc_blacklist ]] && create_git_repo
+
+
+## ... copy THE blacklist to bl_on
+git checkout blacklist_on
 curl https://raw.githubusercontent.com/StevenBlack/hosts/master/alternates/fakenews-gambling-porn-social/hosts > ~/.config/hosts/hosts
-git add $HOME/.config/hosts/hosts
-git commit -a -m "updated with script $timestamp"
+git add .
+git commit -a -m "$timestamp blacklist updated with script"
+
+## symlink /etc/hosts to blacklist
 sudo ln -sf ~/.config/hosts/hosts /etc/hosts
+
 printf "${GREEN}update dns hosts blacklist succesfull${NOC}\n"
-[[ -f $HOME/_git/private/code/tools/custom_blacklist ]] && \
+#[[ -f $HOME/_git/private/code/tools/custom_blacklist ]] && \
 	sh $HOME/_git/private/code/tools/custom_blacklist && \
 	printf "blacklist customized\n"
 exit 0
