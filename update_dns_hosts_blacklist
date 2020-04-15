@@ -51,10 +51,11 @@ create_git_repo() {
 }
 
 [[ ! -d $loc_blacklist ]] && create_git_repo
+cd $loc_blacklist
 
 
 ## ... copy THE blacklist to bl_on
-git checkout blacklist_on
+git checkout -f blacklist_on
 curl https://raw.githubusercontent.com/StevenBlack/hosts/master/alternates/fakenews-gambling-porn-social/hosts > ~/.config/hosts/hosts
 git add .
 git commit -a -m "$timestamp blacklist updated with script"
