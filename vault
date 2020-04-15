@@ -1,0 +1,92 @@
+#!/bin/bash
+
+set -e
+
+# options
+option=$1
+# encrypted blob
+## file name
+vault=$2
+mountpoint=$3
+## file size
+size=$4
+
+
+create() {
+
+	dd if=/dev/random of=$vault bs=1M count=$size status=progress
+	cryptsetup -y luksFormat $vault
+	file $vault
+
+}
+
+
+open_luks() {
+
+	mapping_name="vault"
+	sudo cryptsetup open $vault $mapping_name
+
+}
+
+
+make_fs () {
+
+	sudo mkfs.ext4 -L $mapping_name -j /dev/mapper/$mapping_name
+
+}
+
+
+mount() {
+
+	sudo mount /dev/mapper/$mapping_name $mountpoint
+
+}
+
+
+permissions() {
+
+	sudo chown -R cytopyge:wheel $mountpoint
+
+}
+
+
+umount() {
+
+	sudo umount $mountpoint
+
+}
+
+
+close_luks() {
+
+	cryptsetup close $mapping_name #$vault?
+
+}
+
+
+clear_cache() {
+
+	sudo sysctl --write vm/drop_caches=3
+
+}
+
+#create
+if [[ $option == "open" ]]; then
+	open_luks
+	mount
+	permissions
+fi
+
+if [[ $option == "close" ]]; then
+	umount
+	close_luks
+	clear_cache
+fi
+
+if [[ $option == "create" ]]; then
+	create
+	open_luks
+	make_fs
+	mount
+	permissions
+fi
