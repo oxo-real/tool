@@ -1,43 +1,50 @@
 #!/bin/bash
 
+# usage: sudo sh vault open <vault_file> <mountpoint>
+# usage: sudo sh vault close <vault_file>
+# usage: sudo sh vault create <vault_file> <size>
+
 set -e
 
-# options
+# options (open, close, create)
 option=$1
-# encrypted blob
-## file name
-vault=$2
-mountpoint=$3
-## file size
-size=$4
+# vault file name
+vault_file=$2
+# create traceable /dev/mapper name
+mapping_name="v_$(date +%H%M%S)"
 
 
 create() {
 
-	dd if=/dev/random of=$vault bs=1M count=$size status=progress
-	cryptsetup -y luksFormat $vault
-	file $vault
+	printf "writing random data to $vault_file\n"
+	dd if=/dev/random of=$vault_file bs=1M count=$size status=progress
+	printf "setting up luks on $vault_file\n"
+	cryptsetup -y luksFormat $vault_file
+	printf "validating $vault_file:"
+	file $vault_file
 
 }
 
 
 open_luks() {
 
-	mapping_name="vault"
-	sudo cryptsetup open $vault $mapping_name
+	printf "opening luks $vault_file to $mapping_name\n"
+	sudo cryptsetup open $vault_file $mapping_name
 
 }
 
 
 make_fs () {
 
-	sudo mkfs.ext4 -L $mapping_name -j /dev/mapper/$mapping_name
+	printf "writing ext4 filesystem to /dev/mapper/$mapping_name\n"
+	sudo mkfs.ext4 -L VAULT -j /dev/mapper/$mapping_name
 
 }
 
 
-mount() {
+mounting() {
 
+	printf "mounting /dev/mapper/$mapping_name to $mountpoint\n"
 	sudo mount /dev/mapper/$mapping_name $mountpoint
 
 }
@@ -45,13 +52,16 @@ mount() {
 
 permissions() {
 
+	printf "write permission to $mountpoint\n"
 	sudo chown -R cytopyge:wheel $mountpoint
 
 }
 
 
-umount() {
+umounting() {
 
+	mountpoint=$(mount -l | grep 'v_[0-9][0-9][0-9][0-9][0-9][0-9]' | awk '{print $3}')
+	printf "unmounting $mountpoint\n"
 	sudo umount $mountpoint
 
 }
@@ -59,34 +69,51 @@ umount() {
 
 close_luks() {
 
-	cryptsetup close $mapping_name #$vault?
+	mapping_name=$(lsblk -lp | grep 'v_[0-9][0-9][0-9][0-9][0-9][0-9]' | awk '{print $1}')
+	printf "closing luks $mapping_name\n"
+	sudo cryptsetup close $mapping_name
 
 }
 
 
 clear_cache() {
 
+	printf "clearing cache\n"
 	sudo sysctl --write vm/drop_caches=3
 
 }
 
-#create
-if [[ $option == "open" ]]; then
-	open_luks
-	mount
-	permissions
-fi
-
-if [[ $option == "close" ]]; then
-	umount
-	close_luks
-	clear_cache
-fi
 
 if [[ $option == "create" ]]; then
+
+	size=$3
+	[[ $size -lt 18 ]] && \
+	# to prevent error: 'Requested offset is beyond real size of device'
+	printf "minimum vault size is 18 MB\n" && exit 18
+
 	create
 	open_luks
 	make_fs
-	mount
+	close_luks
+
+fi
+
+
+if [[ $option == "open" ]]; then
+
+	mountpoint=$3
+
+	open_luks
+	mounting
 	permissions
+
+fi
+
+
+if [[ $option == "close" ]]; then
+
+	umounting
+	close_luks
+	clear_cache
+
 fi
