@@ -19,6 +19,7 @@ source $HOME/_git/code/sources/functions/reply_functions
 check_file_exists() {
 
 	if [[ -f $vault_file ]]; then
+
 		printf "$vault_file already exists!\n"
 		printf "overwrite? (y/N) "
 		reply_single
@@ -32,10 +33,14 @@ check_file_exists() {
 			echo
 
 			if printf "$reply" | grep -iq "^y"; then
-				create
+
+				return
+
 			else
+
 				printf "abort overwriting $vault_file\n"
 				exit 11
+
 			fi
 
 		else
@@ -44,6 +49,7 @@ check_file_exists() {
 			exit 2
 
 		fi
+
 	fi
 
 }
@@ -51,6 +57,7 @@ check_file_exists() {
 
 create() {
 
+	echo
 	printf "writing random data to $vault_file\n"
 	dd \
 		if=/dev/random \
@@ -59,7 +66,10 @@ create() {
 		count=$size \
 		iflag=fullblock \
 		status=progress
+
+	echo
 	printf "setting up crypto on $vault_file\n"
+
 	## luks2
 	cryptsetup -y luksFormat $vault_file
 	## plain dm-crypt
@@ -73,6 +83,7 @@ create() {
 	##	--key-file=/dev/sdX \
 	#	--keyfile-offset=0 \
 	#	$vault_file enc
+	echo
 	printf "validating $vault_file:\n"
 	file $vault_file
 
@@ -81,6 +92,7 @@ create() {
 
 open_luks() {
 
+	echo
 	printf "opening luks $vault_file to $mapping_name\n"
 	sudo cryptsetup open $vault_file $mapping_name
 
@@ -89,6 +101,7 @@ open_luks() {
 
 make_fs () {
 
+	echo
 	printf "writing ext4 filesystem to /dev/mapper/$mapping_name\n"
 	sudo mkfs.ext4 -L VAULT -j /dev/mapper/$mapping_name
 
@@ -139,13 +152,12 @@ clear_cache() {
 
 if [[ $option == "create" ]]; then
 
-	check_file_exists
-
 	size=$3
 	[[ $size -lt 18 ]] && \
 	# to prevent error: 'Requested offset is beyond real size of device'
 	printf "minimum vault size is 18 MB\n" && exit 18
 
+	check_file_exists
 	create
 	open_luks
 	make_fs
