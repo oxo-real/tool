@@ -38,7 +38,7 @@ create() {
 	##	--key-file=/dev/sdX \
 	#	--keyfile-offset=0 \
 	#	$vault_file enc
-	printf "validating $vault_file:"
+	printf "validating $vault_file:\n"
 	file $vault_file
 
 }
