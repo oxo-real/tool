@@ -103,7 +103,8 @@ make_fs () {
 
 	echo
 	printf "writing ext4 filesystem to /dev/mapper/$mapping_name\n"
-	sudo mkfs.ext4 -L VAULT -j /dev/mapper/$mapping_name
+	mkfs.ext4 -L VAULT -j /dev/mapper/$mapping_name
+	#sudo mkfs.ext4 -L VAULT -j /dev/mapper/$mapping_name
 
 }
 
@@ -119,13 +120,14 @@ mounting() {
 permissions() {
 
 	printf "write permission to $mountpoint\n"
-	sudo chown -R cytopyge:wheel $mountpoint
+	sudo chown -R $USER:wheel $mountpoint
 
 }
 
 
 umounting() {
 
+	# TODO ugly! no uniqueness with more than 1 mounted vault
 	mountpoint=$(mount -l | grep 'v_[0-9][0-9][0-9][0-9][0-9][0-9]' | awk '{print $3}')
 	printf "unmounting $mountpoint\n"
 	sudo umount $mountpoint
@@ -156,12 +158,18 @@ if [[ $option == "create" ]]; then
 	[[ $size -lt 18 ]] && \
 	# to prevent error: 'Requested offset is beyond real size of device'
 	printf "minimum vault size is 18 MB\n" && exit 18
+	# temporary mountpoint
+	mountpoint="$HOME/_temp/vltmp"
+	mkdir -p "$mountpoint"
 
 	check_file_exists
 	create
 	open_luks
 	make_fs
+	permissions
 	close_luks
+
+	rmdir "$mountpoint"
 
 fi
 
@@ -172,7 +180,6 @@ if [[ $option == "open" ]]; then
 
 	open_luks
 	mounting
-	permissions
 
 fi
 
