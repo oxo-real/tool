@@ -103,8 +103,7 @@ make_fs () {
 
 	echo
 	printf "writing ext4 filesystem to /dev/mapper/$mapping_name\n"
-	mkfs.ext4 -L VAULT -j /dev/mapper/$mapping_name
-	#sudo mkfs.ext4 -L VAULT -j /dev/mapper/$mapping_name
+	sudo mkfs.ext4 -L VAULT -j /dev/mapper/$mapping_name
 
 }
 
