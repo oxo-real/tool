@@ -14,6 +14,41 @@ vault_file=$2
 mapping_name="v_$(date +%H%M%S)"
 
 
+source $HOME/_git/code/sources/functions/reply_functions
+
+check_file_exists() {
+
+	if [[ -f $vault_file ]]; then
+		printf "$vault_file already exists!\n"
+		printf "overwrite? (y/N) "
+		reply_single
+		echo
+
+		if printf "$reply" | grep -iq "^y"; then
+
+			printf "about to overwrite $vault_file\n"
+			printf "sure? (y/N) "
+			reply_single
+			echo
+
+			if printf "$reply" | grep -iq "^y"; then
+				create
+			else
+				printf "abort overwriting $vault_file\n"
+				exit 11
+			fi
+
+		else
+
+			printf "abort overwriting $vault_file\n"
+			exit 2
+
+		fi
+	fi
+
+}
+
+
 create() {
 
 	printf "writing random data to $vault_file\n"
@@ -103,6 +138,8 @@ clear_cache() {
 
 
 if [[ $option == "create" ]]; then
+
+	check_file_exists
 
 	size=$3
 	[[ $size -lt 18 ]] && \
