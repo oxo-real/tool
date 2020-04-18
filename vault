@@ -11,7 +11,7 @@ option=$1
 # vault file name
 vault_file=$2
 # create traceable /dev/mapper name
-mapping_name="v_$(date +%H%M%S)"
+mapping_name="vlt_$(< /dev/random tr -d -c "[:xdigit:]" | head -c 6)"
 
 
 source $HOME/_git/code/sources/functions/reply_functions
@@ -93,7 +93,7 @@ create() {
 open_luks() {
 
 	echo
-	printf "opening luks $vault_file to $mapping_name\n"
+	printf "opening $vault_file to $mapping_name\n"
 	sudo cryptsetup open $vault_file $mapping_name
 
 }
@@ -136,6 +136,7 @@ umounting() {
 
 close_luks() {
 
+	# TODO ugly! no uniqueness with more than 1 mounted vault
 	mapping_name=$(lsblk -lp | grep 'v_[0-9][0-9][0-9][0-9][0-9][0-9]' | awk '{print $1}')
 	printf "closing luks $mapping_name\n"
 	sudo cryptsetup close $mapping_name
@@ -178,6 +179,7 @@ if [[ $option == "open" ]]; then
 	mountpoint=$3
 
 	open_luks
+	permissions
 	mounting
 
 fi
