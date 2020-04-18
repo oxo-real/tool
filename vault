@@ -11,7 +11,8 @@ option=$1
 # vault file name
 vault_file=$2
 # create traceable /dev/mapper name
-mapping_name="vlt_$(< /dev/random tr -d -c "[:xdigit:]" | head -c 6)"
+random_hex="$(< /dev/random tr -d -c "[:xdigit:]" | head -c 6)"
+mapping_name="vlt_$random_hex"
 
 
 source $HOME/_git/code/sources/functions/reply_functions
@@ -126,8 +127,8 @@ permissions() {
 
 umounting() {
 
-	# TODO ugly! no uniqueness with more than 1 mounted vault
-	mountpoint=$(mount -l | grep 'v_[0-9][0-9][0-9][0-9][0-9][0-9]' | awk '{print $3}')
+	mp_and_map=$(lsblk -p $(losetup -j $vault_file | awk -F : '{print $1}') | tail -n 1)
+	mountpoint=$(echo "$mp_and_map" | awk '{print $7}')
 	printf "unmounting $mountpoint\n"
 	sudo umount $mountpoint
 
@@ -136,8 +137,8 @@ umounting() {
 
 close_luks() {
 
-	# TODO ugly! no uniqueness with more than 1 mounted vault
-	mapping_name=$(lsblk -lp | grep 'v_[0-9][0-9][0-9][0-9][0-9][0-9]' | awk '{print $1}')
+	mp_and_map=$(lsblk -p $(losetup -j $vault_file | awk -F : '{print $1}') | tail -n 1)
+	mapping_name=$(echo "$mp_and_map" | awk '{print $1}' | cut -c 3-)
 	printf "closing luks $mapping_name\n"
 	sudo cryptsetup close $mapping_name
 
@@ -159,7 +160,7 @@ if [[ $option == "create" ]]; then
 	# to prevent error: 'Requested offset is beyond real size of device'
 	printf "minimum vault size is 18 MB\n" && exit 18
 	# temporary mountpoint
-	mountpoint="$HOME/_temp/vltmp"
+	mountpoint="$HOME/_temp/$random_hex"
 	mkdir -p "$mountpoint"
 
 	check_file_exists
