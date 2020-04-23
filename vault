@@ -56,6 +56,21 @@ check_file_exists() {
 }
 
 
+check_mp_dir() {
+
+	## existence & emptyness
+	if [[ -d $mountpoint ]]; then
+		if [ "$(ls -A $mountpoint)" ]; then
+			printf "$mountpoint is not empty!\n" && exit 3
+		fi
+	else
+		printf "$mountpoint does not exist!\n" && exit 3
+	fi
+
+}
+
+
+
 create() {
 
 	echo
@@ -179,6 +194,7 @@ if [[ $option == "open" ]]; then
 
 	mountpoint=$3
 
+	check_mp_dir
 	open_luks
 	permissions
 	mounting
