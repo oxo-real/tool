@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# usage: dynamic_truncate <hex_string> <return_digits>
+
+## truncates a sha1 hex string (rfc4226, DynamicTruncate)
+## get last 4 bits from hash ($hex_str)
+## get the integer number (0-f > 1-10) of those bits; this is the offset
+## starting from the offset get the first 4 bytes from the hash ($hex_str)
+
+hex_str="$1"
+digits="$2"
+
+## 2 times decimal value of the last hex char of the string
+## so this value is between 0 (0) and 30 (F)
+offset=$((2 * 0x${hex_str: -1}))
+
+## from offset get 4 bytes, which is 8 hex characters from hex_str
+## bytes are bitwise AND compared with 7fffffff
+## result of the bitwise comparison put in a modulo
+## digits is number of returned digits (by mod 10 power digits)
+echo $(( ( (0x${hex_str:$offset:8}) & 0x7FFFFFFF) % (10**$digits) ))

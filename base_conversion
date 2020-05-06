@@ -1,0 +1,7 @@
+#!/bin/bash
+
+# usage: base_conversion integer ibase obase
+# with 2<=ibase<=36 (26+10)
+# with 2<=obase<=36 (26+10)
+
+echo "obase=$3; ibase=$2; $1" | bc
