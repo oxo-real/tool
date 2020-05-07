@@ -4,4 +4,11 @@
 # with 2<=ibase<=36 (26+10)
 # with 2<=obase<=36 (26+10)
 
-echo "obase=$3; ibase=$2; $1" | bc
+echo "obase=$3; ibase=$2; \
+	$( printf $1 | \
+	## bc needs capitals
+	tr a-z A-Z )" | \
+	bc | \
+	## remove eol
+	sed ':a;N;$!ba;s/\n//g' | \
+	sed 's/\\//g'
