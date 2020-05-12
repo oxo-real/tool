@@ -126,15 +126,15 @@ make_fs () {
 
 mounting() {
 
-	printf "mounting /dev/mapper/$mapping_name to $mountpoint\n"
 	sudo mount /dev/mapper/$mapping_name $mountpoint
+	printf "mounted /dev/mapper/$mapping_name to $mountpoint\n"
 
 }
 
 
 permissions() {
 
-	printf "write permission to $mountpoint\n"
+	#printf "write permission to $mountpoint\n"
 	sudo chown -R $USER:wheel $mountpoint
 
 }

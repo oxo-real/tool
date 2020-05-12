@@ -1,0 +1,42 @@
+#!/bin/bash
+
+## usage: pass_get file item
+
+file=$1
+item=$2
+
+## pass calls the gpg files passwords in their help file
+## so insert a new password means make a new gpg file
+## pass expects the first line of the gpg file to be the password
+## the gpg files can contain more than just the password though
+## this script make use of that
+## here we call the gpg file: file
+## files can contain several items
+## regular items are: url, login, password
+
+
+get_item() {
+
+	pass show $file | grep ^$item: | awk '{print $2}' | wl-copy -o
+
+}
+
+
+get_password() {
+
+	pass $file -c
+	#pass show $file | head -n 1 wl-copy -o
+
+}
+
+
+case $item in
+
+	password)
+		get_password
+	;;
+
+	*)
+		get_item
+
+esac
