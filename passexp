@@ -1,0 +1,17 @@
+#!/bin/bash
+
+exp_file=$1
+
+gpg_files=$(find $HOME/.password-store/ -type f -name '*.gpg')
+
+for file in $gpg_files
+do
+	printf "$file\n" >> $exp_file
+	printf ">>>>> >>>>>\n" >> $exp_file
+	pass_file=$(printf $file | \
+		sed 's/\/home\/cytopyge\/.password-store\///' | \
+		sed 's/.gpg$//')
+	printf "$pass_file\n" >> $exp_file
+	pass show $pass_file >> $exp_file
+	printf "<<<<< <<<<<\n" >> $exp_file
+done
