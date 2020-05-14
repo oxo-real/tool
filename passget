@@ -1,17 +1,17 @@
 #!/bin/bash
 
-## usage: pass_get file item
+## usage: pass_get file [item | [auto_entry]]
 
 file=$1
 item=$2
 
 ## pass calls the gpg files passwords in their help file
-## so insert a new password means make a new gpg file
+## so insert a new password means making a new gpg file
 ## pass expects the first line of the gpg file to be the password
 ## the gpg files can contain more than just the password though
 ## this script make use of that
 ## here we call the gpg file: file
-## files can contain several items
+## files can search for several items
 ## regular items are: url, login, password
 
 
@@ -22,10 +22,55 @@ get_item() {
 }
 
 
+get_item_auto() {
+
+	find .password-store -maxdepth 1 -name $file.gpg 2&>1 /dev/null
+
+	if [[ $? == 0 ]]; then
+
+		url=$(pass show $file | grep ^$item: | awk '{print $2}')
+
+	else
+
+		printf "$file.gpg not in password-store\n"
+		exit
+
+	fi
+
+}
+
+
 get_password() {
 
 	pass $file -c
-	#pass show $file | head -n 1 wl-copy -o
+
+}
+
+
+auto_entry() {
+
+	## sleep time
+	t=5
+
+	item="url"
+	get_item_auto
+	qutebrowser $url &
+	printf "$item "
+	sleep $t
+
+	item="login"
+	get_item
+	printf "$item "
+	sleep $t
+
+	item="password"
+	get_password 1> /dev/null
+	printf "$item "
+	sleep $t
+
+	item="unlock"
+	get_item
+	printf "$item "
 
 }
 
@@ -34,6 +79,10 @@ case $item in
 
 	password)
 		get_password
+	;;
+
+	auto_entry)
+		auto_entry
 	;;
 
 	*)
