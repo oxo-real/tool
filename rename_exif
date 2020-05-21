@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# depedency: identify imagemagick
+
+target=$1
+
+project_name=$2
+
+counter_start=$3
+
+date_time=$(identify -verbose _V3A9500.jpg | \
+	grep date:create | \
+	awk '{print $2}' | \
+	sed 's/-//g' | \
+	sed 's/://g' | \
+	tr T _ | \
+	cut -c -15)
+
+#TODO finsh script
