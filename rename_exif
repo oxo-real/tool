@@ -16,4 +16,4 @@ date_time=$(identify -verbose _V3A9500.jpg | \
 	tr T _ | \
 	cut -c -15)
 
-#TODO finsh script
+
