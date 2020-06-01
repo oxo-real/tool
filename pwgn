@@ -1,0 +1,285 @@
+#!/bin/bash
+#
+##
+###
+###  _ ____      ____ _ _ __
+### | '_ \ \ /\ / / _` | '_ \
+### | |_) \ V  V / (_| | | | |
+### | .__/ \_/\_/ \__, |_| |_|
+### |_|           |___/
+###
+###  _ _|_ _ ._    _  _
+### (_\/|_(_)|_)\/(_|(/_
+###   /      |  /  _|
+###
+### pwgn
+### generate unique hex values
+###
+### (c) 2020 cytopyge
+###
+##
+#
+
+
+# initial definitions
+
+## initialize hardcoded variables
+script_name="pwgn"
+initial_release_year="2020"
+developer="cytopyge"
+
+
+sourcing() {
+	source ~/_git/code/sources/functions/get_sudo
+	source ~/_git/code/sources/functions/text_appearance
+	get_sudo
+
+}
+
+
+read_input() {
+
+	read input
+
+}
+
+
+hashing() {
+# input, algorithm
+
+	printf $1 | openssl dgst -$2 | sed 's/^.*= //'
+	#printf $1 | openssl dgst -$2 -binary | xxd -p
+
+}
+
+
+hmacing() {
+# sha3 hmac rfc2104
+# input, algorithm, hmac
+
+	printf $1 | openssl dgst -$2 -hmac $3 | sed 's/^.*= //'
+	#printf $1 | openssl dgst -$2 -hmac $3 -binary | xxd -p
+
+}
+
+
+hash_1_input() {
+# create sha1 hash from input
+
+	#local input=$input
+	local algo="sha1"
+
+	hash_sha1=$(hashing $input $algo)
+
+}
+
+
+hash_3_input() {
+# create sha3-512 hash from input
+# keccak sha3 standard fips pub 202
+
+	#local input=$input
+	local algo="sha3-512"
+
+	hash_sha3512=$(hashing $input $algo)
+
+}
+
+clear_input(){
+## overwrite and clear input variable, then unset it for security
+
+	input=$(< /dev/random tr -d -c "[:xdigit:]" | head -c 128)
+	input=""
+	unset $input
+
+}
+
+
+print_blocks() {
+## four lines of eight; two space-separated, four-column, zero-filled,
+## two-byte quantities of hexadecimal inputdata
+
+	printf $1 | cut -c 1-32 | sed 's/.\{4\}/&  /g'
+	printf $1 | cut -c 33-64 | sed 's/.\{4\}/&  /g'
+	printf $1 | cut -c 65-96 | sed 's/.\{4\}/&  /g'
+	printf $1 | cut -c 97-128 | sed 's/.\{4\}/&  /g'
+
+}
+
+
+round_pool() {
+# dynamic truncate hash_sha3512
+
+	local hs=$hash_sha3512
+	local dgts="10"
+
+	dividend=$(dynamic_truncate $hs $dgts)
+
+}
+
+
+round_space() {
+## dynamic truncate hash_sha1
+
+	local hs=$hash_sha1
+	local dgts="4"
+
+	divisor=$(dynamic_truncate $hs $dgts)
+
+}
+
+
+rounds_number() {
+
+	rounds=$(( $dividend % $divisor ))
+
+}
+
+
+round_key() {
+# create hmac key for running_rounds
+
+	local input=$dividend
+	local algo="sha3-512"
+	local hmac=$divisor
+
+	round_key=$(hmacing $input $algo $hmac)
+
+}
+
+
+running_rounds() {
+
+	# keep hash_sha3512 untouched
+	input_calc=$hash_sha3512
+
+	for (( round=1; round<=$rounds; round++ ))
+
+	do
+
+		local input=$input_calc
+		local algo="sha3-512"
+		local hmac=$round_key
+
+		output=$(hmacing $input $algo $hmac)
+
+		## migrate output to input_calc for next round
+		[[ $rounds > 1 ]] && input_calc=$output
+
+		## every round the $input_calc from the previous round is taken in
+		## $round_key stays static
+
+	done
+
+}
+
+
+
+two_fa() {
+
+	printf "?2fa  "
+	read two_fa
+
+	# set variables to send to genotp
+	secret="$HOME/_git/private/vault/totp.key"
+	mode="totp"
+	alg="sha512"
+	digits="12"
+	period="30"
+	dt_str=""
+	counter="0"
+	from_hmac="1"
+
+	## get variable code from genotp
+	eval $(source $HOME/_git/notes/crypto/2fa/genotp/genotp.sh; echo code="$code";)
+
+	## code from genotp is 12 digits (for aesthetic purposes there)
+	## first two though are always leading zeros
+	## aegis app procuces a maximum of 10 digits
+	## therefore remove first two digits (zeros) from code
+	code=$(printf $code | cut -c 3-)
+
+	if [[ "$two_fa" != "$code" ]]; then
+
+		#printf "unable to authenticate\n"
+		exit 33
+
+	fi
+
+}
+
+
+output_console() {
+
+	## personal iterations multiplier (pim)
+	printf "$(print_blocks $output)\n"
+
+}
+
+
+output_wlcopy() {
+
+	printf $output | cut -z -c -64 | wl-copy -o
+	## for barebones tty usage
+	## beware! potentially unsafe
+	## to file
+	#printf "$output_64" | cut -c -64 > output.tmp
+	## to variable
+	#clpbrd=$(printf "$output_64" | cut -c -64)
+
+
+}
+
+
+print_qr_code() {
+
+	[[ -n $(command -v qrencode) ]] && printf $1 | qrencode -m 3 -t UTF8
+
+}
+
+
+print_qr_codeblock() {
+
+	print_qr_code $hash_sha3512
+	print_blocks $hash_sha3512
+
+}
+
+
+dynamic_truncate() {
+## truncates a sha1 hex string (rfc4226, DynamicTruncate)
+## get last 4 bits from hash ($hex_str)
+## get the integer number (0-f > 1-10) of those bits; this is the offset
+## starting from the offset get the first 4 bytes from the hash ($hex_str)
+
+	local hex_str="$1"
+	local digits="$2"
+
+	## 2 times decimal value of the last hex char of the string
+	## so this value is between 0 (0) and 30 (F)
+	local offset=$((2 * 0x${hex_str: -1}))
+
+	## from offset get 4 bytes, which is 8 hex characters from hex_str
+	## bytes are bitwise AND compared with 7fffffff
+	## result of the bitwise comparison put in a modulo
+	## digits is number of returned digits (by mod 10 power digits)
+	echo $(( ( (0x${hex_str:$offset:8}) & 0x7FFFFFFF) % (10**$digits) ))
+
+}
+
+
+sourcing
+read_input
+hash_1_input
+hash_3_input
+clear_input
+print_qr_codeblock
+round_pool
+round_space
+rounds_number
+round_key
+#two_fa
+running_rounds
+output_console
+output_wlcopy
+exit 0
