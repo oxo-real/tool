@@ -70,7 +70,6 @@ check_mp_dir() {
 }
 
 
-
 create() {
 
 	echo
@@ -210,7 +209,7 @@ check_close_entry() {
 	### mountpoint
 
 	if [[ ! $(mountpoint $vault_file | grep not) ]]; then
-		## $2 user entry ($vault_file) is not not a mountpoint
+		## $2 user entry ($vault_file) is not (!) not (grep) a mountpoint
 
 		mountpoint=$vault_file
 
@@ -317,6 +316,13 @@ unmount() {
 }
 
 
+quick_unmount(){
+
+	sudo umount $mountpoint
+	printf "unmounted $mountpoint"
+
+}
+
 close_luks() {
 
 	if [[ $option == "create" ]]; then
@@ -341,6 +347,63 @@ clear_cache() {
 
 	sudo sysctl --write vm/drop_caches=3
 	exit 0
+
+}
+
+
+get_all_vlt_mappers() {
+
+	vlt_mappers=$(ls /dev/mapper/vlt_*)
+
+	if [ -z "$vlt_mappers" ]; then
+		printf "no mapped vaults"
+		exit
+	fi
+
+}
+
+
+close_all() {
+
+	for vlt_mapper in "${vlt_mappers[@]}"; do
+
+		# unmount
+
+		## get mountpoints of vlt_mapper
+		mountpoint=$(mount | grep $vlt_mapper)
+#####
+		## check if vlt_mapper has a mountpoint
+		if [mountpoint -q $mountpoint]; then
+			## unmout with confirmation
+			printf "$mountpoint\n"
+			unmount
+
+			# close
+			close_luks
+		else
+			printf "$mountpoint is not a mountpoint\n"
+			printf "exiting\n"
+		fi
+
+	done
+
+}
+
+
+quick_close_all() {
+
+	for vlt_mapper in vlt_mappers; do
+
+		# quick unmount
+		## get mountpoints of vlt_mapper
+		mountpoint= $(lsblk -paf | grep $vlt_mapper)
+		## unmout with confirmation
+		quick_unmount
+
+		# close
+		close_luks
+
+	done
 
 }
 
@@ -379,8 +442,29 @@ if [[ $option == "open" ]]; then
 fi
 
 
+# closing vaults
+
+## close a specific vault
 if [[ $option == "close" ]]; then
 
 	check_close_entry
+
+fi
+
+## close all open vaults
+if [[ $option == "close_all" ]]; then
+
+	get_all_vlt_mappers
+
+	close_all
+
+fi
+
+## quick close all open vaults
+if [[ $option == "quick_close_all" ]]; then
+
+	get_all_vlt_mappers
+
+	close_all
 
 fi
