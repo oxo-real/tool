@@ -60,7 +60,7 @@ auto_entry() {
 	get_item_auto
 	qutebrowser $url &
 	printf "$item "
-	sleep $t
+	sleep 10
 
 	item="login"
 	get_item
