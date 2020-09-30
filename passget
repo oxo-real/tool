@@ -46,7 +46,8 @@ get_item_auto() {
 
 get_password() {
 
-	pass $file -c
+	#pass $file -c
+	pass $file | head -n 1 | wl-copy -o
 
 }
 
@@ -68,7 +69,7 @@ auto_entry() {
 	sleep $t
 
 	item="password"
-	get_password 1> /dev/null
+	get_password 1> /dev/null #no stdout
 	printf "$item "
 	sleep $t
 
