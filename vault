@@ -424,6 +424,28 @@ quick_close_all() {
 }
 
 
+generate_pw() {
+
+	echo
+	printf "starting pwgn...\npress 'n' to abort "
+
+	reply_single_hidden_timed
+	echo
+
+	if printf "$reply" | grep -iq "^n"; then
+
+		# exit from this loop and continue
+		return
+
+	else
+
+		sh ~/_git/code/tools/pwgn
+
+	fi
+
+}
+
+
 if [[ $option == "create" ]]; then
 
 	size=$3
@@ -451,6 +473,7 @@ if [[ $option == "open" ]]; then
 	mountpoint=$3
 
 	check_mp_dir
+	generate_pw
 	open_luks
 	permissions
 	mounting
