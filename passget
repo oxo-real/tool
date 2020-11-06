@@ -60,22 +60,26 @@ auto_entry() {
 	item="url"
 	get_item_auto
 	qutebrowser $url &
-	printf "$item "
+	#printf "$item "
+	notify-send "$item"
 	sleep 10
 
 	item="login"
 	get_item
-	printf "$item "
+	#printf "$item "
+	notify-send "$item"
 	sleep $t
 
 	item="password"
 	get_password 1> /dev/null #no stdout
-	printf "$item "
+	#printf "$item "
+	notify-send "$item"
 	sleep $t
 
 	item="unlock"
 	get_item
-	printf "$item "
+	#printf "$item "
+	notify-send "$item"
 
 }
 
