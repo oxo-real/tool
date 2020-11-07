@@ -348,7 +348,7 @@ get_all_vlt_mappers() {
 close_all() {
 
 
-		vlt_mappers=$(ls /dev/mapper/vlt_*)
+	vlt_mappers=( $(ls /dev/mapper/vlt_*) )
 
 		if [ -z "$vlt_mappers" ]; then
 			printf "no mapped vaults"
@@ -361,9 +361,11 @@ close_all() {
 		#TODO yesno
 		#TODO option: quick close all
 
-		for vlt_mapper in "${vlt_mappers[@]}"; do
+		for vlt_mapper in "${vlt_mappers[@]}"
+		do
 
 			## get mountpoint of the current vlt_mapper
+			printf "\n\ncurrent: $vlt_mapper\n\n"
 			mountpoint=$(mount | grep $vlt_mapper | cut -d " " -f 3)
 			printf "vlt_mapper: $vlt_mapper mountpoint: $mountpoint\n"
 			###mountpoint=$(printf $vlt_mapper | awk -F 'crypt ' '{print $2}')
@@ -374,7 +376,7 @@ close_all() {
 			#vlt_mapper=$(printf $line | cut -c 3- | awk '{print $1}')
 			sudo cryptsetup close $vlt_mapper
 			printf "closed $vlt_mapper\n"
-			clear_cache
+			#TEST#clear_cache
 
 		done
 
