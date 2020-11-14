@@ -348,6 +348,8 @@ get_all_vlt_mappers() {
 close_all() {
 
 
+	unset $vault_file
+
 	vlt_mappers=(/dev/mapper/vlt_*)
 
 	if [ -z "$vlt_mappers" ]; then
