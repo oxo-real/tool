@@ -497,6 +497,7 @@ fi
 
 ## close all open vaults
 if [[ $option == "close_all" ]]; then
+	## [TODO] underscore all??
 
 	get_all_vlt_mappers
 
