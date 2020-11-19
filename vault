@@ -4,29 +4,54 @@
 # usage: sudo sh vault close <target> #TODO mountpoint #TODO mapperID
 # usage: sudo sh vault create <target> <size>
 
+developer="cytopyge"
+script_name="vault"
+initial_release_year=2019
+source_dir="$HOME/_git/code/sources/functions"
+
+# general function definitions
+
+## define colors
+source $source_dir/text_appearance
+
+## reply functions
+source $source_dir/reply_functions
+
+## initial_screen
+source $source_dir/splash_screen
+
+## user authentication
+source $source_dir/get_sudo
+
+
 set -e
 
-# options (open, close, create)
+
+# options (open, close, create or info)
 option=$1
-# target (<filename>, <mountpoint>, all)
+# target (<filename>, <mountpoint>, <vlt_mapper> or all)
 target=$2
 
 
+
 source $HOME/_git/code/sources/functions/reply_functions
+## define colors
+source $source_dir/text_appearance
+
 
 check_file_exists() {
 
 	if [[ -f $target ]]; then
 
-		printf "$target already exists!\n"
+		printf "${RED}$target already exists!${NOC}\n"
 		printf "overwrite? (y/N) "
 		reply_single
 		echo
 
 		if printf "$reply" | grep -iq "^y"; then
 
-			printf "about to overwrite $target\n"
-			printf "sure? (y/N) "
+			printf "${RED}about to overwrite $target${NOC}\n"
+			printf "really sure? (y/N) "
 			reply_single
 			echo
 
@@ -53,33 +78,39 @@ check_file_exists() {
 }
 
 
-check_mp_dir() {
+check_container_size() {
 
-	## existence & emptyness (for mounting)
-	if [[ -d $mountpoint ]]; then
-		if [ "$(ls -A $mountpoint)" ]; then
-			printf "$mountpoint is already a mountpoint\n" && exit 3
-		fi
-	else
-		printf "$mountpoint does not exist!\n" && exit 3
+	if [ $size -lt 18 ]; then
+
+		# to prevent error: 'Requested offset is beyond real size of device'
+		printf "${RED}minimum vault size is 18 MB${NOC}\n" && exit 18
+
 	fi
 
 }
 
 
-create_mapper_name() {
+create_vlt_mapper_name() {
 
-	# create traceable /dev/mapper name
+	# create pretty unique traceable /dev/mapper/vlt_ name
+
 	random_hex="$(< /dev/random tr -d -c "[:xdigit:]" | head -c 6)"
+
 	mapping_name="vlt_$random_hex"
+	vlt_mapper="/dev/mapper/vlt_$random_hex"
 
 }
 
 
-create() {
+create_vault() {
 
-	echo
+	# temporary mountpoint
+	#mountpoint="$HOME/_temp/$random_hex"
+	#mkdir -p "$mountpoint"
+	#echo
+
 	printf "writing random data to $target\n"
+
 	dd \
 		if=/dev/random \
 		of=$target \
@@ -91,20 +122,25 @@ create() {
 	echo
 	printf "setting up crypto on $target\n"
 
-	## luks2
-	cryptsetup -y luksFormat $target
-	## plain dm-crypt
-	cryptsetup \
-		-y \
-		--type plain \
-		--cipher=aes-xts-plain64 \
-		--hash=sha512 \
-		--key-size=512 \
-		--offset=0 \
-	#	--key-file=/dev/sdX \
-		--keyfile-offset=0 \
-		$target enc
+	## cryptsetup with luks2
+	cryptsetup luksFormat --type luks2 --verify-passphrase $target
+	#cryptsetup -y luksFormat $target
 	echo
+
+	## other option:
+	## cryptsetup with plain dm-crypt
+	#cryptsetup \
+	#	-y \
+	#	--type plain \
+	#	--cipher=aes-xts-plain64 \
+	#	--hash=sha512 \
+	#	--key-size=512 \
+	#	--offset=0 \
+	##	--key-file=/dev/sdX \
+	#	--keyfile-offset=0 \
+	#	$target enc
+
+	## validate target
 	printf "validating $target:\n"
 	file $target
 
@@ -115,7 +151,7 @@ open_luks() {
 
 	echo
 	printf "opening $target to $mapping_name\n"
-	sudo cryptsetup open $target $mapping_name
+	sudo cryptsetup open --type luks2 $target $mapping_name
 
 }
 
@@ -123,17 +159,8 @@ open_luks() {
 make_fs () {
 
 	echo
-	printf "writing ext4 filesystem to /dev/mapper/$mapping_name\n"
-	sudo mkfs.ext4 -L VAULT -j /dev/mapper/$mapping_name
-
-}
-
-
-mounting() {
-
-	sudo mount /dev/mapper/$mapping_name $mountpoint
-	echo
-	printf "mounted /dev/mapper/$mapping_name to $mountpoint\n"
+	printf "writing ext4 filesystem to $vlt_mapper\n"
+	sudo mkfs.ext4 -L VAULT -j $vlt_mapper
 
 }
 
@@ -146,8 +173,250 @@ permissions() {
 }
 
 
-check_close_target() {
+close_luks() {
 
+	if [[ $option == "create" ]]; then
+
+		#[TODO] can be one algo? (remove if)
+		sudo cryptsetup close $vlt_mapper
+		printf "cryptsetup closed $vlt_mapper\n"
+		clear_cache
+		printf "${GREEN}$target created succesfully${NOC}\n"
+
+	else
+
+		sudo cryptsetup close $vlt_mapper
+		printf "cryptsetup closed $vlt_mapper\n"
+		clear_cache
+
+	fi
+
+}
+
+
+clean_up() {
+
+	# extra if, to be sure rm only happens
+	# on temporarily mountpoint while creating a new vault
+
+	if [[ $option == "create" ]]; then
+
+		rmdir "$mountpoint"
+
+	fi
+
+}
+
+
+check_mp_dir() {
+
+	#mountpoint=$3
+
+	## existence & emptyness (for mounting)
+
+	## mountpoint entry
+	if [[ -z $mountpoint ]]; then
+
+		printf "${RED}missing mountpoint entry\nvault open <vault_file> <mountpoint>${NOC}\n"
+		exit 3
+
+	## directory existence
+	elif [[ -d $mountpoint ]]; then
+
+		## directory in mountinfo (/proc/self/mountinfo)?
+		## or in other words: is it a mountpoint already?
+		if [[ "$(mountpoint -q $mountpoint)" == "0" ]]; then
+
+			printf "${RED}$mountpoint is already a mountpoint${NOC}\n" && exit 3
+
+		fi
+
+	elif [[ ! -d $mountpoint ]]; then
+
+			## directory does not exist
+			printf "${RED}$mountpoint does not exist!${NOC}\n" && exit 3
+
+	fi
+
+}
+
+
+generate_pw() {
+
+	echo
+	printf "starting pwgn...\npress 'n' to abort "
+
+	reply_single_hidden_timed
+	echo
+
+	if printf "$reply" | grep -iq "^n"; then
+
+		# exit from this loop and continue
+		return
+
+	else
+
+		echo
+		sh ~/_git/code/tools/pwgn
+
+	fi
+
+}
+
+
+mounting() {
+
+	sudo mount $vlt_mapper $mountpoint
+	echo
+	printf "mounted $vlt_mapper to $mountpoint\n"
+
+	show_info
+
+}
+
+
+get_vault_data() {
+
+	# single target (vault close 'target')
+
+	#[TODO] two mountpoints: .../s and .../s2
+
+	## scenario1: container
+	## target is a luks encrypted container file
+	## vault close 'container'
+
+	filetype=$(file $target)
+
+	if [[ -n $(printf "$filetype" | grep -i 'luks encrypted') ]]; then
+
+		target_type="luks_container"
+
+		luks_container=$target
+
+		luks_uuid=$(printf "$filetype" | awk '{print $11}')
+
+		loopback_device=$(losetup -j $target | awk -F ':' '{print $1}')
+
+		loop_uuid=$(lsblk -parf | grep $loopback_device | awk '{print $4}')
+
+		vlt_map_and_mp=$(lsblk -p $(losetup -j $target | awk -F : '{print $1}') |\
+			tail -n 1 | sed 's/[^\/]*//')
+
+		vlt_mapper=$(echo "$vlt_map_and_mp" | awk '{print $1}')
+
+		mountpoint=$(echo "$vlt_map_and_mp" | awk '{print $7}')
+
+	fi
+
+
+	## scenario2: mountpoint
+	## target is a valid mountpoint
+	## vault close 'mountpoint
+
+	if [[ ! $(mountpoint $target | grep not) ]]; then
+
+		### $2 user entry ($target) is not (!) not (grep not) a mountpoint
+		### $2 is therefore assumed to be a mountpoint
+
+		target_type="mountpoint"
+
+		mountpoint=$target
+
+		### check if mountpoint has a vlt_mapper
+		vlt_mapper=$(lsblk -rp | grep $mountpoint | awk '{print $1}')
+
+		luks_uuid=$(lsblk -parf | grep $vlt_mapper | awk '{print $5}')
+
+		loopback_device=$(lsblk -parf | grep -B 1 $luks_uuid | head -n 1 | awk '{print $1}')
+
+		loop_uuid=$(lsblk -parf | grep $loopback_device | awk '{print $4}')
+
+		luks_container=$(losetup $loopback_device | cut -d "(" -f2 | cut -d ")" -f1)
+
+	fi
+
+
+	## scenario3: vlt_mapper
+	## assuming target is a valid vlt_mapper
+	## vault close 'vlt_mapper'
+
+	if [[ -z $target_type ]]; then
+
+		vlt_target=$(lsblk -parf | grep vlt_ | awk '{print $1}' | grep $target)
+
+		if [[ -n $vlt_target ]]; then
+
+			## $2 user entry ($target) is a loopback device (vlt_mapper)
+
+			target_type="vlt_mapper"
+
+			vlt_mapper=$target
+
+			mountpoint=$(mount | grep $vlt_mapper | cut -d " " -f 3)
+
+			luks_uuid=$(lsblk -parf | grep $vlt_mapper | awk '{print $5}')
+
+			loopback_device=$(lsblk -parf | grep -B 1 $luks_uuid | head -n 1 | awk '{print $1}')
+
+			loop_uuid=$(lsblk -parf | grep $loopback_device | awk '{print $4}')
+
+			luks_container=$(losetup $loopback_device | cut -d "(" -f2 | cut -d ")" -f1)
+
+		else
+
+			printf "${RED}no loopback device detected for $target${NOC}\n"
+			echo
+
+			if [[ $option == "open" ]]; then
+
+				printf "probably an invalid target entry\nplease try again\n"
+				exit
+
+			fi
+
+		fi
+
+	fi
+
+}
+
+
+show_info() {
+
+		echo
+
+		mountpoint_show="$mountpoint"
+		if [[ -z $mountpoint ]]; then mountpoint_show="n/a"; fi
+		printf "%21s %s\n" "mountpoint:" $mountpoint_show
+
+		vlt_mapper_show="$vlt_mapper"
+		if [[ -z $vlt_mapper ]]; then vlt_mapper_show="n/a"; fi
+		printf "%21s %s\n" "vlt_mapper:" $vlt_mapper_show
+
+		echo
+
+		luks_container_show="$luks_container"
+		if [[ -z $luks_container ]]; then luks_container_show="n/a"; fi
+		printf "%21s %s\n" "crypto container:" $luks_container_show
+
+		luks_uuid_show="$luks_uuid"
+		if [[ -z $luks_uuid ]]; then luks_uuid_show="n/a"; fi
+		printf "%21s %s\n" "luks_uuid:" $luks_uuid_show
+
+		echo
+
+		loopback_device_show="$loopback_device"
+		if [[ -z $loopback_device ]]; then loopback_device_show="n/a"; fi
+		printf "%21s %s\n" "loopback device:" $loopback_device_show
+
+		loop_uuid_show="$loop_uuid"
+		if [[ -z $loop_uuid ]]; then loop_uuid_show="n/a"; fi
+		printf "%21s %s\n" "loop_uuid:" $loop_uuid_show
+
+}
+
+
+close_target() {
 
 	# all (vault close 'all')
 
@@ -158,170 +427,38 @@ check_close_target() {
 
 	fi
 
+	get_vault_data
+	show_info
 
-	# single target (vault close 'target')
-
-	filetype=$(file $target)
-
-	if [[ -n $(printf "$filetype" | grep -i 'luks encrypted') ]]; then
-		## $2 user entry ($target) is a luks encrypted file
-
-		uuid=$(printf "$filetype" | awk '{print $11}')
-		printf "luks encrypted file has uuid: $uuid\n"
-
-		map_and_mp=$(lsblk -p $(losetup -j $target | awk -F : '{print $1}') | tail -n 1)
-		vlt_mapper=$(echo "$map_and_mp" | awk '{print $1}' | cut -c 3-)
-		printf "$vlt_mapper "
-
-		mountpoint=$(echo "$map_and_mp" | awk '{print $7}')
-
-		if [[ -n $mountpoint ]]; then
-
-			printf "mounted to $mountpoint\n"
-			unmount
-
-		else
-
-			printf "is not mounted\n"
-			close_luks
-
-		fi
-
-	else
-
-		# $target is no luks encrypted container
-		a=1
-
-	fi
-
-
-	# mountpoint (vault close 'mountpoint')
-
-	if [[ ! $(mountpoint $target | grep not) ]]; then
-		## $2 user entry ($target) is not (!) not (grep) a mountpoint
-
-		mountpoint=$target
-
-		# check if mountpoint has a vlt_mapper
-		vlt_mapper=$(lsblk -rp | grep $mountpoint | awk '{print $1}')
-		#[TODO] lsblk add r option for other instances?
-
-		if [[ -z $(printf $vlt_mapper | grep '/dev/mapper/vlt_') ]]; then
-
-			printf "$target is not mapped to a vlt loopback device\n"
-
-			exit
-
-		fi
-
-
-		if [[ -n $mountpoint ]]; then
-
-			printf "$vlt_mapper is mounted to $mountpoint\n"
-			unmount
-
-		else
-
-			#printf "is not mounted\n"
-			close_luks
-
-		fi
-
-	else
-
-		printf "no mountpoint detected for $target\n"
-
-	fi
-
-
-	# vlt_mapper (vault close vlt_mapper)
-
-	## because of the code above; $2 user entry ($target) is
-	## no vault file and no mountpoint,
-	## but still /can/ be a loopback device (vlt_mapper)
-	lsblk_p_grep_vf=$(lsblk -p | grep $target)
-
-	if [[ -n $lsblk_p_grep_vf ]]; then
-		## $2 user entry ($target) /can/ be a loopback device (vlt_mapper)
-
-		vlt_mapper=$(printf "$lsblk_p_grep_vf" | awk '{print $1}' | cut -c 3- | grep $target)
-		## two times grep $target;
-		## if $target is (also) not loopback device (vlt_mapper)
-		## then $vlt_mapper will become an empty string
-
-		if [[ -n $vlt_mapper ]]; then
-			## $2 user entry ($target) is a loopback device (vlt_mapper)
-
-			mountpoint=$(printf "$lsblk_p_grep_vf" | cut -c 3- | \
-				grep $vlt_mapper | \
-				awk -F 'crypt ' '{print $2}')
-
-			if [[ -n $mountpoint ]]; then
-
-				printf "$vlt_mapper is mounted to $mountpoint\n"
-				unmount
-
-			else
-
-				printf "is not mounted\n"
-				close_luks
-
-			fi
-		fi
-
-
-	else
-
-		printf "no loopback device detected for $target\n"
-		echo
-		printf "invalid entry, please try again\n"
-		exit
-
-	fi
+	unmount
+	close_luks
 
 }
 
 
 unmount() {
 
-	echo
-	printf "unmount & close? (Y/n) "
+	if [[ -n $mountpoint ]]; then
 
-	reply_single
-	echo
+		echo
+		printf "${RED}unmount & close? (Y/n)${NOC} "
 
-	if printf "$reply" | grep -iq "^n"; then
+		reply_single
+		echo
 
-		exit
+		if printf "$reply" | grep -iq "^n"; then
 
-	else
+			exit
 
-		sudo umount $mountpoint
-		printf "unmounted $vlt_mapper from mountpoint $mountpoint\n"
+		else
 
-	fi
+			sudo umount $mountpoint
+			printf "unmounted $vlt_mapper from mountpoint $mountpoint\n"
 
-	#[TODO] ivm create?
-	#close_luks
+		fi
 
-}
-
-
-close_luks() {
-
-	if [[ $option == "create" ]]; then
-
-		#[TODO] can be one algo? (remove if)
-		sudo cryptsetup close $mapping_name
-		printf "cryptsetup closed $mapping_name\n"
-		clear_cache
-		printf "$target created succesfully\n"
-
-	else
-
-		sudo cryptsetup close $vlt_mapper
-		printf "cryptsetup closed $vlt_mapper\n"
-		clear_cache
+		#[TODO] ivm create?
+		#close_luks
 
 	fi
 
@@ -348,7 +485,7 @@ get_all_vlt_mappers() {
 
 	if [[ -z "$vlt_mappers" ]]; then
 
-		printf "no mapped vaults\n"
+		printf "${RED}no mapped vaults${NOC}\n"
 		exit
 
 	fi
@@ -364,7 +501,7 @@ vault_info() {
 
 	if [[ -z "$info" ]]; then
 
-		printf "no mapped vaults\n"
+		printf "${RED}no mapped vaults${NOC}\n"
 
 	else
 
@@ -392,6 +529,7 @@ close_all() {
 	##for vlt_mapper in /dev/mapper/vlt_*
 	##for vlt_mapper in $vlt_mappers
 	#@#@printf "$vlt_mappers" | while read -r vlt_mapper; do
+
 	while IFS='' read -r vlt_mapper; do
 
 		#[TODO] remove ops
@@ -414,53 +552,7 @@ close_all() {
 	done <<< "$vlt_mappers"
 
 	echo
-	printf "all vaults closed succesfully\n"
-
-
-#	for vlt_mapper in "${vlt_mappers[@]}"; do
-#
-#		# unmount
-#
-#		## get mountpoints of vlt_mapper
-#		mountpoint=$(mount | grep $vlt_mapper)
-######
-#		## check if vlt_mapper has a mountpoint
-#		if [mountpoint -q $mountpoint]; then
-#			## unmout with confirmation
-#			printf "$mountpoint\n"
-#			unmount
-#
-#			# close
-#			close_luks
-#		else
-#			printf "$mountpoint is not a mountpoint\n"
-#			printf "exiting\n"
-#		fi
-#
-#	done
-
-}
-
-
-
-generate_pw() {
-
-	echo
-	printf "starting pwgn...\npress 'n' to abort "
-
-	reply_single_hidden_timed
-	echo
-
-	if printf "$reply" | grep -iq "^n"; then
-
-		# exit from this loop and continue
-		return
-
-	else
-
-		sh ~/_git/code/tools/pwgn
-
-	fi
+	printf "${GREEN}all vaults closed succesfully${NOC}\n"
 
 }
 
@@ -474,27 +566,19 @@ if [[ $option == "info" ]]; then
 fi
 
 
-# creating vaults
+# create vault
 
 if [[ $option == "create" ]]; then
 
 	size=$3
-	[[ $size -lt 18 ]] && \
-	# to prevent error: 'Requested offset is beyond real size of device'
-	printf "minimum vault size is 18 MB\n" && exit 18
-	# temporary mountpoint
-	mountpoint="$HOME/_temp/$random_hex"
-	mkdir -p "$mountpoint"
-
 	check_file_exists
-	create_mapper_name
-	create
+	check_container_size
+	create_vlt_mapper_name
+	create_vault
 	open_luks
 	make_fs
-	permissions
 	close_luks
-
-	rmdir "$mountpoint"
+	clean_up
 
 fi
 
@@ -505,13 +589,14 @@ fi
 if [[ $option == "open" ]]; then
 
 	mountpoint=$3
-
 	check_mp_dir
 	generate_pw
-	create_mapper_name
+	create_vlt_mapper_name
 	open_luks
-	permissions
 	mounting
+	permissions
+	get_vault_data
+	show_info
 
 fi
 
@@ -521,6 +606,6 @@ fi
 ## close a vault
 if [[ $option == "close" ]]; then
 
-	check_close_target
+	close_target
 
 fi
