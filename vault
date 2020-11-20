@@ -217,7 +217,8 @@ check_mp_dir() {
 	## mountpoint entry
 	if [[ -z $mountpoint ]]; then
 
-		printf "${RED}missing mountpoint entry\nvault open <vault_file> <mountpoint>${NOC}\n"
+		printf "${RED}missing mountpoint entry\nvault open <vault_file> \
+			<mountpoint>${NOC}\n"
 		exit 3
 
 	## directory existence
@@ -267,10 +268,6 @@ generate_pw() {
 mounting() {
 
 	sudo mount $vlt_mapper $mountpoint
-	echo
-	printf "mounted $vlt_mapper to $mountpoint\n"
-
-	show_info
 
 }
 
@@ -282,8 +279,7 @@ get_vault_data() {
 	#[TODO] two mountpoints: .../s and .../s2
 
 	## scenario1: container
-	## target is a luks encrypted container file
-	## vault close 'container'
+	## target_type is a luks encrypted container file
 
 	filetype=$(file $target)
 
@@ -293,52 +289,31 @@ get_vault_data() {
 
 		luks_container=$target
 
-		luks_uuid=$(printf "$filetype" | awk '{print $11}')
-
 		loopback_device=$(losetup -j $target | awk -F ':' '{print $1}')
 
-		loop_uuid=$(lsblk -parf | grep $loopback_device | awk '{print $4}')
-
-		vlt_map_and_mp=$(lsblk -p $(losetup -j $target | awk -F : '{print $1}') |\
-			tail -n 1 | sed 's/[^\/]*//')
-
-		vlt_mapper=$(echo "$vlt_map_and_mp" | awk '{print $1}')
-
-		mountpoint=$(echo "$vlt_map_and_mp" | awk '{print $7}')
+		mountpoint=$(lsblk -parf --noheadings $loopback_device | tail -n 1 | \
+			awk '{print $8}')
 
 	fi
 
 
 	## scenario2: mountpoint
-	## target is a valid mountpoint
-	## vault close 'mountpoint
+	## target_type is a valid mountpoint
 
-	if [[ ! $(mountpoint $target | grep not) ]]; then
+	if [[ -d $target && ! $(mountpoint $target | grep not) ]]; then
 
+		### $2 user entry ($target) is a directory
 		### $2 user entry ($target) is not (!) not (grep not) a mountpoint
-		### $2 is therefore assumed to be a mountpoint
 
 		target_type="mountpoint"
 
 		mountpoint=$target
 
-		### check if mountpoint has a vlt_mapper
-		vlt_mapper=$(lsblk -rp | grep $mountpoint | awk '{print $1}')
-
-		luks_uuid=$(lsblk -parf | grep $vlt_mapper | awk '{print $5}')
-
-		loopback_device=$(lsblk -parf | grep -B 1 $luks_uuid | head -n 1 | awk '{print $1}')
-
-		loop_uuid=$(lsblk -parf | grep $loopback_device | awk '{print $4}')
-
-		luks_container=$(losetup $loopback_device | cut -d "(" -f2 | cut -d ")" -f1)
-
 	fi
 
 
 	## scenario3: vlt_mapper
-	## assuming target is a valid vlt_mapper
-	## vault close 'vlt_mapper'
+	## target_type is a valid vlt_mapper
 
 	if [[ -z $target_type ]]; then
 
@@ -354,64 +329,61 @@ get_vault_data() {
 
 			mountpoint=$(mount | grep $vlt_mapper | cut -d " " -f 3)
 
-			luks_uuid=$(lsblk -parf | grep $vlt_mapper | awk '{print $5}')
-
-			loopback_device=$(lsblk -parf | grep -B 1 $luks_uuid | head -n 1 | awk '{print $1}')
-
-			loop_uuid=$(lsblk -parf | grep $loopback_device | awk '{print $4}')
-
-			luks_container=$(losetup $loopback_device | cut -d "(" -f2 | cut -d ")" -f1)
-
-		else
-
-			printf "${RED}no loopback device detected for $target${NOC}\n"
-			echo
-
-			if [[ $option == "open" ]]; then
-
-				printf "probably an invalid target entry\nplease try again\n"
-				exit
-
-			fi
-
 		fi
 
 	fi
+
+
+	vlt_mapper=$(lsblk -rp | grep $mountpoint | awk '{print $1}')
+
+	luks_uuid=$(lsblk -parf | grep $vlt_mapper | awk '{print $5}')
+
+	loopback_device=$(lsblk -parf | grep -B 1 $luks_uuid | head -n 1 | \
+		awk '{print $1}')
+
+	loop_uuid=$(lsblk -parf | grep $loopback_device | awk '{print $4}')
+
+	loop_ctime=$(ls -ila --time ctime \
+		--time-style=+%Y%m%d_%H%M%S $loopback_device | awk '{print $8}')
+
+	luks_container=$(losetup $loopback_device | cut -d "(" -f2 | cut -d ")" -f1)
 
 }
 
 
 show_info() {
 
+	if [[ -z $target_type ]]; then
+
+		## get_vault_data could not assign a target_type
 		echo
-
-		mountpoint_show="$mountpoint"
-		if [[ -z $mountpoint ]]; then mountpoint_show="n/a"; fi
-		printf "%21s %s\n" "mountpoint:" $mountpoint_show
-
-		vlt_mapper_show="$vlt_mapper"
-		if [[ -z $vlt_mapper ]]; then vlt_mapper_show="n/a"; fi
-		printf "%21s %s\n" "vlt_mapper:" $vlt_mapper_show
-
+		printf "${RED}no specific data available${NOC}\n"
+		printf "no valid target_type for: $target\n"
 		echo
+		printf "target no valid luks_container, mountpoint or vlt_mapper\n"
 
-		luks_container_show="$luks_container"
-		if [[ -z $luks_container ]]; then luks_container_show="n/a"; fi
-		printf "%21s %s\n" "crypto container:" $luks_container_show
+		exit 77
 
-		luks_uuid_show="$luks_uuid"
-		if [[ -z $luks_uuid ]]; then luks_uuid_show="n/a"; fi
-		printf "%21s %s\n" "luks_uuid:" $luks_uuid_show
+	else
 
 		echo
+		printf "specific data for:\n"
+		printf "${GREEN}$target_type $target${NOC}\n"
 
-		loopback_device_show="$loopback_device"
-		if [[ -z $loopback_device ]]; then loopback_device_show="n/a"; fi
-		printf "%21s %s\n" "loopback device:" $loopback_device_show
+		echo
+		printf "%21s %s\n" "crypto container:" $luks_container
+		printf "%21s %s\n" "luks_uuid:" $luks_uuid
 
-		loop_uuid_show="$loop_uuid"
-		if [[ -z $loop_uuid ]]; then loop_uuid_show="n/a"; fi
-		printf "%21s %s\n" "loop_uuid:" $loop_uuid_show
+		echo
+		printf "%21s %s\n" "loopback device:" $loopback_device
+		printf "%21s %s\n" "up since:" $loop_ctime
+		printf "%21s %s\n" "loop_uuid:" $loop_uuid
+
+		echo
+		printf "%21s %s\n" "vlt_mapper:" $vlt_mapper
+		printf "%21s %s\n" "mountpoint:" $mountpoint
+
+	fi
 
 }
 
@@ -427,6 +399,8 @@ close_target() {
 
 	fi
 
+	# single target
+
 	get_vault_data
 	show_info
 
@@ -441,19 +415,20 @@ unmount() {
 	if [[ -n $mountpoint ]]; then
 
 		echo
-		printf "${RED}unmount & close? (Y/n)${NOC} "
+		printf "unmount & close? (Y/n) "
 
 		reply_single
-		echo
 
 		if printf "$reply" | grep -iq "^n"; then
-
+			echo
+			printf "${RED}aborted by user${NOC}\n"
 			exit
 
 		else
 
+			echo
 			sudo umount $mountpoint
-			printf "unmounted $vlt_mapper from mountpoint $mountpoint\n"
+			printf "$vlt_mapper unmounted from $mountpoint\n"
 
 		fi
 
@@ -496,6 +471,7 @@ get_all_vlt_mappers() {
 vault_info() {
 
 	# show all mapper paths with their mountpoints
+	#[TODO] info option 'all'
 
 	info=$(lsblk -rp | grep vlt_ | sort -k 7)
 
@@ -505,8 +481,15 @@ vault_info() {
 
 	else
 
+		printf "${GREEN}mapped vaults:${NOC}\n"
 		printf "$info\n"
 
+	fi
+
+	if [[ -n $target ]]; then
+		# show info about specific target
+		get_vault_data
+		show_info
 	fi
 
 }
