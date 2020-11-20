@@ -276,8 +276,6 @@ get_vault_data() {
 
 	# single target (vault close 'target')
 
-	#[TODO] two mountpoints: .../s and .../s2
-
 	## scenario1: container
 	## target_type is a luks encrypted container file
 
@@ -300,10 +298,9 @@ get_vault_data() {
 	## scenario2: mountpoint
 	## target_type is a valid mountpoint
 
-	if [[ -d $target && ! $(mountpoint $target | grep not) ]]; then
-
-		### $2 user entry ($target) is a directory
-		### $2 user entry ($target) is not (!) not (grep not) a mountpoint
+	mountpoint -q $target
+	mountpoint_status=$?
+	if [ $mountpoint_status -eq 0 ]; then
 
 		target_type="mountpoint"
 
@@ -334,7 +331,8 @@ get_vault_data() {
 	fi
 
 
-	vlt_mapper=$(lsblk -rp | grep $mountpoint | awk '{print $1}')
+	## grep -w to prevent two hits if i.e. ../s and ../s2 exists
+	vlt_mapper=$(lsblk -rp | grep -w $mountpoint | awk '{print $1}')
 
 	luks_uuid=$(lsblk -parf | grep $vlt_mapper | awk '{print $5}')
 
