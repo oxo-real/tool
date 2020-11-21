@@ -24,16 +24,15 @@ source $source_dir/splash_screen
 source $source_dir/get_sudo
 
 
-set -e
-
-
-# options (open, close, create or info)
-option=$1
-# target (<filename>, <mountpoint>, <vlt_mapper> or all)
+# actions (open, close, create or info)
+action=$1
+# target (<filename>, <mountpoint>, <vlt_mapper> or 'all')
 target=$2
 
 
+# dependencies
 
+## define replies
 source $HOME/_git/code/sources/functions/reply_functions
 ## define colors
 source $source_dir/text_appearance
@@ -92,7 +91,7 @@ check_container_size() {
 
 create_vlt_mapper_name() {
 
-	# create pretty unique traceable /dev/mapper/vlt_ name
+	# create pretty unique and traceable /dev/mapper/vlt_* name
 
 	random_hex="$(< /dev/random tr -d -c "[:xdigit:]" | head -c 6)"
 
@@ -103,11 +102,6 @@ create_vlt_mapper_name() {
 
 
 create_vault() {
-
-	# temporary mountpoint
-	#mountpoint="$HOME/_temp/$random_hex"
-	#mkdir -p "$mountpoint"
-	#echo
 
 	printf "writing random data to $target\n"
 
@@ -124,10 +118,8 @@ create_vault() {
 
 	## cryptsetup with luks2
 	cryptsetup luksFormat --type luks2 --verify-passphrase $target
-	#cryptsetup -y luksFormat $target
 	echo
 
-	## other option:
 	## cryptsetup with plain dm-crypt
 	#cryptsetup \
 	#	-y \
@@ -150,8 +142,12 @@ create_vault() {
 open_luks() {
 
 	echo
-	printf "opening $target to $mapping_name\n"
+	printf "decrypting $target\n"
+
 	sudo cryptsetup open --type luks2 $target $mapping_name
+
+	echo
+	printf "mapping $target to $vlt_mapper\n"
 
 }
 
@@ -160,36 +156,29 @@ make_fs () {
 
 	echo
 	printf "writing ext4 filesystem to $vlt_mapper\n"
+
 	sudo mkfs.ext4 -L VAULT -j $vlt_mapper
+
 
 }
 
 
 permissions() {
 
-	#printf "write permission to $mountpoint\n"
 	sudo chown -R $USER:wheel $mountpoint
+
 
 }
 
 
 close_luks() {
 
-	if [[ $option == "create" ]]; then
 
-		#[TODO] can be one algo? (remove if)
-		sudo cryptsetup close $vlt_mapper
-		printf "cryptsetup closed $vlt_mapper\n"
-		clear_cache
-		printf "${GREEN}$target created succesfully${NOC}\n"
+	sudo cryptsetup close $vlt_mapper
 
-	else
-
-		sudo cryptsetup close $vlt_mapper
-		printf "cryptsetup closed $vlt_mapper\n"
-		clear_cache
-
-	fi
+	echo
+	printf "cryptsetup closed $vlt_mapper\n"
+	clear_cache
 
 }
 
@@ -199,7 +188,7 @@ clean_up() {
 	# extra if, to be sure rm only happens
 	# on temporarily mountpoint while creating a new vault
 
-	if [[ $option == "create" ]]; then
+	if [[ $action == "create" ]]; then
 
 		rmdir "$mountpoint"
 
@@ -210,33 +199,34 @@ clean_up() {
 
 check_mp_dir() {
 
-	#mountpoint=$3
+	# existence & emptyness (for mounting)
 
-	## existence & emptyness (for mounting)
-
-	## mountpoint entry
+	## no mountpoint entry
 	if [[ -z $mountpoint ]]; then
 
-		printf "${RED}missing mountpoint entry\nvault open <vault_file> \
-			<mountpoint>${NOC}\n"
+		printf "${RED}empty mountpoint entry${NOC}\n"
+		printf "vault open <vault_file> <mountpoint>\n"
 		exit 3
 
-	## directory existence
+	## mountpoint directory does not exist
+	elif [[ ! -d $mountpoint ]]; then
+
+			printf "${RED}$mountpoint does not exist!${NOC}\n" && exit 3
+
+	## directory does exist
 	elif [[ -d $mountpoint ]]; then
 
-		## directory in mountinfo (/proc/self/mountinfo)?
-		## or in other words: is it a mountpoint already?
-		if [[ "$(mountpoint -q $mountpoint)" == "0" ]]; then
+		## and is a mountpoint already
+		if mount | grep $mountpoint > /dev/null; then
 
 			printf "${RED}$mountpoint is already a mountpoint${NOC}\n" && exit 3
 
-		fi
+	else
 
-	elif [[ ! -d $mountpoint ]]; then
+		## mountpoint is clear!
+		c=1
 
-			## directory does not exist
-			printf "${RED}$mountpoint does not exist!${NOC}\n" && exit 3
-
+	fi
 	fi
 
 }
@@ -267,6 +257,7 @@ generate_pw() {
 
 mounting() {
 
+
 	sudo mount $vlt_mapper $mountpoint
 
 }
@@ -275,13 +266,27 @@ mounting() {
 get_vault_data() {
 
 	# single target (vault close 'target')
+	## target is a luks container, mountpoint or vlt_mapper
 
 	## scenario1: container
 	## target_type is a luks encrypted container file
 
-	filetype=$(file $target)
+	if [[ -z $target ]]; then
 
-	if [[ -n $(printf "$filetype" | grep -i 'luks encrypted') ]]; then
+		return
+
+	fi
+
+	luks_status=1 #no luks_container
+	if [[ -f $target ]]; then
+
+		cryptsetup isLuks $target
+		luks_status=$?
+
+	fi
+
+
+	if [ $luks_status -eq 0 ]; then
 
 		target_type="luks_container"
 
@@ -298,8 +303,15 @@ get_vault_data() {
 	## scenario2: mountpoint
 	## target_type is a valid mountpoint
 
-	mountpoint -q $target
-	mountpoint_status=$?
+	mountpoint_status=1 #no mountpoint
+	if [[ -d $target ]]; then
+
+		mountpoint -q $target
+		mountpoint_status=$?
+
+	fi
+
+
 	if [ $mountpoint_status -eq 0 ]; then
 
 		target_type="mountpoint"
@@ -331,8 +343,21 @@ get_vault_data() {
 	fi
 
 
-	## grep -w to prevent two hits if i.e. ../s and ../s2 exists
-	vlt_mapper=$(lsblk -rp | grep -w $mountpoint | awk '{print $1}')
+	## scenario4: vlt w/o mp
+	## vlt_mapper has no mountpoint
+
+	if [[ -z $mountpoint ]]; then
+
+		mountpoint="none"
+		## assuming we have a vlt_mapper
+		vlt_mapper=$(lsblk -parf --noheadings | grep vlt_ | grep -v % | awk '{print $1}')
+
+	else
+
+		## grep -w to prevent two hits if i.e. ../s and ../s2 exists
+		vlt_mapper=$(lsblk -rp | grep -w $mountpoint | awk '{print $1}')
+
+	fi
 
 	luks_uuid=$(lsblk -parf | grep $vlt_mapper | awk '{print $5}')
 
@@ -349,39 +374,50 @@ get_vault_data() {
 }
 
 
-show_info() {
+show_spec_info() {
 
 	if [[ -z $target_type ]]; then
 
 		## get_vault_data could not assign a target_type
 		echo
-		printf "${RED}no specific data available${NOC}\n"
-		printf "no valid target_type for: $target\n"
-		echo
-		printf "target no valid luks_container, mountpoint or vlt_mapper\n"
+		printf "no specific info available\n"
+		printf "${RED}no valid target_type $target${NOC}\n"
 
 		exit 77
 
 	else
 
 		echo
-		printf "specific data for:\n"
-		printf "${GREEN}$target_type $target${NOC}\n"
+		echo
+		printf "%22s${GREEN} %s${NOC}\n" "specific info for:" "$target_type $target"
 
 		echo
-		printf "%21s %s\n" "crypto container:" $luks_container
-		printf "%21s %s\n" "luks_uuid:" $luks_uuid
+		printf "%22s %s\n" "crypto container:" $luks_container
+		printf "%22s %s\n" "luks_uuid:" $luks_uuid
 
 		echo
-		printf "%21s %s\n" "loopback device:" $loopback_device
-		printf "%21s %s\n" "up since:" $loop_ctime
-		printf "%21s %s\n" "loop_uuid:" $loop_uuid
+		printf "%22s %s\n" "loopback device:" $loopback_device
+		printf "%22s %s\n" "up since:" $loop_ctime
+		printf "%22s %s\n" "loop_uuid:" $loop_uuid
 
 		echo
-		printf "%21s %s\n" "vlt_mapper:" $vlt_mapper
-		printf "%21s %s\n" "mountpoint:" $mountpoint
+		printf "%22s %s\n" "vlt_mapper:" $vlt_mapper
+
+		if [ $mountpoint != "none" ]; then
+			printf "%22s %s\n" "mountpoint:" $mountpoint
+		else
+			printf "%22s${RED} %s${NOC}\n" "mountpoint:" $mountpoint
+		fi
 
 	fi
+
+}
+
+
+check_target_exists() {
+
+	# for close
+	b=1
 
 }
 
@@ -395,22 +431,24 @@ close_target() {
 		close_all
 		exit
 
-	fi
+	else
 
 	# single target
 
-	get_vault_data
-	show_info
+		get_vault_data
+		show_spec_info
 
-	unmount
-	close_luks
+		unmount
+		close_luks
+
+	fi
 
 }
 
 
 unmount() {
 
-	if [[ -n $mountpoint ]]; then
+	if [[ -n $mountpoint && $mountpoint != "none" ]]; then
 
 		echo
 		printf "unmount & close? (Y/n) "
@@ -419,19 +457,19 @@ unmount() {
 
 		if printf "$reply" | grep -iq "^n"; then
 			echo
-			printf "${RED}aborted by user${NOC}\n"
+			printf "${RED}$action $target aborted by user${NOC}\n"
 			exit
 
 		else
 
 			echo
+
 			sudo umount $mountpoint
+
+			echo
 			printf "$vlt_mapper unmounted from $mountpoint\n"
 
 		fi
-
-		#[TODO] ivm create?
-		#close_luks
 
 	fi
 
@@ -440,7 +478,9 @@ unmount() {
 
 clear_cache() {
 
+
 	sudo sysctl --write vm/drop_caches=3
+
 	exit 0
 
 }
@@ -449,12 +489,6 @@ clear_cache() {
 get_all_vlt_mappers() {
 
 	vlt_mappers=$(lsblk -rp | grep vlt_ | sort -k 7 | awk '{print $1}')
-
-	#[TODO] remove ops
-	echo
-	printf "TEST vlt_mappers:\n$vlt_mappers\n"
-	echo
-
 
 	if [[ -z "$vlt_mappers" ]]; then
 
@@ -466,12 +500,13 @@ get_all_vlt_mappers() {
 }
 
 
-vault_info() {
+vault_list() {
 
-	# show all mapper paths with their mountpoints
+	# show list of all mapper paths with their mountpoints
 	#[TODO] info option 'all'
 
-	info=$(lsblk -rp | grep vlt_ | sort -k 7)
+	info=$(lsblk -lp | grep vlt_ | sort -k 7)
+	info_headers=$(lsblk -lp | head -n 1)
 
 	if [[ -z "$info" ]]; then
 
@@ -480,14 +515,22 @@ vault_info() {
 	else
 
 		printf "${GREEN}mapped vaults:${NOC}\n"
+		printf "$info_headers\n"
 		printf "$info\n"
 
 	fi
 
+}
+
+vault_spec_info() {
+
 	if [[ -n $target ]]; then
+
 		# show info about specific target
+
 		get_vault_data
-		show_info
+		show_spec_info
+
 	fi
 
 }
@@ -495,41 +538,19 @@ vault_info() {
 
 close_all() {
 
-	unset target
-
-	vault_info
-
+	vault_list
 	get_all_vlt_mappers
 
-	#printf "sure to all unmount and close? (Y/n) "
-	#echo
-	#TODO yesno
-	#TODO option: quick close all
+	while IFS= read -r vlt_mapper; do
 
-	#for vlt_mapper in "${vlt_mappers[@]}"
-	##for vlt_mapper in /dev/mapper/vlt_*
-	##for vlt_mapper in $vlt_mappers
-	#@#@printf "$vlt_mappers" | while read -r vlt_mapper; do
+		target=$vlt_mapper
+	#	get_vault_data
+	#	show_spec_info
 
-	while IFS='' read -r vlt_mapper; do
+	#	unmount
+	#	close_luks
+		sh ~/_git/code/tools/vault close $target
 
-		#[TODO] remove ops
-		printf "processing: $vlt_mapper\n"
-		echo
-
-		## get mountpoint of the current vlt_mapper
-		mountpoint=$(mount | grep $vlt_mapper | cut -d " " -f 3)
-
-		#[TODO] remove ops
-		printf "mp: $mountpoint\n"
-		echo
-
-		sudo umount $mountpoint
-		printf "unmounted $vlt_mapper from mountpoint $mountpoint\n"
-
-		close_luks
-
-	#@#@done
 	done <<< "$vlt_mappers"
 
 	echo
@@ -540,16 +561,17 @@ close_all() {
 
 # vault info
 
-if [[ $option == "info" ]]; then
+if [[ $action == "info" ]]; then
 
-	vault_info
+	vault_list
+	vault_spec_info
 
 fi
 
 
 # create vault
 
-if [[ $option == "create" ]]; then
+if [[ $action == "create" ]]; then
 
 	size=$3
 	check_file_exists
@@ -564,10 +586,9 @@ if [[ $option == "create" ]]; then
 fi
 
 
-# opening vaults
+# open vault
 
-## open a specific vault
-if [[ $option == "open" ]]; then
+if [[ $action == "open" ]]; then
 
 	mountpoint=$3
 	check_mp_dir
@@ -576,8 +597,9 @@ if [[ $option == "open" ]]; then
 	open_luks
 	mounting
 	permissions
+	target=$mountpoint
 	get_vault_data
-	show_info
+	show_spec_info
 
 fi
 
@@ -585,7 +607,7 @@ fi
 # closing vaults
 
 ## close a vault
-if [[ $option == "close" ]]; then
+if [[ $action == "close" ]]; then
 
 	close_target
 
