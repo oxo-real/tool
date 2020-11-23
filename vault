@@ -294,8 +294,24 @@ get_vault_data() {
 
 		loopback_device=$(losetup -j $target | awk -F ':' '{print $1}')
 
-		mountpoint=$(lsblk -parf --noheadings $loopback_device | tail -n 1 | \
-			awk '{print $8}')
+			if [[ -z $loopback_device ]]; then
+
+				## luks_container is not mapped
+				loopback_device="n/a"
+				mountpoint="n/a"
+				vlt_mapper="n/a"
+				luks_uuid=$(cryptsetup luksUUID $target)
+				loop_uuid="n/a"
+				loop_ctime="n/a"
+				return
+
+
+			else
+
+				mountpoint=$(lsblk -parf --noheadings $loopback_device | \
+					tail -n 1 | awk '{print $8}')
+
+			fi
 
 	fi
 
@@ -329,7 +345,6 @@ get_vault_data() {
 		vlt_target=$(lsblk -parf | grep vlt_ | awk '{print $1}' | grep $target)
 
 		if [[ -n $vlt_target ]]; then
-
 			## $2 user entry ($target) is a loopback device (vlt_mapper)
 
 			target_type="vlt_mapper"
