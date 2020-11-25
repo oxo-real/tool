@@ -1,0 +1,3 @@
+#!/bin/bash
+
+cat $HOME/_data/tag/cloud | fzf -m | sed 's/.* //g'
