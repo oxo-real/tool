@@ -1,0 +1,11 @@
+#!/bin/bash
+
+files=$(fd -t f -H -I . $HOME | fzf -m)
+
+tags=$(cat $HOME/_data/tag/cloud | fzf -m | sed 's/.* //g' | sed 's/\n/ /g')
+
+while IFS= read -r file; do
+
+	tmsu tag $file $tags
+
+done <<< "$files"

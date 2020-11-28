@@ -40,35 +40,50 @@ source $source_dir/text_appearance
 
 check_file_exists() {
 
-	if [[ -f $target ]]; then
+	if [[ $action == "create" ]]; then
 
-		printf "${RED}$target already exists!${NOC}\n"
-		printf "overwrite? (y/N) "
-		reply_single
-		echo
+		if [[ -f $target ]]; then
 
-		if printf "$reply" | grep -iq "^y"; then
-
-			printf "${RED}about to overwrite $target${NOC}\n"
-			printf "really sure? (y/N) "
+			printf "${RED}$target already exists!${NOC}\n"
+			printf "overwrite? (y/N) "
 			reply_single
 			echo
 
 			if printf "$reply" | grep -iq "^y"; then
 
-				return
+				printf "${RED}about to overwrite $target${NOC}\n"
+				printf "really sure? (y/N) "
+				reply_single
+				echo
+
+				if printf "$reply" | grep -iq "^y"; then
+
+					return
+
+				else
+
+					printf "abort overwriting $target\n"
+					exit 11
+
+				fi
 
 			else
 
 				printf "abort overwriting $target\n"
-				exit 11
+				exit 2
 
 			fi
 
-		else
+		fi
 
-			printf "abort overwriting $target\n"
-			exit 2
+	fi
+
+	if [[ $action == "open" ]]; then
+
+		if [[ ! -f $target ]]; then
+
+			printf "${RED}$target does not exist or access denied!${NOC}\n"
+			exit 22
 
 		fi
 
@@ -403,7 +418,6 @@ show_spec_info() {
 	else
 
 		echo
-		echo
 		printf "%22s${GREEN} %s${NOC}\n" "specific info for:" "$target_type $target"
 
 		echo
@@ -507,7 +521,8 @@ get_all_vlt_mappers() {
 
 	if [[ -z "$vlt_mappers" ]]; then
 
-		printf "${RED}no mapped vaults${NOC}\n"
+		vault_lists
+		# will show status 'no mapped vaults'
 		exit
 
 	fi
@@ -569,7 +584,8 @@ close_all() {
 	done <<< "$vlt_mappers"
 
 	echo
-	printf "${GREEN}all vaults closed succesfully${NOC}\n"
+	#printf "${GREEN}all vaults closed succesfully${NOC}\n"
+	vault_list
 
 }
 
@@ -605,6 +621,7 @@ fi
 
 if [[ $action == "open" ]]; then
 
+	check_file_exists
 	mountpoint=$3
 	check_mp_dir
 	generate_pw
