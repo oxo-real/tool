@@ -38,7 +38,7 @@ source $HOME/_git/code/sources/functions/reply_functions
 source $source_dir/text_appearance
 
 
-check_file_exists() {
+check_target_status() {
 
 	if [[ $action == "create" ]]; then
 
@@ -75,19 +75,19 @@ check_file_exists() {
 			fi
 
 		fi
-
 	fi
+}
 
-	if [[ $action == "open" ]]; then
 
-		if [[ ! -f $target ]]; then
+check_target_validity() {
 
-			printf "${RED}$target does not exist or access denied!${NOC}\n"
+		if [[ ! -f $target ]] && [[ ! -d $target ]]; then
+
+			echo
+			printf "${RED}$target does not exist or access denied${NOC}\n"
 			exit 22
 
 		fi
-
-	fi
 
 }
 
@@ -312,12 +312,14 @@ get_vault_data() {
 			if [[ -z $loopback_device ]]; then
 
 				## luks_container is not mapped
-				loopback_device="n/a"
-				mountpoint="n/a"
-				vlt_mapper="n/a"
 				luks_uuid=$(cryptsetup luksUUID $target)
-				loop_uuid="n/a"
-				loop_ctime="n/a"
+
+				loopback_device="none"
+				loop_ctime="none"
+				loop_uuid="none"
+
+				vlt_mapper="none"
+				mountpoint="none"
 				return
 
 
@@ -389,22 +391,35 @@ get_vault_data() {
 
 	fi
 
-	luks_uuid=$(lsblk -parf | grep $vlt_mapper | awk '{print $5}')
 
-	loopback_device=$(lsblk -parf | grep -B 1 $luks_uuid | head -n 1 | \
-		awk '{print $1}')
+	if [[ -n $vlt_mapper ]]; then
 
-	loop_uuid=$(lsblk -parf | grep $loopback_device | awk '{print $4}')
+		luks_uuid=$(lsblk -parf | grep $vlt_mapper | awk '{print $5}')
 
-	loop_ctime=$(ls -ila --time ctime \
-		--time-style=+%Y%m%d_%H%M%S $loopback_device | awk '{print $8}')
+		loopback_device=$(lsblk -parf | grep -B 1 $luks_uuid | head -n 1 | \
+			awk '{print $1}')
 
-	luks_container=$(losetup $loopback_device | cut -d "(" -f2 | cut -d ")" -f1)
+		loop_uuid=$(lsblk -parf | grep $loopback_device | awk '{print $4}')
+
+		loop_ctime=$(ls -ila --time ctime \
+			--time-style=+%Y%m%d_%H%M%S $loopback_device | awk '{print $8}')
+
+		luks_container=$(losetup $loopback_device | cut -d "(" -f2 | cut -d ")" -f1)
+
+	else
+
+		## empty vlt_mapper
+		vlt_mapper="none"
+
+	fi
 
 }
 
 
 show_spec_info() {
+
+	check_target_validity
+	check_target_status
 
 	if [[ -z $target_type ]]; then
 
@@ -430,7 +445,11 @@ show_spec_info() {
 		printf "%22s %s\n" "loop_uuid:" $loop_uuid
 
 		echo
-		printf "%22s %s\n" "vlt_mapper:" $vlt_mapper
+		if [ $vlt_mapper != "none" ]; then
+			printf "%22s %s\n" "vlt_mapper:" $vlt_mapper
+		else
+			printf "%22s${RED} %s${NOC}\n" "vlt_mapper:" $vlt_mapper
+		fi
 
 		if [ $mountpoint != "none" ]; then
 			printf "%22s %s\n" "mountpoint:" $mountpoint
@@ -584,8 +603,8 @@ close_all() {
 	done <<< "$vlt_mappers"
 
 	echo
-	#printf "${GREEN}all vaults closed succesfully${NOC}\n"
 	vault_list
+	printf "${GREEN}all vaults closed succesfully${NOC}\n"
 
 }
 
@@ -605,7 +624,8 @@ fi
 if [[ $action == "create" ]]; then
 
 	size=$3
-	check_file_exists
+	check_target_validity
+	check_target_status
 	check_container_size
 	create_vlt_mapper_name
 	create_vault
@@ -621,7 +641,8 @@ fi
 
 if [[ $action == "open" ]]; then
 
-	check_file_exists
+	check_target_validity
+	check_target_status
 	mountpoint=$3
 	check_mp_dir
 	generate_pw
@@ -641,6 +662,23 @@ fi
 ## close a vault
 if [[ $action == "close" ]]; then
 
+	check_target_validity
+	check_target_status
 	close_target
+
+fi
+
+
+# no valid action
+
+if [[ \
+	$action != "info" && \
+	$action != "create" && \
+	$action != "open" && \
+	$action != "close" \
+	]]; then
+
+	printf "${RED}no valid action${NOC}\n"
+	exit 40
 
 fi

@@ -39,14 +39,15 @@ sourcing() {
 
 read_input() {
 
-	read input
+	read "input"
 
 }
 
 
 hashing() {
-# input, algorithm
+## input, algorithm
 
+	## sed removes '(stdin)= ' of openssl dgst
 	printf $1 | openssl dgst -$2 | sed 's/^.*= //'
 	#printf $1 | openssl dgst -$2 -binary | xxd -p
 
@@ -54,8 +55,8 @@ hashing() {
 
 
 hmacing() {
-# sha3 hmac rfc2104
-# input, algorithm, hmac
+## sha3 hmac rfc2104
+## input, algorithm, hmac
 
 	printf $1 | openssl dgst -$2 -hmac $3 | sed 's/^.*= //'
 	#printf $1 | openssl dgst -$2 -hmac $3 -binary | xxd -p
@@ -64,7 +65,7 @@ hmacing() {
 
 
 hash_1_input() {
-# create sha1 hash from input
+## create sha1 hash from input
 
 	#local input=$input
 	local algo="sha1"
@@ -75,8 +76,8 @@ hash_1_input() {
 
 
 hash_3_input() {
-# create sha3-512 hash from input
-# keccak sha3 standard fips pub 202
+## create sha3-512 hash from input
+## keccak sha3 standard fips pub 202
 
 	#local input=$input
 	local algo="sha3-512"
@@ -85,8 +86,9 @@ hash_3_input() {
 
 }
 
+
 clear_input(){
-## overwrite and clear input variable, then unset it for security
+## overwrite input variable, then clear and unset it for security
 
 	input=$(< /dev/random tr -d -c "[:xdigit:]" | head -c 128)
 	input=""
@@ -96,8 +98,8 @@ clear_input(){
 
 
 print_blocks() {
-## four lines of eight; two space-separated, four-column, zero-filled,
-## two-byte quantities of hexadecimal inputdata
+## print four lines of eight; two space-separated, four-column,
+## zero-filled, two-byte quantities of hexadecimal inputdata
 
 	printf $1 | cut -c 1-32 | sed 's/.\{4\}/&  /g'
 	printf $1 | cut -c 33-64 | sed 's/.\{4\}/&  /g'
@@ -108,7 +110,7 @@ print_blocks() {
 
 
 round_pool() {
-# dynamic truncate hash_sha3512
+## dynamic truncate hash_sha3512
 
 	local hs=$hash_sha3512
 	local dgts="10"
@@ -137,7 +139,7 @@ rounds_number() {
 
 
 round_key() {
-# create hmac key for running_rounds
+## create hmac key for running_rounds
 
 	local input=$dividend
 	local algo="sha3-512"
@@ -150,7 +152,7 @@ round_key() {
 
 running_rounds() {
 
-	# keep hash_sha3512 untouched
+	## keep hash_sha3512 untouched
 	input_calc=$hash_sha3512
 
 	for (( round=1; round<=$rounds; round++ ))
@@ -177,10 +179,13 @@ running_rounds() {
 
 two_fa() {
 
+	# two factor authentication
+
+	## human enters 2fa code from separate source
 	printf "?2fa  "
 	read two_fa
 
-	# set variables to send to genotp
+	## set variables to send to genotp
 	secret="$HOME/_git/private/vault/totp.key"
 	mode="totp"
 	alg="sha512"
@@ -190,12 +195,12 @@ two_fa() {
 	counter="0"
 	from_hmac="1"
 
-	## get variable code from genotp
+	## call genotp to get current code
 	eval $(source $HOME/_git/notes/crypto/2fa/genotp/genotp.sh; echo code="$code";)
 
 	## code from genotp is 12 digits (for aesthetic purposes there)
 	## first two though are always leading zeros
-	## aegis app procuces a maximum of 10 digits
+	## aegis app produces a maximum of 10 digits
 	## therefore remove first two digits (zeros) from code
 	code=$(printf $code | cut -c 3-)
 
@@ -220,7 +225,7 @@ output_console() {
 output_wlcopy() {
 
 	printf $output | cut -z -c -64 | wl-copy -o
-	## for barebones tty usage
+	## for barebone tty usage
 	## beware! potentially unsafe
 	## to file
 	#printf "$output_64" | cut -c -64 > output.tmp
