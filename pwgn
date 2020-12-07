@@ -32,6 +32,7 @@ developer="cytopyge"
 sourcing() {
 	source ~/_git/code/sources/functions/get_sudo
 	source ~/_git/code/sources/functions/text_appearance
+	echo
 	get_sudo
 
 }

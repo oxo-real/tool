@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/zsh
 
 # usage: sudo sh vault open <target> <mountpoint>
 # usage: sudo sh vault close <target> #TODO mountpoint #TODO mapperID
@@ -38,6 +38,27 @@ source $HOME/_git/code/sources/functions/reply_functions
 source $source_dir/text_appearance
 
 
+check_target_validity() {
+
+	if [[ -z $target && $action == "info" ]]; then
+
+		return
+
+	elif [[ $target == "all" && $action == "close" ]]; then
+
+		return
+
+	elif [[ ! -f $target ]] && [[ ! -d $target ]]; then
+
+			echo
+			printf "${RED}$target does not exist or access denied${NOC}\n"
+			exit 22
+
+	fi
+
+}
+
+
 check_target_status() {
 
 	if [[ $action == "create" ]]; then
@@ -62,32 +83,23 @@ check_target_status() {
 
 				else
 
-					printf "abort overwriting $target\n"
+					printf "target creation aborted\n"
+					printf "$target already exists\n"
 					exit 11
 
 				fi
 
 			else
 
-				printf "abort overwriting $target\n"
+				printf "target creation aborted\n"
+				printf "$target already exists\n"
 				exit 2
 
 			fi
 
 		fi
+
 	fi
-}
-
-
-check_target_validity() {
-
-		if [[ ! -f $target ]] && [[ ! -d $target ]]; then
-
-			echo
-			printf "${RED}$target does not exist or access denied${NOC}\n"
-			exit 22
-
-		fi
 
 }
 
@@ -96,7 +108,7 @@ check_container_size() {
 
 	if [ $size -lt 18 ]; then
 
-		# to prevent error: 'Requested offset is beyond real size of device'
+		# to prevent error: 'requested offset is beyond real size of device'
 		printf "${RED}minimum vault size is 18 MB${NOC}\n" && exit 18
 
 	fi
@@ -262,7 +274,6 @@ generate_pw() {
 
 	else
 
-		echo
 		sh ~/_git/code/tools/pwgn
 
 	fi
@@ -418,9 +429,6 @@ get_vault_data() {
 
 show_spec_info() {
 
-	check_target_validity
-	check_target_status
-
 	if [[ -z $target_type ]]; then
 
 		## get_vault_data could not assign a target_type
@@ -501,7 +509,12 @@ unmount() {
 		echo
 		printf "unmount & close? (Y/n) "
 
+		## here we get error: stty: 'standard input': Inappropriate ioctl for device
+		## i do not have a clue why
+		## workaround: redirect all to /dev/null
+		stty -echo
 		reply_single
+		stty echo
 
 		if printf "$reply" | grep -iq "^n"; then
 			echo
@@ -540,8 +553,7 @@ get_all_vlt_mappers() {
 
 	if [[ -z "$vlt_mappers" ]]; then
 
-		vault_lists
-		# will show status 'no mapped vaults'
+		vault_list
 		exit
 
 	fi
@@ -552,7 +564,6 @@ get_all_vlt_mappers() {
 vault_list() {
 
 	# show list of all mapper paths with their mountpoints
-	#[TODO] info option 'all'
 
 	info=$(lsblk -lp | grep vlt_ | sort -k 7)
 	info_headers=$(lsblk -lp | head -n 1)
@@ -571,6 +582,7 @@ vault_list() {
 
 }
 
+
 vault_spec_info() {
 
 	if [[ -n $target ]]; then
@@ -587,18 +599,19 @@ vault_spec_info() {
 
 close_all() {
 
-	vault_list
 	get_all_vlt_mappers
+	vault_list
 
 	while IFS= read -r vlt_mapper; do
 
 		target=$vlt_mapper
-	#	get_vault_data
-	#	show_spec_info
+		close_target
+		###get_vault_data
+		###show_spec_info
 
-	#	unmount
-	#	close_luks
-		sh ~/_git/code/tools/vault close $target
+		###unmount
+		###close_luks
+		###sh ~/_git/code/tools/vault close $target
 
 	done <<< "$vlt_mappers"
 
@@ -613,6 +626,9 @@ close_all() {
 
 if [[ $action == "info" ]]; then
 
+	check_target_validity
+	check_target_status
+
 	vault_list
 	vault_spec_info
 
@@ -624,8 +640,10 @@ fi
 if [[ $action == "create" ]]; then
 
 	size=$3
+
 	check_target_validity
 	check_target_status
+
 	check_container_size
 	create_vlt_mapper_name
 	create_vault
@@ -641,16 +659,20 @@ fi
 
 if [[ $action == "open" ]]; then
 
+	mountpoint=$3
+
 	check_target_validity
 	check_target_status
-	mountpoint=$3
+
 	check_mp_dir
 	generate_pw
 	create_vlt_mapper_name
 	open_luks
 	mounting
 	permissions
+
 	target=$mountpoint
+
 	get_vault_data
 	show_spec_info
 
@@ -664,6 +686,7 @@ if [[ $action == "close" ]]; then
 
 	check_target_validity
 	check_target_status
+
 	close_target
 
 fi
