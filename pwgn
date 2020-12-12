@@ -27,20 +27,54 @@
 script_name="pwgn"
 initial_release_year="2020"
 developer="cytopyge"
+source_dir="$HOME/_git/code/sources/functions"
 
 
 sourcing() {
-	source ~/_git/code/sources/functions/get_sudo
-	source ~/_git/code/sources/functions/text_appearance
-	echo
-	get_sudo
+
+	## define colors
+	source $source_dir/text_appearance
+
+	## reply functions
+	source $source_dir/reply_functions
+
+	## user authentication
+	source $source_dir/get_sudo
 
 }
 
 
 read_input() {
 
-	read "input"
+	echo
+	get_sudo
+
+	## save cursor
+	tput sc
+
+	printf "${YELLOW}O${NOC}ptical"
+
+	reply_single_hidden_timed
+
+	## restore cursor
+	tput rc
+	## clear to end of screen
+	tput ed
+
+	if printf "$reply" | grep -iq "^o"; then
+
+		input=$(zbarcam --oneshot --raw)
+
+	else
+
+		tput sc
+		read input
+		## move cursor up one line
+		tput cuu1
+		tput rc
+		tput ed
+
+	fi
 
 }
 

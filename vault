@@ -262,10 +262,19 @@ check_mp_dir() {
 generate_pw() {
 
 	echo
+	## save cursor
+	tput sc
+
 	printf "starting pwgn...\npress 'n' to abort "
 
 	reply_single_hidden_timed
-	echo
+
+	## move cursor up one line
+	tput cuu1
+	## clear end of screen
+	tput ed
+	tput cuu1
+	tput ed
 
 	if printf "$reply" | grep -iq "^n"; then
 
