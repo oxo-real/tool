@@ -1,5 +1,8 @@
 #!/bin/bash
-# 19700101_000000 ^= 0 Unix Epoch ^= 2440587.5 JD
+# 19700101_000000 UTC ^= 0 Unix Epoch ^= 2440587.5 JD
+# JD is used by astronomers
+# JD or an astronomical day, runs from noun to noun
 timestamp=$(date +%s)
 julian_date=`echo "$timestamp/(24*60*60)+2440587.5" | bc -l`
-printf "JD=$julian_date\n"
+printf "JD="
+printf "%.*f\n" "5" "$julian_date"

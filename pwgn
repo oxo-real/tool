@@ -71,6 +71,7 @@ read_input() {
 		read input
 		## move cursor up one line
 		tput cuu1
+
 		tput rc
 		tput ed
 

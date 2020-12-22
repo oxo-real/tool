@@ -76,6 +76,11 @@ auto_entry() {
 	notify-send "$item"
 	sleep $t
 
+	item="otp"
+	pass otp $file | wl-copy -o
+	notify-send "$item"
+	sleep $t
+
 	item="unlock"
 	get_item
 	#printf "$item "
