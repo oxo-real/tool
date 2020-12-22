@@ -1,6 +1,6 @@
 #!/bin/bash
 
-proc_kill() {
+kill_proc() {
 
 	local pid
 
@@ -15,4 +15,4 @@ proc_kill() {
 }
 
 
-proc_kill
+kill_proc
