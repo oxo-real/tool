@@ -13,17 +13,15 @@
 ###   /      |  /  _|
 ###
 ### vault
-### a secure file container
+### secure file containers
 ###
-### (c) 2020 cytopyge
+### (c) 2020 - 2021 cytopyge
 ###
 ##
 #
 
 
-# usage: sudo sh vault open <target> <mountpoint>
-# usage: sudo sh vault close <target> #TODO mountpoint #TODO mapperID
-# usage: sudo sh vault create <target> <size>
+# usage: sudo sh vault [open / close / create] <target> [mountpoint] [size]
 
 
 ## initialize hardcoded variables
@@ -31,6 +29,7 @@ developer="cytopyge"
 script_name="vault"
 initial_release_year=2019
 source_dir="$HOME/_git/code/sources/functions"
+
 
 # general function definitions
 
