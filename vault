@@ -543,9 +543,10 @@ unmount() {
 		## here we get error: stty: 'standard input': Inappropriate ioctl for device
 		## i do not have a clue why
 		## workaround: redirect all to /dev/null
-		stty -echo
+		#stty -echo
+		#[TODO] stty conflicts!
 		reply_single
-		stty echo
+		#stty echo
 
 		if printf "$reply" | grep -iq "^n"; then
 			echo
