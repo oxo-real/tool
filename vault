@@ -541,17 +541,18 @@ unmount() {
 		printf "unmount & close? (Y/n) "
 
 		## here we get error: stty: 'standard input': Inappropriate ioctl for device
-		## i do not have a clue why
-		## workaround: redirect all to /dev/null
-		#stty -echo
-		#[TODO] stty conflicts!
-		reply_single
-		#stty echo
+		## because stty is also set in reply function
+		## and is probably in conflict with the read function and / or the while loop
+		## workaround: bypass reply function
+		# #stty -echo
+		# #reply_single
+		reply=$(head -c 1)
+		# #stty echo
 
 		if printf "$reply" | grep -iq "^n"; then
 			echo
 			printf "${RED}$action $target aborted by user${NOC}\n"
-			exit
+			exit #?return
 
 		else
 
@@ -637,12 +638,11 @@ close_all() {
 	while IFS= read -r vlt_mapper; do
 
 		target=$vlt_mapper
-		close_target
-		###get_vault_data
-		###show_spec_info
+		get_vault_data
+		show_spec_info
 
-		###unmount
-		###close_luks
+		unmount
+		close_luks
 		###sh ~/_git/code/tools/vault close $target
 
 	done <<< "$vlt_mappers"
