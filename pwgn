@@ -52,7 +52,7 @@ read_input() {
 	## save cursor
 	tput sc
 
-	printf "${YELLOW}O${NOC}ptical"
+	printf "${YELLOW}O${NOC}ptical scan and decode from video device"
 
 	reply_single_hidden_timed
 
