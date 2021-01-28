@@ -68,6 +68,7 @@ read_input() {
 	else
 
 		tput sc
+		##[TODO] add option to hide keyboard entry
 		read input
 		## move cursor up one line
 		tput cuu1
