@@ -21,7 +21,16 @@
 #
 
 
-# usage: sudo sh vault [open / close / create] <target> [mountpoint] [size]
+# usage:
+# vault create	<target> <size>
+# vault open	<target> <mountpoint>
+# vault close	<target> / all
+# vault info	[target]
+#
+# in which 'target' represents a location as:
+# vault_file	(create, open)
+# vlt_mapper	(close, info)
+# mountpoint	(close, info)
 
 
 ## initialize hardcoded variables
@@ -48,7 +57,7 @@ source $source_dir/get_sudo
 
 # actions (open, close, create or info)
 action=$1
-# target (<filename>, <mountpoint>, <vlt_mapper> or 'all')
+# target (<vault_file>, <mountpoint>, <vlt_mapper> or 'all')
 target=$2
 
 
@@ -73,7 +82,7 @@ check_target_validity() {
 	elif [[ ! -f $target ]] && [[ ! -d $target ]]; then
 
 			echo
-			printf "${RED}$target does not exist or access denied${NOC}\n"
+			printf "${RED}$target invalid (permissions)${NOC}\n"
 			exit 22
 
 	fi
@@ -122,6 +131,15 @@ check_target_status() {
 		fi
 
 	fi
+
+	#if [[ $action == "info" ]]; then
+	#fi
+
+	#if [[ $action == "close" ]]; then
+	#fi
+
+	#if [[ $action == "open" ]]; then
+	#fi
 
 }
 
@@ -540,14 +558,14 @@ unmount() {
 		echo
 		printf "unmount & close? (Y/n) "
 
-		## here we get error: stty: 'standard input': Inappropriate ioctl for device
+		#reply_single
+		## here we get an error when calling reply_single:
+		## "stty: 'standard input': Inappropriate ioctl for device"
 		## because stty is also set in reply function
 		## and is probably in conflict with the read function and / or the while loop
-		## workaround: bypass reply function
-		# #stty -echo
-		# #reply_single
-		reply=$(head -c 1)
-		# #stty echo
+		## temporarily workaround: don't call reply function externally
+		printf $(stty -g)
+		read reply
 
 		if printf "$reply" | grep -iq "^n"; then
 			echo
