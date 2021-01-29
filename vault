@@ -284,16 +284,18 @@ check_mp_dir() {
 	elif [[ -d $mountpoint ]]; then
 
 		## and is a mountpoint already
-		if mount | grep $mountpoint > /dev/null; then
+		if mount | awk '{print $3}' | grep -x $mountpoint > /dev/null; then
 
+			## [TODO] when mounted test/mp2 then mounting to test/mp gives an error
 			printf "${RED}$mountpoint is already a mountpoint${NOC}\n" && exit 3
+
+		fi
 
 	else
 
 		## mountpoint is clear!
 		c=1
 
-	fi
 	fi
 
 }
@@ -564,13 +566,12 @@ unmount() {
 		## because stty is also set in reply function
 		## and is probably in conflict with the read function and / or the while loop
 		## temporarily workaround: don't call reply function externally
-		printf $(stty -g)
 		read reply
 
 		if printf "$reply" | grep -iq "^n"; then
 			echo
 			printf "${RED}$action $target aborted by user${NOC}\n"
-			exit #?return
+			exit
 
 		else
 
@@ -578,7 +579,6 @@ unmount() {
 
 			sudo umount $mountpoint
 
-			echo
 			printf "$vlt_mapper unmounted from $mountpoint\n"
 
 		fi
@@ -691,6 +691,8 @@ if [[ $action == "create" ]]; then
 
 	size=$3
 
+	get_sudo
+
 	check_target_validity
 	check_target_status
 
@@ -710,6 +712,8 @@ fi
 if [[ $action == "open" ]]; then
 
 	mountpoint=$3
+
+	get_sudo
 
 	check_target_validity
 	check_target_status
@@ -733,6 +737,8 @@ fi
 
 ## close a vault
 if [[ $action == "close" ]]; then
+
+	get_sudo
 
 	check_target_validity
 	check_target_status
