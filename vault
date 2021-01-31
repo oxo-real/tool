@@ -24,7 +24,7 @@
 # usage:
 # vault create	<target> <size>
 # vault open	<target> <mountpoint>
-# vault close	<target> / all
+# vault close	<target> / all [-y, --no-confirm]
 # vault info	[target]
 #
 # in which 'target' represents a location as:
@@ -243,8 +243,8 @@ close_luks() {
 
 	sudo cryptsetup close $vlt_mapper
 
-	echo
 	printf "cryptsetup closed $vlt_mapper\n"
+
 	clear_cache
 
 }
@@ -354,11 +354,11 @@ get_vault_data() {
 
 	fi
 
-	luks_status=1 #no luks_container
+	luks_status=1					# initialize luks_status
 	if [[ -f $target ]]; then
 
 		cryptsetup isLuks $target
-		luks_status=$?
+		luks_status=$?				# set luks_status
 
 	fi
 
@@ -398,11 +398,11 @@ get_vault_data() {
 	## scenario2: mountpoint
 	## target_type is a valid mountpoint
 
-	mountpoint_status=1 #no mountpoint
+	mountpoint_status=1			# initialize mountpoint status
 	if [[ -d $target ]]; then
 
 		mountpoint -q $target
-		mountpoint_status=$?
+		mountpoint_status=$?	# set mountpoint status
 
 	fi
 
@@ -418,6 +418,12 @@ get_vault_data() {
 
 	## scenario3: vlt_mapper
 	## target_type is a valid vlt_mapper
+
+	if [[ -n $loop_active ]]; then
+
+		target_type=""
+
+	fi
 
 	if [[ -z $target_type ]]; then
 
@@ -505,15 +511,23 @@ show_spec_info() {
 
 		echo
 		if [ $vlt_mapper != "none" ]; then
+
 			printf "%22s %s\n" "vlt_mapper:" $vlt_mapper
+
 		else
+
 			printf "%22s${RED} %s${NOC}\n" "vlt_mapper:" $vlt_mapper
+
 		fi
 
 		if [ $mountpoint != "none" ]; then
+
 			printf "%22s %s\n" "mountpoint:" $mountpoint
+
 		else
+
 			printf "%22s${RED} %s${NOC}\n" "mountpoint:" $mountpoint
+
 		fi
 
 	fi
@@ -529,6 +543,41 @@ check_target_exists() {
 }
 
 
+check_no_confirm() {
+
+	if [[ -z $no_confirm ]]; then
+
+		# no_confirm has no value; a confirmation dialogue comes up
+
+		echo
+		printf "unmount & close? (Y/n) "
+
+		read reply
+
+		if printf "$reply" | grep -iq "^n"; then
+
+			echo
+			printf "${RED}$action $target aborted by user${NOC}\n"
+
+			if [[ -z $loop_active ]]; then
+
+				exit
+
+			fi
+
+			#[TODO] also really not unmount and close!!!
+
+		else
+
+			echo
+
+		fi
+
+	fi
+
+}
+
+
 close_target() {
 
 	# all (vault close 'all')
@@ -540,10 +589,12 @@ close_target() {
 
 	else
 
-	# single target
+	# close a single target
 
 		get_vault_data
 		show_spec_info
+
+		check_no_confirm
 
 		unmount
 		close_luks
@@ -557,31 +608,10 @@ unmount() {
 
 	if [[ -n $mountpoint && $mountpoint != "none" ]]; then
 
-		echo
-		printf "unmount & close? (Y/n) "
-
-		#reply_single
-		## here we get an error when calling reply_single:
-		## "stty: 'standard input': Inappropriate ioctl for device"
-		## because stty is also set in reply function
-		## and is probably in conflict with the read function and / or the while loop
-		## temporarily workaround: don't call reply function externally
-		read reply
-
-		if printf "$reply" | grep -iq "^n"; then
-			echo
-			printf "${RED}$action $target aborted by user${NOC}\n"
-			exit
-
-		else
-
-			echo
-
 			sudo umount $mountpoint
 
+			echo
 			printf "$vlt_mapper unmounted from $mountpoint\n"
-
-		fi
 
 	fi
 
@@ -592,8 +622,6 @@ clear_cache() {
 
 
 	sudo sysctl --write vm/drop_caches=3
-
-	exit 0
 
 }
 
@@ -653,21 +681,68 @@ close_all() {
 	get_all_vlt_mappers
 	vault_list
 
-	while IFS= read -r vlt_mapper; do
+	vlt_mapper_loop_list=$vlt_mappers
 
+	while IFS= read -r vlt_mapper <&9; do
+		# IFS = internal field separator
+		# <&9 .. 9<<<; see
+		# notes/linux/shell/command/read/filedescriptor
+
+		loop_active=1
 		target=$vlt_mapper
 		get_vault_data
 		show_spec_info
 
+		check_no_confirm
+
 		unmount
 		close_luks
-		###sh ~/_git/code/tools/vault close $target
 
-	done <<< "$vlt_mappers"
+	done 9<<< "$vlt_mapper_loop_list"
+
+	loop_active="" && unset loop_active
 
 	echo
 	vault_list
-	printf "${GREEN}all vaults closed succesfully${NOC}\n"
+	printf "${GREEN}vaults closed succesfully${NOC}\n"
+
+}
+
+
+check_no_confirm_flag() {
+
+	if [[ $action == 'close' ]]; then
+
+		if [[ -n $no_confirm ]]; then
+
+			case $no_confirm in
+
+				-y)
+
+					no_confirm=1
+					# no_confirm has a value; no confirmation dialogue
+					;;
+
+				--no-confirm)
+
+					no_confirm=1
+					# no_confirm has a value; no confirmation dialogue
+					;;
+
+				*)
+
+					printf "${RED}no valid option:${NOC} '$no_confirm'\n"
+					no_confirm=""
+					# no_confirm has no value; a confirmation dialogue comes up
+					printf "exiting\n"
+					exit 72
+					;;
+
+			esac
+
+		fi
+
+	fi
 
 }
 
@@ -738,10 +813,13 @@ fi
 ## close a vault
 if [[ $action == "close" ]]; then
 
+	no_confirm=$3
+
 	get_sudo
 
 	check_target_validity
 	check_target_status
+	check_no_confirm_flag
 
 	close_target
 

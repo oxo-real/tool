@@ -46,10 +46,10 @@ sourcing() {
 
 read_input() {
 
-	echo
 	get_sudo
 
 	## save cursor
+	echo
 	tput sc
 
 	printf "${YELLOW}O${NOC}ptical scan and decode from video device"
