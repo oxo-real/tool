@@ -286,7 +286,6 @@ check_mp_dir() {
 		## and is a mountpoint already
 		if mount | awk '{print $3}' | grep -x $mountpoint > /dev/null; then
 
-			## [TODO] when mounted test/mp2 then mounting to test/mp gives an error
 			printf "${RED}$mountpoint is already a mountpoint${NOC}\n" && exit 3
 
 		fi
@@ -557,6 +556,7 @@ check_no_confirm() {
 		if printf "$reply" | grep -iq "^n"; then
 
 			echo
+			confirmation="negative"
 			printf "${RED}$action $target aborted by user${NOC}\n"
 
 			if [[ -z $loop_active ]]; then
@@ -565,11 +565,11 @@ check_no_confirm() {
 
 			fi
 
-			#[TODO] also really not unmount and close!!!
-
 		else
 
+			confirmation="positive"
 			echo
+			return
 
 		fi
 
@@ -610,7 +610,6 @@ unmount() {
 
 			sudo umount $mountpoint
 
-			echo
 			printf "$vlt_mapper unmounted from $mountpoint\n"
 
 	fi
@@ -622,6 +621,7 @@ clear_cache() {
 
 
 	sudo sysctl --write vm/drop_caches=3
+	printf "${GREEN}vault closed succesfully${NOC}\n"
 
 }
 
@@ -695,8 +695,19 @@ close_all() {
 
 		check_no_confirm
 
-		unmount
-		close_luks
+		if [[ $confirmation == "positive" ]]; then
+
+			unmount
+			close_luks
+
+		fi
+
+		if [[ -n $no_confirm ]]; then
+
+			unmount
+			close_luks
+
+		fi
 
 	done 9<<< "$vlt_mapper_loop_list"
 
@@ -704,7 +715,6 @@ close_all() {
 
 	echo
 	vault_list
-	printf "${GREEN}vaults closed succesfully${NOC}\n"
 
 }
 
