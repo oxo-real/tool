@@ -12,15 +12,15 @@
 ###   /      |  /  _|
 ###
 ### mountr
-### (un)mount blockdevice to mountpoint with bemenu
+### (un)mount blockdevice to mountpoint with rofi
 ###
-### (c) 2020 - 2021 cytopyge
+### (c) 2020 cytopyge
 ###
 ##
 #
 
 
-# dependencies: cytopyges' source functions & bemenu
+# dependencies: cytopyges' source functions & rofi
 
 
 # initial general definitions
@@ -39,7 +39,7 @@ source_dir="$HOME/_git/code/sources/functions"
 ## get source functions
 #text_appearance
 #get_sudo
-#bemenu_inject
+#rofi_inject
 #reply_functions
 #splash_screen
 
@@ -53,7 +53,7 @@ text_appearance() {
 
 get_sudo() {
 
-	# inverted text to indicate bemenu script
+	# inverted text to indicate rofi script
 	printf "\e[7m $script_name \e[27m\n"
 
 	source $source_dir/get_sudo
@@ -66,10 +66,10 @@ text_appearance
 get_sudo
 
 
-# call bemenu_inject
-bemenu_inject() {
+# call rofi_inject
+rofi_inject() {
 
-	source $source_dir/bemenu_inject
+	source $source_dir/rofi_inject
 
 }
 
@@ -141,9 +141,9 @@ sel_source_dev() {
 	list="$source_devs_avail"
 	prompt="mount source_device"
 
-	## call bemenu inject
-	bemenu_inject
-	source_dev=$(echo $bemenu_sel | awk '{print $1}')
+	## call rofi inject
+	rofi_inject
+	source_dev=$(echo $rofi_sel | awk '{print $1}')
 
 }
 
@@ -161,9 +161,9 @@ sel_mp_mount() {
 	list="$mps_avail"
 	prompt="mount $source_dev to mountpoint"
 
-	## call bemenu inject
-	bemenu_inject
-	mp_mount=$(echo $bemenu_sel | awk '{print $1}')
+	## call rofi inject
+	rofi_inject
+	mp_mount=$(echo $rofi_sel | awk '{print $1}')
 
 }
 
@@ -181,10 +181,10 @@ remount_options() {
 	list=$(printf "ro\nrw")
 	prompt="REmount options:"
 
-	## bemenu inject; gives $bemenu_sel back
-	bemenu_inject
-	## extract option from $bemenu_sel
-	rorw=$bemenu_sel
+	## rofi inject; gives $rofi_sel back
+	rofi_inject
+	## extract option from $rofi_sel
+	rorw=$rofi_sel
 
 }
 
@@ -223,11 +223,11 @@ sel_mp_umount() {
 	list="$mps_umount"
 	prompt="UMOUNT"
 
-	## bemenu inject; gives $bemenu_sel back
-	bemenu_inject
-	## extract mountpoint from $bemenu_sel
-	mp_umount=$(echo $bemenu_sel | awk '{print $1}')
-	source_dev=$(echo $bemenu_sel | awk '{print $3}')
+	## rofi inject; gives $rofi_sel back
+	rofi_inject
+	## extract mountpoint from $rofi_sel
+	mp_umount=$(echo $rofi_sel | awk '{print $1}')
+	source_dev=$(echo $rofi_sel | awk '{print $3}')
 
 }
 
@@ -281,9 +281,9 @@ action() {
 	list="mount\nvcmount\nREmount\nvcUMOUNT\nUMOUNT"
 	prompt=""
 
-	## call bemenu inject
-	bemenu_inject
-	action=$bemenu_sel
+	## call rofi inject
+	rofi_inject
+	action=$rofi_sel
 
 	if [[ "$action" == "mount" ]]; then
 		get_source_devs
