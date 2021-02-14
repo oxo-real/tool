@@ -302,7 +302,7 @@ check_mp_dir() {
 
 generate_pw() {
 
-	echo
+#	echo
 	## save cursor
 	tput sc
 
@@ -551,7 +551,7 @@ check_no_confirm() {
 		echo
 		printf "unmount & close? (Y/n) "
 
-		read reply
+		read reply_read_single
 
 		if printf "$reply" | grep -iq "^n"; then
 
