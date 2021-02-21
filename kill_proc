@@ -1,5 +1,6 @@
 #!/bin/bash
 
+## C-u clears the entry in fzf
 
 source $HOME/_git/code/sources/functions/reply_functions
 source $HOME/_git/code/sources/functions/text_appearance
