@@ -1,0 +1,60 @@
+#!/bin/bash
+
+location_list="$XDG_CONFIG_HOME/qutebrowser/bookmarks/urls"
+#urllist="$XDG_CONFIG_HOME/qutebrowser/bookmarks"
+
+line_select=$(cat $location_list | fzf)
+#{DEV} maybe add wl-paste to the list if this is a url (or file location)?
+
+case $line_select in
+
+	*//*)
+	# selecting url if selected line contains '//'
+		loc_select=$(\
+			printf "$line_select" | \
+			# splitting selected line into multiple lines by
+			# using sed to replace one or more spaces by eol
+			sed 's/\s\+/\n/g' | \
+			# select the line containing the url
+			grep '//')
+		;;
+
+	test)
+	# selecting 'x' if selected line contains 'test'
+		printf "test $line_select\n"
+		;;
+
+esac
+
+# what to do with loc_select?
+loc_select_options="clipboard\nw3m\nqutebrowser\nfirefox\ncancel"
+loc_select_action=$(printf "$loc_select_options" | fzf)
+
+case $loc_select_action in
+
+	clipboard)
+
+		printf "$loc_select" | wl-copy
+		;;
+
+	qutebrowser)
+
+		qutebrowser "$loc_select" &
+		;;
+
+	w3m)
+
+		w3m -config ~/.config/w3m/config "$loc_select" &
+		;;
+
+	firefox)
+
+		firefox-developer-edition "$loc_select" &
+		;;
+
+	cancel)
+
+		exit
+		;;
+
+esac

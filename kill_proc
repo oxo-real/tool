@@ -4,7 +4,27 @@
 
 source $HOME/_git/code/sources/functions/reply_functions
 source $HOME/_git/code/sources/functions/text_appearance
+source $HOME/_git/code/sources/functions/get_sudo
 
+level=$1
+
+# are we ran elevated?
+sudo -n printf "" > /dev/null 2>&1
+
+[[ $? == 0 ]] && elevated="yes"
+
+if [[ $level == "--root" ]] && [[ -z "$elevated" ]]; then
+
+	clear
+	# hide cursor
+	tput civis
+	printf "${RED}killing root processes requires elevated privileges!${NOC}\n"
+	sleep 2
+	clear
+	# show cursor
+	tput cnorm
+
+fi
 
 cursor_up_one_line() {
 
@@ -12,11 +32,21 @@ cursor_up_one_line() {
 
 }
 
+
+fzf_input() {
+
+	[[ $level == "--root" ]] && fzf_input=$(ps -ef)
+
+	[[ -z $level ]] && fzf_input=$(ps -ef | grep -v ^root)
+
+}
+
+
 kill_proc() {
 
 	local pid
 
-	pid=$(ps -ef | grep -v ^root | fzf -m --cycle --header-lines=1 | awk '{print $2}')
+	pid=$(printf "$fzf_input" | fzf -m --cycle --header-lines=1 | awk '{print $2}')
 
 	echo
 
@@ -54,4 +84,5 @@ kill_proc() {
 }
 
 
+fzf_input
 kill_proc
