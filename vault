@@ -375,12 +375,12 @@ get_vault_data() {
 				## luks_container is not mapped
 				luks_uuid=$(cryptsetup luksUUID $target)
 
-				loopback_device="none"
-				loop_ctime="none"
-				loop_uuid="none"
+				loopback_device="n/a"
+				loop_ctime="n/a"
+				loop_uuid="n/a"
 
-				vlt_mapper="none"
-				mountpoint="none"
+				vlt_mapper="n/a"
+				mountpoint="n/a"
 				return
 
 
@@ -397,11 +397,11 @@ get_vault_data() {
 	## scenario2: mountpoint
 	## target_type is a valid mountpoint
 
-	mountpoint_status=1			# initialize mountpoint status
+	mountpoint_status=1				# initialize mountpoint status
 	if [[ -d $target ]]; then
 
 		mountpoint -q $target
-		mountpoint_status=$?	# set mountpoint status
+		mountpoint_status=$?		# set mountpoint status
 
 	fi
 
@@ -420,6 +420,7 @@ get_vault_data() {
 
 	if [[ -n $loop_active ]]; then
 
+		# we are in a while loop from close_all
 		target_type=""
 
 	fi
@@ -447,7 +448,7 @@ get_vault_data() {
 
 	if [[ -z $mountpoint ]]; then
 
-		mountpoint="none"
+		mountpoint="n/a"
 		## assuming we have a vlt_mapper
 		vlt_mapper=$(lsblk -parf --noheadings | grep vlt_ | grep -v % | awk '{print $1}')
 
@@ -459,14 +460,15 @@ get_vault_data() {
 	fi
 
 
+
 	if [[ -n $vlt_mapper ]]; then
 
-		luks_uuid=$(lsblk -parf | grep $vlt_mapper | awk '{print $5}')
+		loop_uuid=$(lsblk -parf | grep $vlt_mapper | awk '{print $5}')
 
-		loopback_device=$(lsblk -parf | grep -B 1 $luks_uuid | head -n 1 | \
+		loopback_device=$(lsblk -parf | grep -B 1 $loop_uuid | head -n 1 | \
 			awk '{print $1}')
 
-		loop_uuid=$(lsblk -parf | grep $loopback_device | awk '{print $4}')
+		luks_uuid=$(lsblk -parf | grep $loopback_device | awk '{print $4}')
 
 		loop_ctime=$(ls -ila --time ctime \
 			--time-style=+%Y%m%d_%H%M%S $loopback_device | awk '{print $8}')
@@ -476,7 +478,7 @@ get_vault_data() {
 	else
 
 		## empty vlt_mapper
-		vlt_mapper="none"
+		vlt_mapper="n/a"
 
 	fi
 
@@ -509,7 +511,7 @@ show_spec_info() {
 		printf "%22s %s\n" "loop_uuid:" $loop_uuid
 
 		echo
-		if [ $vlt_mapper != "none" ]; then
+		if [ $vlt_mapper != "n/a" ]; then
 
 			printf "%22s %s\n" "vlt_mapper:" $vlt_mapper
 
@@ -519,7 +521,7 @@ show_spec_info() {
 
 		fi
 
-		if [ $mountpoint != "none" ]; then
+		if [ $mountpoint != "n/a" ]; then
 
 			printf "%22s %s\n" "mountpoint:" $mountpoint
 
@@ -561,6 +563,7 @@ check_no_confirm() {
 
 			if [[ -z $loop_active ]]; then
 
+				# we are in a while loop from close_all
 				exit
 
 			fi
@@ -606,7 +609,7 @@ close_target() {
 
 unmount() {
 
-	if [[ -n $mountpoint && $mountpoint != "none" ]]; then
+	if [[ -n $mountpoint && $mountpoint != "n/a" ]]; then
 
 			sudo umount $mountpoint
 
