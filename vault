@@ -15,7 +15,7 @@
 ### vault
 ### secure file containers
 ###
-### (c) 2020 - 2021 cytopyge
+### (c) 2019 - 2021 cytopyge
 ###
 ##
 #
@@ -183,21 +183,33 @@ create_vault() {
 	echo
 	printf "setting up crypto on $target\n"
 
-	## cryptsetup with luks2
+	## aes-cbc-essiv:sha256 (plain)
+	:'
+
+	#1 find first unused loopdevice
+	loop_device=$(sudo losetup -f)
+
+	#2 setup loopdevice
+	sudo losetup $loop_device $target
+
+	#3 cryptsetup with plain dm-crypt
+	cryptsetup \
+		--cipher=aes-cbc-essiv:sha256 \
+		--hash=sha512 \
+		--key-size=512 \
+		--offset=0 \
+	#	--key-file=/dev/sdX \
+	#	--keyfile-offset=0 \
+		--verify-passphrase \
+		$target
+	#'
+	### ... OR
+
+	## aes-xts-plain64 (luks2)
+
 	cryptsetup luksFormat --type luks2 --verify-passphrase $target
 	echo
 
-	## cryptsetup with plain dm-crypt
-	#cryptsetup \
-	#	-y \
-	#	--type plain \
-	#	--cipher=aes-xts-plain64 \
-	#	--hash=sha512 \
-	#	--key-size=512 \
-	#	--offset=0 \
-	##	--key-file=/dev/sdX \
-	#	--keyfile-offset=0 \
-	#	$target enc
 
 	## validate target
 	printf "validating $target:\n"
@@ -368,14 +380,14 @@ get_vault_data() {
 
 		luks_container=$target
 
-		loopback_device=$(losetup -j $target | awk -F ':' '{print $1}')
+		loop_device=$(losetup -j $target | awk -F ':' '{print $1}')
 
-			if [[ -z $loopback_device ]]; then
+			if [[ -z $loop_device ]]; then
 
 				## luks_container is not mapped
 				luks_uuid=$(cryptsetup luksUUID $target)
 
-				loopback_device="n/a"
+				loop_device="n/a"
 				loop_ctime="n/a"
 				loop_uuid="n/a"
 
@@ -386,7 +398,7 @@ get_vault_data() {
 
 			else
 
-				mountpoint=$(lsblk -parf --noheadings $loopback_device | \
+				mountpoint=$(lsblk -parf --noheadings $loop_device | \
 					tail -n 1 | awk '{print $8}')
 
 			fi
@@ -430,7 +442,7 @@ get_vault_data() {
 		vlt_target=$(lsblk -parf | grep vlt_ | awk '{print $1}' | grep $target)
 
 		if [[ -n $vlt_target ]]; then
-			## $2 user entry ($target) is a loopback device (vlt_mapper)
+			## $2 user entry ($target) is a loop device (vlt_mapper)
 
 			target_type="vlt_mapper"
 
@@ -465,15 +477,15 @@ get_vault_data() {
 
 		loop_uuid=$(lsblk -parf | grep $vlt_mapper | awk '{print $5}')
 
-		loopback_device=$(lsblk -parf | grep -B 1 $loop_uuid | head -n 1 | \
+		loop_device=$(lsblk -parf | grep -B 1 $loop_uuid | head -n 1 | \
 			awk '{print $1}')
 
-		luks_uuid=$(lsblk -parf | grep $loopback_device | awk '{print $4}')
+		luks_uuid=$(lsblk -parf | grep $loop_device | awk '{print $4}')
 
 		loop_ctime=$(ls -ila --time ctime \
-			--time-style=+%Y%m%d_%H%M%S $loopback_device | awk '{print $8}')
+			--time-style=+%Y%m%d_%H%M%S $loop_device | awk '{print $8}')
 
-		luks_container=$(losetup $loopback_device | cut -d "(" -f2 | cut -d ")" -f1)
+		luks_container=$(losetup $loop_device | cut -d "(" -f2 | cut -d ")" -f1)
 
 	else
 
@@ -506,7 +518,7 @@ show_spec_info() {
 		printf "%22s %s\n" "luks_uuid:" $luks_uuid
 
 		echo
-		printf "%22s %s\n" "loopback device:" $loopback_device
+		printf "%22s %s\n" "loop device:" $loop_device
 		printf "%22s %s\n" "up since:" $loop_ctime
 		printf "%22s %s\n" "loop_uuid:" $loop_uuid
 

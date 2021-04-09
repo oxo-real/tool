@@ -1,0 +1,61 @@
+#!/bin/bash
+
+hash=$1 ## md5 rmd160 sha1 sha256 sha512 sha3-512
+input_dir=$2
+
+[[ -z $input_dir ]] && input_dir=$(pwd)
+
+#[DEV]
+rm 000_*
+
+# calculate checksums
+#hash="sha3-512"  ## md5 rmd160 sha1 sha256 sha512 sha3-512
+printf "writing $hash checksums...\n"
+files=$(find "$input_dir" -maxdepth 1 -type f)
+
+for file in $files; do
+
+	openssl dgst -$hash $file >> 000_"$hash"_checksums
+	tput sc		# save cursor
+	printf "writing $hash $file"
+	tput el1	# delete from cursor to beginning of line
+	tput rc		# restore cursor
+
+done
+printf "done\n"
+
+
+#: '
+not_uniq_sums=$(sort -k2 000_"$hash"_checksums | awk -F = '{print $2}' | uniq -d)
+
+printf "$not_uniq_sums" > 000_not_uniq_sums
+
+while read sum; do
+
+	tput sc
+	tput ed		# delete from cursor to end of screen
+	printf "$sum\n"
+	curr_dupl=$(grep $sum 000_"$hash"_checksums)
+	printf ">>>$curr_dupl<<<\n"
+	amnt_duplts=$(echo "$curr_dupl" | wc -l)
+	#amnt_duplts=$(grep -i $sum $curr_dupl)
+	printf "amnt_duplts=$amnt_duplts\n"
+
+	t=1
+	for n in {1..$amnt_duplts}; do
+
+		printf "$n\n"
+		#sleep 3
+		removing_now=$(printf "$curr_dupl" | sed -n "$t"p | cut -d '(' -f 2 | cut -d ')' -f 1)
+		printf "removing: $removing_now\n"
+		#sleep 3
+		rm $removing_now
+		t+=1
+
+	done
+
+	tput rc
+
+
+done <<< $not_uniq_sums
+# '

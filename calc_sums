@@ -1,0 +1,13 @@
+#!/bin/bash
+
+hash=$1 ## md5 rmd160 sha1 sha256 sha512 sha3-512
+input_dir=$2
+
+# calculate checksums
+#hash="sha3-512"  ## md5 rmd160 sha1 sha256 sha512 sha3-512
+printf "writing $hash checksums...\n"
+files=$(find "$input_dir" -maxdepth 1 -type f)
+
+for file in $files; do
+	openssl dgst -$hash $file >> "$hash"_checksums.txt
+done

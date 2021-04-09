@@ -1,12 +1,18 @@
 #!/bin/bash
 
-location_list="$XDG_CONFIG_HOME/qutebrowser/bookmarks/urls"
-#urllist="$XDG_CONFIG_HOME/qutebrowser/bookmarks"
+location_list="$XDG_CONFIG_HOME/qutebrowser/bookmark_urls"
 
 line_select=$(cat $location_list | fzf)
 #{DEV} maybe add wl-paste to the list if this is a url (or file location)?
 
+
+
 case $line_select in
+
+	#(((https?|ftp|gopher)://|(mailto|file|news):)[^' <>"]+|(www|web|w3).[-a-z0-9.]+)[^' .,;<>":]) )
+		#case uses pathname expansion and no regex?
+	#	;;
+
 
 	*//*)
 	# selecting url if selected line contains '//'
@@ -58,3 +64,5 @@ case $loc_select_action in
 		;;
 
 esac
+
+exit
