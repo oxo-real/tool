@@ -48,32 +48,40 @@ read_input() {
 
 	get_sudo
 
-	## save cursor
-	echo
+	clear
+	## save cursor position
 	tput sc
 
 	printf "${YELLOW}O${NOC}ptical scan and decode from video device"
 
 	reply_single_hidden_timed
 
-	## restore cursor
+	## restore cursor position
 	tput rc
 	## clear to end of screen
 	tput ed
 
 	if printf "$reply" | grep -iq "^o"; then
 
+		#optical input
+
 		input=$(zbarcam --oneshot --raw)
 
 	else
 
-		tput sc
-		##[TODO] add option to hide keyboard entry
-		read input
-		## move cursor up one line
-		tput cuu1
+		# no optical input
 
+		## give clear line for entry
+		read input
+		##[TODO] add option to hide keyboard entry
+
+		## remove line above cursor
+		### restore cursor position
+		### mind screen scrolling on errors!
 		tput rc
+		### cursor up one line
+		#tput cuu1
+		### clear to end of screen
 		tput ed
 
 	fi

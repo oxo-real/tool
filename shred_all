@@ -1,22 +1,71 @@
 #!/bin/bash
 
+# initial definitions
+
+## initialize hardcoded variables
+script_name="shred_all"
+initial_release_year="2017"
+developer="cytopyge"
+source_dir="$HOME/_git/code/sources/functions"
+
+
+sourcing() {
+
+	## define colors
+	source $source_dir/text_appearance
+
+	## reply functions
+	source $source_dir/reply_functions
+
+	## user authentication
+	source $source_dir/get_sudo
+
+}
+
+sourcing
+
+get_sudo
+
 passes=10
 
 for target in "$@"; do
 
 	## all files in target
-	#all_files=$(find $target -depth -type f)
+	file_count=$(find $target -depth -type f | wc -l)
+	link_count=$(find $target -depth -type l | wc -l)
+	directory_count=$(find $target -depth -type d | wc -l)
+
+	printf "about to shred ${YELLOW}$file_count${NOC} files, ${YELLOW}$link_count${NOC} links and ${YELLOW}$directory_count${NOC} directories in $target\n${RED}THIS IS DEFINITE${NOC} continue? (y/N) "
+
+	reply_single_hidden_timed
+
+	echo
+	if printf "$reply" | grep -iq "^y"; then
+
+		printf "start shredding...\n"
+
+	elif [[ -z $reply ]]; then
+
+		printf "${RED}timer interrupt${NOC}\n"
+		exit 4
+
+	else
+
+		printf "${RED}user interrupt${NOC}\n"
+		exit 5
+
+	fi
 
 	## nine passes overwrite files with random data
 	#shred -n 9 -v $target
-	find $target -depth -type f -exec shred -n $passes -v {} \;
+	find $target -depth -type f -exec shred -n $passes --remove=wipesync -v {} \;
 
-	## sync disk buffers
+	## sync disk buffers (write all cached data to filesystem)
 	sync
 
 	## final pass overwrite with zero data and remove files
 	#shred -n 0 -vuz $target
-	find $target -depth -type f -exec shred -n 0 -v {} \;
+	#find $target -depth -type f -exec shred -n 0 -u wipesync -v {} \;
 
 	## nine passes overwrite directory names with zeroes
 	#for (( i=1; i<=$passes; i++ ))
@@ -33,6 +82,8 @@ for target in "$@"; do
 	#done
 
 	## remove all subdirs
-	sudo rm -rfv $target
+	[[ "$target" == "$(pwd)" ]] || sudo rm -rfv $target
+
+	printf "${GREEN}shred_all complete${NOC}\n"
 
 done

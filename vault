@@ -79,7 +79,7 @@ check_target_validity() {
 
 		return
 
-	elif [[ ! -f $target ]] && [[ ! -d $target ]]; then
+	elif [[ ! -f $target ]] && [[ ! -d $target ]] && [[ ! -b $target ]]; then
 
 			echo
 			printf "${RED}$target invalid (permissions)${NOC}\n"
@@ -132,14 +132,20 @@ check_target_status() {
 
 	fi
 
+	#:'
 	#if [[ $action == "info" ]]; then
 	#fi
+	##'
 
+	#:'
 	#if [[ $action == "close" ]]; then
 	#fi
+	##'
 
+	#:'
 	#if [[ $action == "open" ]]; then
 	#fi
+	##'
 
 }
 
@@ -149,6 +155,7 @@ check_container_size() {
 	if [ $size -lt 18 ]; then
 
 		# to prevent error: 'requested offset is beyond real size of device'
+
 		printf "${RED}minimum vault size is 18 MB${NOC}\n" && exit 18
 
 	fi
@@ -163,6 +170,7 @@ create_vlt_mapper_name() {
 	random_hex="$(< /dev/random tr -d -c "[:xdigit:]" | head -c 6)"
 
 	mapping_name="vlt_$random_hex"
+
 	vlt_mapper="/dev/mapper/vlt_$random_hex"
 
 }
@@ -184,8 +192,8 @@ create_vault() {
 	printf "setting up crypto on $target\n"
 
 	## aes-cbc-essiv:sha256 (plain)
-	:'
 
+	:'
 	#1 find first unused loopdevice
 	loop_device=$(sudo losetup -f)
 
@@ -207,9 +215,10 @@ create_vault() {
 
 	## aes-xts-plain64 (luks2)
 
+	#:'
 	cryptsetup luksFormat --type luks2 --verify-passphrase $target
 	echo
-
+	#'
 
 	## validate target
 	printf "validating $target:\n"
@@ -314,19 +323,20 @@ check_mp_dir() {
 
 generate_pw() {
 
-#	echo
-	## save cursor
+	## save cursor position
 	tput sc
 
 	printf "starting pwgn...\npress 'n' to abort "
 
 	reply_single_hidden_timed
 
-	## move cursor up one line
+	## remove lines above cursor
+	### restore cursor position
+	tput rc
+	### cursor up one line
 	tput cuu1
-	## clear end of screen
-	tput ed
 	tput cuu1
+	### clear to end of screen
 	tput ed
 
 	if printf "$reply" | grep -iq "^n"; then
@@ -372,6 +382,11 @@ get_vault_data() {
 		luks_status=$?				# set luks_status
 
 	fi
+
+	## [TODO]	access denied; no permissions
+	##			tex if vault is owned by root
+	##			this is the case if an entire blockdevice under /dev
+	##			is the cryptocontainer
 
 
 	if [ $luks_status -eq 0 ]; then

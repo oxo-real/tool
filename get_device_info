@@ -1,0 +1,6 @@
+#!/bin/bash
+
+device_id=$(lspci | fzf --prompt='select PCI device ' | awk '{print $1}')
+
+
+lspci -vv -s $device_id
