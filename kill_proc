@@ -35,9 +35,11 @@ cursor_up_one_line() {
 
 fzf_input() {
 
-	[[ $level == "--root" ]] && fzf_input=$(ps -ef)
+	[[ $level == "--root" ]] && fzf_input=$(ps -eo user,%cpu,%mem,pid,state,start,args= --sort=-%cpu,-%mem,command)
+	#[[ $level == "--root" ]] && fzf_input=$(ps -ef)
 
-	[[ -z $level ]] && fzf_input=$(ps -ef | grep -v ^root)
+	[[ -z $level ]] && fzf_input=$(ps -eo user,%cpu,%mem,pid,state,start,args= --sort=-%cpu,-%mem,command)
+	#[[ -z $level ]] && fzf_input=$(ps -ef | grep -v ^root)
 
 }
 

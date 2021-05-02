@@ -15,7 +15,7 @@
 ### pwgn
 ### generate unique hex values
 ###
-### (c) 2020 cytopyge
+### (c) 2020 - 2021 cytopyge
 ###
 ##
 #
@@ -112,7 +112,7 @@ hmacing() {
 hash_1_input() {
 ## create sha1 hash from input
 
-	#local input=$input
+	local input=$input
 	local algo="sha1"
 
 	hash_sha1=$(hashing $input $algo)
@@ -124,7 +124,7 @@ hash_3_input() {
 ## create sha3-512 hash from input
 ## keccak sha3 standard fips pub 202
 
-	#local input=$input
+	local input=$input
 	local algo="sha3-512"
 
 	hash_sha3512=$(hashing $input $algo)
@@ -290,6 +290,7 @@ print_qr_code() {
 
 print_qr_codeblock() {
 
+	echo
 	print_qr_code $hash_sha3512
 	print_blocks $hash_sha3512
 
@@ -305,18 +306,36 @@ dynamic_truncate() {
 	local hex_str="$1"
 	local digits="$2"
 
-	## 2 times decimal value of the last hex char of the string
+	## 2 times decimal value of the last char of the hex string
 	## so this value is between 0 (0) and 30 (F)
 	local offset=$((2 * 0x${hex_str: -1}))
 
-	## from offset get 4 bytes, which is 8 hex characters from hex_str
+	## from offset get next 4 bytes, which is 8 hex characters from hex_str
 	## bytes are bitwise AND compared with 7fffffff
 	## result of the bitwise comparison put in a modulo
 	## digits is number of returned digits (by mod 10 power digits)
 	echo $(( ( (0x${hex_str:$offset:8}) & 0x7FFFFFFF) % (10**$digits) ))
 
+	#[TEST]
+	#printf "hex_str:		$hex_str\n"
+	#printf "digits:			$digits\n"
+	#printf "offset:			$offset\n"
+	#printf "digits_ret:		" && echo $(( ( (0x${hex_str:$offset:8}) & 0x7FFFFFFF) % (10**$digits) ))
+
 }
 
+
+debugging() {
+
+	printf "input:			$input\n"
+	printf "hash_sha1:		$hash_sha1\n"
+	printf "hash_sha3512:	$hash_sha3512\n"
+	printf "dividend:		$dividend\n"
+	printf "divisor:		$divisor\n"
+	printf "rounds:			$rounds\n"
+	printf "round_key:		$round_key\n"
+
+}
 
 sourcing
 read_input
@@ -328,6 +347,7 @@ round_pool
 round_space
 rounds_number
 round_key
+#debugging
 #two_fa
 running_rounds
 output_console

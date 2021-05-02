@@ -22,7 +22,7 @@
 
 
 # usage:
-# vault create	<target> <size>
+# vault create	<target> [size]
 # vault open	<target> <mountpoint>
 # vault close	<target> / all [-y, --no-confirm]
 # vault info	[target]
@@ -94,7 +94,87 @@ check_target_status() {
 
 	if [[ $action == "create" ]]; then
 
-		if [[ -f $target ]]; then
+		# target_c_type (target create type)
+		# because target_type already used in action open)
+
+
+		if [[ -b $target ]]; then
+
+			target_c_type="block_device"
+
+			printf "${RED}$target is a $target_c_type!${NOC}\n"
+			printf "are you sure to overwrite an entire $target_c_type? (y/N) "
+			reply_single
+			echo
+
+			if printf "$reply" | grep -iq "^y"; then
+
+				printf "${RED}about to overwrite $target_c_type $target${NOC}\n"
+				printf "really sure? (y/N) "
+				reply_single
+				echo
+
+				if printf "$reply" | grep -iq "^y"; then
+
+					return
+
+				else
+
+					printf "target creation aborted\n"
+					exit 11
+
+				fi
+
+			else
+
+				printf "target creation aborted\n"
+				exit 11
+
+			fi
+
+		elif [[ -n $(sudo \
+			lsblk --raw -n -o partuuid,path | \
+			# no space as first character
+			grep '^[^ ]' | \
+			grep -w $target) ]]; then
+
+			target_c_type="partition"
+
+			printf "${RED}$target is a $target_c_type!${NOC}\n"
+			printf "are you sure to overwrite an entire $target_c_type? (y/N) "
+			reply_single
+			echo
+
+			if printf "$reply" | grep -iq "^y"; then
+
+				printf "${RED}about to overwrite $target_c_type $target${NOC}\n"
+				printf "really sure? (y/N) "
+				reply_single
+				echo
+
+				if printf "$reply" | grep -iq "^y"; then
+
+					return
+
+				else
+
+					printf "target creation aborted\n"
+					exit 12
+
+				fi
+
+			else
+
+				printf "target creation aborted\n"
+				exit 12
+
+
+			fi
+
+
+		elif [[ -f $target ]]; then
+
+			target_c_type="file"
 
 			printf "${RED}$target already exists!${NOC}\n"
 			printf "overwrite? (y/N) "
@@ -116,7 +196,7 @@ check_target_status() {
 
 					printf "target creation aborted\n"
 					printf "$target already exists\n"
-					exit 11
+					exit 13
 
 				fi
 
@@ -124,7 +204,7 @@ check_target_status() {
 
 				printf "target creation aborted\n"
 				printf "$target already exists\n"
-				exit 2
+				exit 13
 
 			fi
 
@@ -152,7 +232,7 @@ check_target_status() {
 
 check_container_size() {
 
-	if [ $size -lt 18 ]; then
+	if [[ $target_c_type == "file" ]] && [ $size -lt 18 ]; then
 
 		# to prevent error: 'requested offset is beyond real size of device'
 
@@ -180,37 +260,64 @@ create_vault() {
 
 	printf "writing random data to $target\n"
 
-	dd \
-		if=/dev/random \
-		of=$target \
-		bs=1M \
-		count=$size \
-		iflag=fullblock \
-		status=progress
+	# dd if target is an entire block device
+	if [[ $target_c_type == "block_device" ]]; then
+
+#		dd \
+#			if=/dev/random \
+#			of=/dev/mmcblk0 \
+#			bs=1M \
+#			iflag=fullblock \
+#			status=progress
+		a=1
+
+	# else dd if target is an entire partition
+	elif [[ $target_c_type == "partition" ]]; then
+
+#		dd \
+#			if=/dev/random \
+#			of=/dev/mmcblk0 \
+#			bs=1M \
+#			iflag=fullblock \
+#			status=progress
+		a=1
+
+	# else dd if target is an entire partition
+	elif [[ $target_c_type == "file" ]]; then
+
+		dd \
+			if=/dev/random \
+			of=$target \
+			bs=1M \
+			count=$size \
+			iflag=fullblock \
+			status=progress
+
+	fi
 
 	echo
 	printf "setting up crypto on $target\n"
 
 	## aes-cbc-essiv:sha256 (plain)
 
-	:'
-	#1 find first unused loopdevice
-	loop_device=$(sudo losetup -f)
-
-	#2 setup loopdevice
-	sudo losetup $loop_device $target
-
-	#3 cryptsetup with plain dm-crypt
-	cryptsetup \
-		--cipher=aes-cbc-essiv:sha256 \
-		--hash=sha512 \
-		--key-size=512 \
-		--offset=0 \
-	#	--key-file=/dev/sdX \
-	#	--keyfile-offset=0 \
-		--verify-passphrase \
-		$target
-	#'
+#	:'
+#	#1 find first unused loopdevice
+#	loop_device=$(sudo losetup -f)
+#
+#	#2 setup loopdevice
+#	sudo losetup $loop_device $target
+#
+#	#3 cryptsetup with plain dm-crypt
+#	cryptsetup \
+#		--cipher=aes-cbc-essiv:sha256 \
+#		--hash=sha512 \
+#		--key-size=512 \
+#		--offset=0 \
+#	#	--key-file=/dev/sdX \
+#	#	--keyfile-offset=0 \
+#		--verify-passphrase \
+#		$target
+#	#'
 	### ... OR
 
 	## aes-xts-plain64 (luks2)
@@ -247,6 +354,7 @@ make_fs () {
 
 	sudo mkfs.ext4 -L VAULT -j $vlt_mapper
 
+	sleep 3
 
 }
 
@@ -273,10 +381,7 @@ close_luks() {
 
 clean_up() {
 
-	# extra if, to be sure rm only happens
-	# on temporarily mountpoint while creating a new vault
-
-	if [[ $action == "create" ]]; then
+	if [[ $action == "create" ]] && [[ -d $mountpoint ]]; then
 
 		rmdir "$mountpoint"
 
@@ -375,18 +480,14 @@ get_vault_data() {
 
 	fi
 
+
 	luks_status=1					# initialize luks_status
 	if [[ -f $target ]]; then
 
-		cryptsetup isLuks $target
+		sudo cryptsetup isLuks $target
 		luks_status=$?				# set luks_status
 
 	fi
-
-	## [TODO]	access denied; no permissions
-	##			tex if vault is owned by root
-	##			this is the case if an entire blockdevice under /dev
-	##			is the cryptocontainer
 
 
 	if [ $luks_status -eq 0 ]; then
