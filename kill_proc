@@ -8,7 +8,7 @@ source $HOME/_git/code/sources/functions/get_sudo
 
 level=$1
 
-# are we ran elevated?
+# are we running elevated?
 sudo -n printf "" > /dev/null 2>&1
 
 [[ $? == 0 ]] && elevated="yes"
@@ -35,11 +35,13 @@ cursor_up_one_line() {
 
 fzf_input() {
 
-	[[ $level == "--root" ]] && fzf_input=$(ps -eo user,%cpu,%mem,pid,state,start,args= --sort=-%cpu,-%mem,command)
-	#[[ $level == "--root" ]] && fzf_input=$(ps -ef)
+	ps_data=$(ps -eo user,%cpu,%mem,pid,state,start,args=COMMAND \
+		--sort=command,-%cpu,-%mem)
 
-	[[ -z $level ]] && fzf_input=$(ps -eo user,%cpu,%mem,pid,state,start,args= --sort=-%cpu,-%mem,command)
-	#[[ -z $level ]] && fzf_input=$(ps -ef | grep -v ^root)
+	fzf_input=$(echo "$ps_data" | grep -v ^root)
+
+	[[ $level == "--root" ]] && \
+		fzf_input=$(echo "$ps_data")
 
 }
 
@@ -48,17 +50,27 @@ kill_proc() {
 
 	local pid
 
-	pid=$(printf "$fzf_input" | fzf -m --cycle --header-lines=1 | awk '{print $2}')
+	## fzf select pids (processes) to kill
+	pid2kill=$(echo -n "$fzf_input" | fzf -m --cycle --header-lines=1 | awk '{print $4}')
 
 	echo
 
-	if [ "x$pid" != "x" ]; then
+	if [[ -n $pid2kill ]]; then
 
-		while IFS= read -r line_in_pid;	do
+		## print header
+		echo -n "$fzf_input" | head -n 1
 
-			printf "$(ps -p $line_in_pid -o comm=)\n"
+		## loop trough lines in $pid2kill
+		while IFS= read -r line_in_pid2kill;	do
 
-		done <<< "$pid"
+			## show selected processes
+			## ps h to not show headers
+			## highlight command with grep
+			## color=always to show color in subshell
+			command=$(ps h -p $line_in_pid2kill -o comm)
+			echo "$fzf_input" | grep $line_in_pid2kill | grep --color=always $command
+
+		done <<< "$pid2kill"
 
 		echo
 		printf "${YELLOW}kill process(es)? (y/N):${NOC} "
@@ -68,15 +80,14 @@ kill_proc() {
 		if printf "$reply" | grep -iq "^y"; then
 
 			printf "\nkilling in progress... "
-			echo $pid | xargs kill -${1:-9}
+			echo $pid2kill | xargs kill -${1:-9}
 			echo
 			printf "${GREEN}complete${NOC}\n"
 
 		else
 
-			printf "\n${RED}aborted by user${NOC}\n"
-			printf "no processes were killed\n"
-			printf "exiting\n"
+			printf "\naborted by user\n"
+			printf "${RED}no processes were killed${NOC}\n"
 			exit
 
 		fi

@@ -156,6 +156,7 @@ print_blocks() {
 
 round_pool() {
 ## dynamic truncate hash_sha3512
+## dividend is based on the sha3512 hash of the input
 
 	local hs=$hash_sha3512
 	local dgts="10"
@@ -167,6 +168,7 @@ round_pool() {
 
 round_space() {
 ## dynamic truncate hash_sha1
+## divisor is based on the sha1 hash of the input
 
 	local hs=$hash_sha1
 	local dgts="4"
@@ -177,6 +179,7 @@ round_space() {
 
 
 rounds_number() {
+## input='s'; rounds=532
 
 	rounds=$(( $dividend % $divisor ))
 
@@ -185,6 +188,7 @@ rounds_number() {
 
 round_key() {
 ## create hmac key for running_rounds
+## input='s'; round_key='bb40..d76f'
 
 	local input=$dividend
 	local algo="sha3-512"
@@ -298,29 +302,39 @@ print_qr_codeblock() {
 
 
 dynamic_truncate() {
-## truncates a sha1 hex string (rfc4226, DynamicTruncate)
-## get last 4 bits from hash ($hex_str)
-## get the integer number (0-f > 1-10) of those bits; this is the offset
-## starting from the offset get the first 4 bytes from the hash ($hex_str)
+	## truncates a sha1 hex string (rfc4226, DynamicTruncate)
+	## get last 4 bits from hash ($hex_str)
+	## get the integer number (0-f > 1-10) of those bits; this is the offset
+	## starting from the offset get the first 4 bytes from the hash ($hex_str)
+
+
+	# for cytopyge's pwgn we have an altered version of dynamic truncate!
+
+	##				hex_str		digits		input='s'
+	##	dividend	sha3512			10		1402058969
+	##  divisor		sha1			 4			  2593
 
 	local hex_str="$1"
 	local digits="$2"
 
 	## 2 times decimal value of the last char of the hex string
 	## so this value is between 0 (0) and 30 (F)
+	## if last char is 'c' then decimal value is 12
+	### $((2 * 0x${hex_str: -1})) explained:
+	### ${hex_str: -1}	= get the last hex character from $hex_str	(c)
+	### echo ((0xc))	= convert hex value to decimal value		(12)
+	### 2 * 12			= two times decimal value					(24)
 	local offset=$((2 * 0x${hex_str: -1}))
 
-	## from offset get next 4 bytes, which is 8 hex characters from hex_str
+	## from the offset get next 4 bytes, which is 8 hex characters from hex_str
+	## mind that first position has an offset value of 0
 	## bytes are bitwise AND compared with 7fffffff
-	## result of the bitwise comparison put in a modulo
-	## digits is number of returned digits (by mod 10 power digits)
-	echo $(( ( (0x${hex_str:$offset:8}) & 0x7FFFFFFF) % (10**$digits) ))
+	## the bitwise comparison is put in a modulo dividend
+	## the divisor is digits as a power of 10
+	## effectively this returns the last <digits> digits of the dividend
 
-	#[TEST]
-	#printf "hex_str:		$hex_str\n"
-	#printf "digits:			$digits\n"
-	#printf "offset:			$offset\n"
-	#printf "digits_ret:		" && echo $(( ( (0x${hex_str:$offset:8}) & 0x7FFFFFFF) % (10**$digits) ))
+	digits_ret=$(( ( (0x${hex_str:$offset:8}) & 0x7FFFFFFF ) % ( 10**$digits ) ))
+	echo $digits_ret
 
 }
 
