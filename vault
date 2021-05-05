@@ -486,7 +486,7 @@ get_vault_data() {
 
 
 	luks_status=1					# initialize luks_status
-	if [[ -f $target ]]; then
+	if [[ -f $target ]] || [[ -b $target ]]; then
 
 		sudo cryptsetup isLuks $target
 		luks_status=$?				# set luks_status
@@ -785,7 +785,7 @@ unmount() {
 
 			sudo umount $mountpoint
 
-			printf "$vlt_mapper unmounted from $mountpoint\n"
+			printf "\n$vlt_mapper unmounted from $mountpoint\n"
 
 	fi
 
