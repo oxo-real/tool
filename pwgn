@@ -204,6 +204,8 @@ running_rounds() {
 	## keep hash_sha3512 untouched
 	input_calc=$hash_sha3512
 
+	#spin
+
 	for (( round=1; round<=$rounds; round++ ))
 
 	do
@@ -307,34 +309,50 @@ dynamic_truncate() {
 	## get the integer number (0-f > 1-10) of those bits; this is the offset
 	## starting from the offset get the first 4 bytes from the hash ($hex_str)
 
+	## this is an altered version of dynamic truncate compared to the rfc4226
 
-	# for cytopyge's pwgn we have an altered version of dynamic truncate!
-
+	##										values for
 	##				hex_str		digits		input='s'
+	##
 	##	dividend	sha3512			10		1402058969
 	##  divisor		sha1			 4			  2593
+
 
 	local hex_str="$1"
 	local digits="$2"
 
 	## 2 times decimal value of the last char of the hex string
 	## so this value is between 0 (0) and 30 (F)
-	## if last char is 'c' then decimal value is 12
+	## i.e. if last char is 'c' then decimal value is 12
 	### $((2 * 0x${hex_str: -1})) explained:
 	### ${hex_str: -1}	= get the last hex character from $hex_str	(c)
 	### echo ((0xc))	= convert hex value to decimal value		(12)
 	### 2 * 12			= two times decimal value					(24)
+
 	local offset=$((2 * 0x${hex_str: -1}))
 
-	## from the offset get next 4 bytes, which is 8 hex characters from hex_str
+	## from the offset get next 4 bytes from hex_str (8 hexchars / 32 bits)
 	## mind that first position has an offset value of 0
 	## bytes are bitwise AND compared with 7fffffff
-	## the bitwise comparison is put in a modulo dividend
+	## so the 32 bits are AND compared with the binary value of 7fffffff
+	## the bitwise comparison result is put in a modulo dividend
 	## the divisor is digits as a power of 10
 	## effectively this returns the last <digits> digits of the dividend
 
 	digits_ret=$(( ( (0x${hex_str:$offset:8}) & 0x7FFFFFFF ) % ( 10**$digits ) ))
+
 	echo $digits_ret
+
+}
+
+
+spin() {
+
+   local -a marks=( '/' '-' '\' '|' )
+   while [[ 0 ]]; do
+     printf '%s\r' "${marks[i++ % ${#marks[@]}]}"
+     sleep 1
+   done
 
 }
 

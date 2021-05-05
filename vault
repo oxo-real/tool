@@ -75,6 +75,10 @@ check_target_validity() {
 
 		return
 
+	elif [[ -z $target && $action == "close" ]]; then
+
+		return
+
 	elif [[ $target == "all" && $action == "close" ]]; then
 
 		return
@@ -691,7 +695,7 @@ check_no_confirm() {
 
 			if [[ -z $loop_active ]]; then
 
-				# we are in a while loop from close_all
+				# we are in a while loop and have multiple targets
 				exit
 
 			fi
@@ -709,6 +713,24 @@ check_no_confirm() {
 }
 
 
+fzf_select_target() {
+
+	# check for non empty target list
+	if [[ -n $(vault_list | grep /dev/mapper/vlt_) ]]; then
+
+		target_list=$(vault_list | \
+			fzf -m --header-lines=2 --prompt='select to close ' | \
+			awk '{print $1}')
+
+	else
+
+		printf "${RED}empty target list${NOC}\n"
+		exit
+
+	fi
+
+}
+
 close_target() {
 
 	# all (vault close 'all')
@@ -717,6 +739,28 @@ close_target() {
 
 		close_all
 		exit
+
+	# no target specified in command;
+	## select with fzf if there are targets
+	elif [[ -z $target ]]; then
+
+		fzf_select_target
+
+		while IFS= read target; do
+
+			loop_active=1
+
+			get_vault_data
+			show_spec_info
+
+			unmount
+			close_luks
+
+			sleep 2
+
+		done <<< $target_list
+
+		loop_active="" && unset loop_active
 
 	else
 
