@@ -206,6 +206,10 @@ running_rounds() {
 
 	#spin
 
+	## save cursor position
+	tput sc
+	tput civis
+
 	for (( round=1; round<=$rounds; round++ ))
 
 	do
@@ -222,7 +226,17 @@ running_rounds() {
 		## every round the $input_calc from the previous round is taken in
 		## $round_key stays static
 
+		# show iterations
+		## restore cursor position
+		tput rc
+		## clear to end of screen
+		tput ed
+		print_blocks $output
+
 	done
+
+	echo
+	tput cnorm
 
 }
 
@@ -275,7 +289,7 @@ output_console() {
 
 output_wlcopy() {
 
-	printf $output | cut -z -c -64 | wl-copy -o
+	printf $output | cut -z -c -64 | wl-copy -o -n
 	## for barebone tty usage
 	## beware! potentially unsafe
 	## to file
@@ -382,6 +396,6 @@ round_key
 #debugging
 #two_fa
 running_rounds
-output_console
+#output_console
 output_wlcopy
 exit 0
