@@ -41,6 +41,9 @@ sourcing() {
 	## user authentication
 	source $source_dir/get_sudo
 
+	## progress bar
+	source $source_dir/progress_bar
+
 }
 
 
@@ -234,15 +237,13 @@ running_rounds() {
 		tput ed
 		print_blocks $output
 
+		bar_width=40
 		# progress percentage indicator
 		if [[ $round -lt $rounds ]]; then
 
-			max_bar_width=46
 			prog_perc=$(awk "BEGIN {print ($round/$rounds*100)}" | cut -f 1 -d .)
-			bar_width=$(awk "BEGIN {print ($round/$rounds*$max_bar_width)}" | cut -f 1 -d .)
-			#[TEST] progressbar still not working, why?
-			#printf "%0.s#" "{1..$bar_width}"
-			printf "$prog_perc"
+
+			bar $prog_perc $bar_width
 
 		fi
 
