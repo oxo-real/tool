@@ -129,6 +129,8 @@ hash_3_input() {
 
 	hash_sha3512=$(hashing $input $algo)
 
+	# for input='s'; hash_sha3512='723a..16fc'
+
 }
 
 
@@ -204,10 +206,9 @@ running_rounds() {
 	## keep hash_sha3512 untouched
 	input_calc=$hash_sha3512
 
-	#spin
-
 	## save cursor position
 	tput sc
+	## hide cursor
 	tput civis
 
 	for (( round=1; round<=$rounds; round++ ))
@@ -233,10 +234,24 @@ running_rounds() {
 		tput ed
 		print_blocks $output
 
+		# progress percentage indicator
+		if [[ $round -lt $rounds ]]; then
+
+			max_bar_width=46
+			prog_perc=$(awk "BEGIN {print ($round/$rounds*100)}" | cut -f 1 -d .)
+			bar_width=$(awk "BEGIN {print ($round/$rounds*$max_bar_width)}" | cut -f 1 -d .)
+			#[TEST] progressbar still not working, why?
+			#printf "%0.s#" "{1..$bar_width}"
+			printf "$prog_perc"
+
+		fi
+
 	done
 
-	echo
+	## show cursor
 	tput cnorm
+
+	# for input='s' output='b68a..027a'
 
 }
 
@@ -289,7 +304,9 @@ output_console() {
 
 output_wlcopy() {
 
-	printf $output | cut -z -c -64 | wl-copy -o -n
+	printf $output | cut -c -64 | wl-copy -o -n
+	#printf $output | cut -z -c -64 | wl-copy -o -n
+	## cut -z with wl-copy -n creates an ^@ behind the string!
 	## for barebone tty usage
 	## beware! potentially unsafe
 	## to file
@@ -356,17 +373,6 @@ dynamic_truncate() {
 	digits_ret=$(( ( (0x${hex_str:$offset:8}) & 0x7FFFFFFF ) % ( 10**$digits ) ))
 
 	echo $digits_ret
-
-}
-
-
-spin() {
-
-   local -a marks=( '/' '-' '\' '|' )
-   while [[ 0 ]]; do
-     printf '%s\r' "${marks[i++ % ${#marks[@]}]}"
-     sleep 1
-   done
 
 }
 
