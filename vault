@@ -71,22 +71,23 @@ source $source_dir/text_appearance
 
 check_target_validity() {
 
-	if [[ -z $target && $action == "info" ]]; then
+	if [[ $action == "info" && -z $target ]]; then
 
 		return
 
-	elif [[ -z $target && $action == "close" ]]; then
+	elif [[ $action == "close" && -z $target ]]; then
 
 		return
 
-	elif [[ $target == "all" && $action == "close" ]]; then
+	elif [[ $action == "close" && $target == "all" ]]; then
 
 		return
 
+	#elif [[ ! -f $target ]] && [[ ! -b $target ]]; then
 	elif [[ ! -f $target ]] && [[ ! -d $target ]] && [[ ! -b $target ]]; then
 
 			echo
-			printf "${RED}$target invalid (permissions)${NOC}\n"
+			printf "${RED}$target invalid target or permissions${NOC}\n"
 			exit 22
 
 	fi
@@ -216,20 +217,20 @@ check_target_status() {
 
 	fi
 
-	#:'
-	#if [[ $action == "info" ]]; then
-	#fi
-	##'
+	: '
+	if [[ $action == "info" ]]; then
+	fi
+	# '
 
-	#:'
-	#if [[ $action == "close" ]]; then
-	#fi
-	##'
+	: '
+	if [[ $action == "close" ]]; then
+	fi
+	# '
 
-	#:'
-	#if [[ $action == "open" ]]; then
-	#fi
-	##'
+	: '
+	if [[ $action == "open" ]]; then
+	fi
+	# '
 
 }
 
@@ -605,10 +606,42 @@ get_vault_data() {
 		loop_ctime=$(ls -ila --time ctime \
 			--time-style=+%Y%m%d_%H%M%S $loop_device | awk '{print $8}')
 
+		# losetup error test
+		tput sc
+		losetup $loop_device
 
-		luks_container=$(sudo cryptsetup status $vlt_mapper | grep device | awk '{print $2}')
-		#luks_container=$(losetup $loop_device | cut -d "(" -f2 | cut -d ")" -f1)
-		#gives an error when $loop_device is a block device
+		if [[ $? -ne 0 ]]; then
+
+			# losetup gives error
+			# losetup: /dev/sdc: failed to use device: No such device
+			# if loop_device is a (physical) block device
+
+			# remove losetup result (error message)
+			tput rc
+			tput cuu1
+			tput ed
+
+			luks_container=$(sudo cryptsetup status $vlt_mapper | grep device | awk '{print $2}')
+
+		else
+
+			# remove losetup result
+			tput rc
+			tput cuu1
+			tput ed
+
+			luks_container=$(losetup $loop_device | cut -d "(" -f2 | cut -d ")" -f1)
+
+		fi
+
+		#luks_container=$(losetup $loop_device | cut -d "(" -f2 | cut -d ")" -f1 2>dev/null)
+
+		#if [[ -z $luks_container ]]; then
+		#	# losetup gives error if luks_container is a block device
+
+		#	luks_container=$(sudo cryptsetup status $vlt_mapper | grep device | awk '{print $2}')
+
+		#fi
 
 	else
 
@@ -718,16 +751,19 @@ check_no_confirm() {
 
 fzf_select_target() {
 
-	# check for non empty target list
+	# check for non empty vlt list
 	if [[ -n $(vault_list | grep /dev/mapper/vlt_) ]]; then
 
-		target_list=$(vault_list | \
-			fzf -m --header-lines=2 --prompt='select to close ' | \
+		info_headers=$(lsblk -lp | head -n 1)
+		info=$(lsblk -lp | grep vlt_ | sort -k 7)
+
+		target_list=$(printf "$info_headers\n$info" | \
+			fzf -m --header-lines=1 --prompt='select ' | \
 			awk '{print $1}')
 
 	else
 
-		printf "${RED}empty target list${NOC}\n"
+		printf "${RED}empty vault list${NOC}\n"
 		exit
 
 	fi
@@ -841,13 +877,25 @@ vault_list() {
 
 
 vault_spec_info() {
+# show info about specific target / target_list
 
 	if [[ -n $target ]]; then
 
-		# show info about specific target
-
 		get_vault_data
 		show_spec_info
+
+	elif [[ -n $target_list ]]; then
+
+		while IFS= read target; do
+
+			loop_active=1
+
+			get_vault_data
+			show_spec_info
+
+		done <<< $target_list
+
+		loop_active="" && unset loop_active
 
 	fi
 
@@ -939,10 +987,11 @@ check_no_confirm_flag() {
 
 if [[ $action == "info" ]]; then
 
-	check_target_validity
+	#check_target_validity
 	check_target_status
 
-	vault_list
+	#vault_list
+	fzf_select_target
 	vault_spec_info
 
 fi
