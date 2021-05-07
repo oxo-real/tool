@@ -605,7 +605,10 @@ get_vault_data() {
 		loop_ctime=$(ls -ila --time ctime \
 			--time-style=+%Y%m%d_%H%M%S $loop_device | awk '{print $8}')
 
-		luks_container=$(losetup $loop_device | cut -d "(" -f2 | cut -d ")" -f1)
+
+		luks_container=$(sudo cryptsetup status $vlt_mapper | grep device | awk '{print $2}')
+		#luks_container=$(losetup $loop_device | cut -d "(" -f2 | cut -d ")" -f1)
+		#gives an error when $loop_device is a block device
 
 	else
 
@@ -634,7 +637,7 @@ show_spec_info() {
 		printf "%22s${GREEN} %s${NOC}\n" "specific info for:" "$target_type $target"
 
 		echo
-		printf "%22s %s\n" "crypto container:" $luks_container
+		printf "%22s %s\n" "crypto source:" $luks_container
 		printf "%22s %s\n" "luks_uuid:" $luks_uuid
 
 		echo
