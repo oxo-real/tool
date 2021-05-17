@@ -27,7 +27,7 @@
 script_name="pwgn"
 initial_release_year="2020"
 developer="cytopyge"
-source_dir="$HOME/_git/code/sources/functions"
+source_dir="$XDG_DATA_HOME/git/code/sources/functions"
 
 
 sourcing() {

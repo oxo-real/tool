@@ -31,45 +31,50 @@
 # vault_file	(create, open)
 # vlt_mapper	(close, info)
 # mountpoint	(close, info)
+#
+# dependencies: source_dir
 
 
-## initialize hardcoded variables
+# initialize hardcoded variables
+
 developer="cytopyge"
 script_name="vault"
 initial_release_year=2019
-source_dir="$HOME/_git/code/sources/functions"
+source_dir="$XDG_DATA_HOME/git/code/sources/functions"
 
 
 # general function definitions
 
-## define colors
-source $source_dir/text_appearance
-
-## reply functions
-source $source_dir/reply_functions
-
-## initial_screen
-source $source_dir/splash_screen
-
-## user authentication
-source $source_dir/get_sudo
-
-
-# actions (open, close, create or info)
+## actions (open, close, create or info)
 action=$1
-# target (<vault_file>, <mountpoint>, <vlt_mapper> or 'all')
+
+## target (<vault_file>, <mountpoint>, <vlt_mapper> or 'all')
 target=$2
 
 
-# dependencies
+load_dependencies()
+{
 
-## define replies
-source $HOME/_git/code/sources/functions/reply_functions
-## define colors
-source $source_dir/text_appearance
+	## define colors
+	source $source_dir/text_appearance
+
+	## reply functions
+	source $source_dir/reply_functions
+
+	## initial_screen
+	source $source_dir/splash_screen
+
+	## user authentication
+	source $source_dir/get_sudo
+
+	## pwgn_location
+	pwgn="$XDG_DATA_HOME/git/code/tools/pwgn"
+
+}
 
 
-check_target_validity() {
+check_target_validity()
+{
 
 	if [[ $action == "info" && -z $target ]]; then
 
@@ -95,7 +100,8 @@ check_target_validity() {
 }
 
 
-check_target_status() {
+check_target_status()
+{
 
 	if [[ $action == "create" ]]; then
 
@@ -217,6 +223,8 @@ check_target_status() {
 
 	fi
 
+
+	#[TODO]
 	: '
 	if [[ $action == "info" ]]; then
 	fi
@@ -235,7 +243,8 @@ check_target_status() {
 }
 
 
-check_container_size() {
+check_container_size()
+{
 
 	if [[ $target_c_type == "file" ]] && [ $size -lt 18 ]; then
 
@@ -248,7 +257,8 @@ check_container_size() {
 }
 
 
-create_vlt_mapper_name() {
+create_vlt_mapper_name()
+{
 
 	# create pretty unique and traceable /dev/mapper/vlt_* name
 
@@ -261,30 +271,31 @@ create_vlt_mapper_name() {
 }
 
 
-create_vault() {
+create_vault()
+{
 
 	printf "writing random data to $target\n"
 
 	# dd if target is an entire block device
 	if [[ $target_c_type == "block_device" ]]; then
 
-#		dd \
-#			if=/dev/random \
-#			of=/dev/mmcblk0 \
-#			bs=1M \
-#			iflag=fullblock \
-#			status=progress
+	#	dd \
+	#		if=/dev/random \
+	#		of=/dev/mmcblk0 \
+	#		bs=1M \
+	#		iflag=fullblock \
+	#		status=progress
 		a=1
 
 	# else dd if target is an entire partition
 	elif [[ $target_c_type == "partition" ]]; then
 
-#		dd \
-#			if=/dev/random \
-#			of=/dev/mmcblk0 \
-#			bs=1M \
-#			iflag=fullblock \
-#			status=progress
+	#	dd \
+	#		if=/dev/random \
+	#		of=/dev/mmcblk0 \
+	#		bs=1M \
+	#		iflag=fullblock \
+	#		status=progress
 		a=1
 
 	# else dd if target is an entire partition
@@ -305,24 +316,24 @@ create_vault() {
 
 	## aes-cbc-essiv:sha256 (plain)
 
-#	:'
-#	#1 find first unused loopdevice
-#	loop_device=$(sudo losetup -f)
-#
-#	#2 setup loopdevice
-#	sudo losetup $loop_device $target
-#
-#	#3 cryptsetup with plain dm-crypt
-#	cryptsetup \
-#		--cipher=aes-cbc-essiv:sha256 \
-#		--hash=sha512 \
-#		--key-size=512 \
-#		--offset=0 \
-#	#	--key-file=/dev/sdX \
-#	#	--keyfile-offset=0 \
-#		--verify-passphrase \
-#		$target
-#	#'
+	#	:'
+	#	#1 find first unused loopdevice
+	#	loop_device=$(sudo losetup -f)
+	#
+	#	#2 setup loopdevice
+	#	sudo losetup $loop_device $target
+	#
+	#	#3 cryptsetup with plain dm-crypt
+	#	cryptsetup \
+	#		--cipher=aes-cbc-essiv:sha256 \
+	#		--hash=sha512 \
+	#		--key-size=512 \
+	#		--offset=0 \
+	#	#	--key-file=/dev/sdX \
+	#	#	--keyfile-offset=0 \
+	#		--verify-passphrase \
+	#		$target
+	#	#'
 	### ... OR
 
 	## aes-xts-plain64 (luks2)
@@ -339,7 +350,8 @@ create_vault() {
 }
 
 
-open_luks() {
+open_luks()
+{
 
 	echo
 	printf "decrypting $target\n"
@@ -352,7 +364,8 @@ open_luks() {
 }
 
 
-make_fs () {
+make_fs ()
+{
 
 	echo
 	printf "writing ext4 filesystem to $vlt_mapper\n"
@@ -364,16 +377,16 @@ make_fs () {
 }
 
 
-permissions() {
+permissions()
+{
 
 	sudo chown -R $USER:wheel $mountpoint
-
 
 }
 
 
-close_luks() {
-
+close_luks()
+{
 
 	sudo cryptsetup close $vlt_mapper
 
@@ -384,7 +397,8 @@ close_luks() {
 }
 
 
-clean_up() {
+clean_up()
+{
 
 	if [[ $action == "create" ]] && [[ -d $mountpoint ]]; then
 
@@ -395,7 +409,8 @@ clean_up() {
 }
 
 
-check_mp_dir() {
+check_mp_dir()
+{
 
 	# existence & emptyness (for mounting)
 
@@ -431,7 +446,8 @@ check_mp_dir() {
 }
 
 
-generate_pw() {
+generate_pw()
+{
 
 	## save cursor position
 	tput sc
@@ -456,28 +472,31 @@ generate_pw() {
 
 	else
 
-		sh ~/_git/code/tools/pwgn
+		sh $pwgn
 
 	fi
 
 }
 
 
-mounting() {
-
+mounting()
+{
 
 	sudo mount $vlt_mapper $mountpoint
 
 }
 
 
-get_vault_data() {
+get_vault_data()
+{
 
 	# single target (vault close 'target')
 	## target is a luks container, mountpoint or vlt_mapper
 
 	## scenario1: container
 	## target_type is a luks encrypted container file
+
+	get_sudo
 
 	if [[ -z $target ]]; then
 
@@ -619,6 +638,7 @@ get_vault_data() {
 			# remove losetup result (error message)
 			tput rc
 			tput cuu1
+			#tput cuu1
 			tput ed
 
 			luks_container=$(sudo cryptsetup status $vlt_mapper | grep device | awk '{print $2}')
@@ -628,6 +648,7 @@ get_vault_data() {
 			# remove losetup result
 			tput rc
 			tput cuu1
+			#tput cuu1
 			tput ed
 
 			luks_container=$(losetup $loop_device | cut -d "(" -f2 | cut -d ")" -f1)
@@ -653,12 +674,13 @@ get_vault_data() {
 }
 
 
-show_spec_info() {
+show_spec_info()
+{
 
 	if [[ -z $target_type ]]; then
 
 		## get_vault_data could not assign a target_type
-		echo
+		#echo
 		printf "no specific info available\n"
 		printf "${RED}no valid target_type $target${NOC}\n"
 
@@ -666,7 +688,7 @@ show_spec_info() {
 
 	else
 
-		echo
+		#echo
 		printf "%22s${GREEN} %s${NOC}\n" "specific info for:" "$target_type $target"
 
 		echo
@@ -704,7 +726,8 @@ show_spec_info() {
 }
 
 
-check_target_exists() {
+check_target_exists()
+{
 
 	# for close
 	b=1
@@ -712,7 +735,8 @@ check_target_exists() {
 }
 
 
-check_no_confirm() {
+check_no_confirm()
+{
 
 	if [[ -z $no_confirm ]]; then
 
@@ -749,7 +773,8 @@ check_no_confirm() {
 }
 
 
-fzf_select_target() {
+fzf_select_target()
+{
 
 	# check for non empty vlt list
 	if [[ -n $(vault_list | grep /dev/mapper/vlt_) ]]; then
@@ -770,7 +795,9 @@ fzf_select_target() {
 
 }
 
-close_target() {
+
+close_target()
+{
 
 	# all (vault close 'all')
 
@@ -818,7 +845,8 @@ close_target() {
 }
 
 
-unmount() {
+unmount()
+{
 
 	if [[ -n $mountpoint && $mountpoint != "n/a" ]]; then
 
@@ -831,8 +859,8 @@ unmount() {
 }
 
 
-clear_cache() {
-
+clear_cache()
+{
 
 	sudo sysctl --write vm/drop_caches=3
 	printf "${GREEN}vault closed succesfully${NOC}\n"
@@ -840,7 +868,8 @@ clear_cache() {
 }
 
 
-get_all_vlt_mappers() {
+get_all_vlt_mappers()
+{
 
 	vlt_mappers=$(lsblk -rp | grep vlt_ | sort -k 7 | awk '{print $1}')
 
@@ -854,7 +883,8 @@ get_all_vlt_mappers() {
 }
 
 
-vault_list() {
+vault_list()
+{
 
 	# show list of all mapper paths with their mountpoints
 
@@ -876,11 +906,14 @@ vault_list() {
 }
 
 
-vault_spec_info() {
-# show info about specific target / target_list
+vault_spec_info()
+{
+
+	# show info about specific target / target_list
 
 	if [[ -n $target ]]; then
 
+		# target specified in command
 		get_vault_data
 		show_spec_info
 
@@ -902,7 +935,8 @@ vault_spec_info() {
 }
 
 
-close_all() {
+close_all()
+{
 
 	get_all_vlt_mappers
 	vault_list
@@ -945,7 +979,8 @@ close_all() {
 }
 
 
-check_no_confirm_flag() {
+check_no_confirm_flag()
+{
 
 	if [[ $action == 'close' ]]; then
 
@@ -987,11 +1022,12 @@ check_no_confirm_flag() {
 
 if [[ $action == "info" ]]; then
 
+	load_dependencies
 	#check_target_validity
 	check_target_status
 
-	#vault_list
 	fzf_select_target
+	vault_list
 	vault_spec_info
 
 fi
@@ -1003,6 +1039,7 @@ if [[ $action == "create" ]]; then
 
 	size=$3
 
+	load_dependencies
 	get_sudo
 
 	check_target_validity
@@ -1025,7 +1062,8 @@ if [[ $action == "open" ]]; then
 
 	mountpoint=$3
 
-	get_sudo
+	load_dependencies
+	#get_sudo
 
 	check_target_validity
 	check_target_status
@@ -1052,6 +1090,7 @@ if [[ $action == "close" ]]; then
 
 	no_confirm=$3
 
+	load_dependencies
 	get_sudo
 
 	check_target_validity

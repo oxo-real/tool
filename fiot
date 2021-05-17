@@ -1,0 +1,58 @@
+#!/bin/bash
+#
+##
+###
+###   __ _       _
+###  / _(_) ___ | |_
+### | |_| |/ _ \| __|
+### |  _| | (_) | |_
+### |_| |_|\___/ \__|
+###
+### find items of type
+### usage: fiot <item_type> <directory> [depth>1]
+### dependencies: fd rg (optional but faster)
+
+item_type=$1
+source_folder=$2
+depth=$3
+
+[[ -z $depth ]] && depth=1
+
+item_list=$(fd -H -d $depth . $source_folder)
+#item_list=$(find $source_folder -maxdepth $depth)
+
+item_number=0
+item_match=()
+
+# in order to handle spaces in items
+OIFS="$IFS"
+IFS=$'\n'
+
+for curr_item in $item_list; do
+
+	#tput sc
+	tput civis
+
+	let item_number+=1
+	printf "processed: $item_number $curr_item\r"
+
+	## check if curr_file is file_type
+	match=$(file -b $curr_item | rg -i $item_type)
+	#match=$(file -b $curr_item | grep -i $item_type)
+
+	## if so append to matching_files array
+	[[ -n $match ]] && item_match+=($curr_item)
+	unset match
+	#tput rc
+	#tput cuu1
+	tput ed
+
+done
+
+IFS="$OIFS"
+tput cnorm
+
+printf "processed $item_number items"
+printf ", found "${#item_match[@]}" $item_type items"
+
+[[ -n $item_match ]] && printf ":\n\n" && printf '%s\n' "${item_match[@]}"
