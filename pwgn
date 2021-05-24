@@ -92,6 +92,14 @@ read_input() {
 }
 
 
+input_validation()
+{
+
+	[[ -z $input ]] && exit
+
+}
+
+
 hashing() {
 ## input, algorithm
 
@@ -237,7 +245,7 @@ running_rounds() {
 		tput ed
 		print_blocks $output
 
-		bar_width=40
+		bar_width=38
 		# progress percentage indicator
 		if [[ $round -lt $rounds ]]; then
 
@@ -392,6 +400,7 @@ debugging() {
 
 sourcing
 read_input
+input_validation
 hash_1_input
 hash_3_input
 clear_input

@@ -22,7 +22,7 @@
 ## usage: cd $XDG_CONFIG_HOME/hosts && git checkout blocklist_on
 
 
-source $HOME/_git/code/sources/functions/text_appearance
+source $XDG_DATA_HOME/git/code/sources/functions/text_appearance
 loc_blocklist="$XDG_CONFIG_HOME/hosts"
 
 
