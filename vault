@@ -100,6 +100,18 @@ check_target_validity()
 }
 
 
+close_cd()
+{
+	#[TODO]
+	if [[ $action == "close" && $PWD == "$mountpoint" ]]; then
+
+		cd
+
+	fi
+
+}
+
+
 check_target_status()
 {
 
@@ -354,12 +366,13 @@ open_luks()
 {
 
 	echo
-	printf "decrypting $target\n"
-
 	sudo cryptsetup open --type luks2 $target $mapping_name
+
+	printf "decrypting $target\n"
 
 	echo
 	printf "mapping $target to $vlt_mapper\n"
+	echo
 
 }
 
@@ -900,6 +913,7 @@ vault_list()
 		printf "${GREEN}mapped vaults:${NOC}\n"
 		printf "$info_headers\n"
 		printf "$info\n"
+		echo
 
 	fi
 

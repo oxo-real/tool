@@ -2,7 +2,9 @@
 
 ## C-u clears the entry in fzf
 
-source_dir="$XDG_DATA_HOME/git/code/sources/functions"
+source_dir="$HOME/.local/share/git/code/sources/functions"
+#source_dir="$XDG_DATA_HOME/git/code/sources/functions"
+#gives error when running sudo --root?!
 source $source_dir/reply_functions
 source $source_dir/text_appearance
 source $source_dir/get_sudo
