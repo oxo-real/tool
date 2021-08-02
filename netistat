@@ -1,0 +1,123 @@
+#!/bin/zsh
+
+source_dir='/home/cytopyge/.local/share/git/code/sources/functions/'
+source $source_dir/text_appearance
+
+scn="/sys/class/net/"
+
+for interface in $(ls $scn); do
+
+	case $(cat $scn/$interface/carrier 2>&1) in
+
+		1)
+			# interface active and connected
+
+			i_status="active"
+			carrier="connected"
+
+			if [[ $interface == "lo" ]]; then
+
+				printf "%-15s %s" "$interface" "active connected"
+
+			else
+
+				printf "${GREEN}%-15s${NOC} %s" "$interface" "active connected"
+
+			fi
+			;;
+
+		0)
+			# interface active, not connected
+
+			i_status="active"
+			carrier="not_connected"
+
+			printf "%-15s %s" "$interface" "active"
+			;;
+
+		*)
+			# interface not readable
+
+			i_status="not_readable"
+
+			printf "%-15s %s" "$interface" ""
+
+	esac
+
+	# interface status
+	# ifr_flags (man 7 netdevice)
+	# loopback		loopback interface
+	# pointtopoint	p2p link interface
+	# broadcast		valid broadcast address set
+	# multicast		interface supports multicast
+	# noarp			no arp protocol, l2 destination address not set
+	# up			interface is running
+	# lower_up		driver signal l1 up
+	# no_carrier	no driver signal l1 detected
+	# dormant		drivers signals dormant
+
+	a=$(ip -oneline link | grep $interface)
+	ifr_raw=$(echo "${a%%>*}")
+	ifr_flags=$(echo "${ifr_raw#*<}")
+	#printf "$ifr_flags\n"
+
+	if [[ -n $(echo $ifr_flags | grep ',UP') ]]; then
+
+		# interface state up (running)
+		state="running"
+		printf " %s" "$state"
+
+	elif [[ -n $(echo $a | grep -i 'state down') ]]; then
+
+		# interface state down
+		state="down"
+		printf "%s" "$state"
+
+	fi
+
+	if [[ $state == 'running' ]]; then
+
+		ipin=$(ip a show dev $interface | grep 'inet ' | awk '{print $2}')
+
+		ipex4=$(host myip.opendns.com resolver1.opendns.com 2>&1 | \
+			tail -n 1 | rev | cut -d ' ' -f 1 | rev)
+		ipex6=$(ip a | grep inet6 | grep -v fe80 | awk '{print $2}')
+		# fe80:* is a local ipv6 address block
+
+		case $ipex4 in
+
+			A)
+				# we have an ipv6 public address
+				# ipex4: host has no A record
+				ipex=$ipex6
+				;;
+
+			*)
+				# we have an ipv4 public address
+				ipex=$ipex4
+				;;
+
+		esac
+
+		case $interface in
+
+			lo)
+				printf " %s ${GREEN}%s${NOC}" "$ipin"
+				;;
+
+			proton0)
+				printf " %s ${GREEN}%s${NOC}" "$ipin" "$ipex"
+				;;
+
+			enp*)
+				printf " %s ${GREEN}%s${NOC}" "$ipin" "$ipex"
+				;;
+
+		esac
+
+	fi
+
+	# next interface newline
+	echo
+
+done

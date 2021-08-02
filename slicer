@@ -11,7 +11,7 @@
 ### (_\/|_(_)|_)\/(_|(/_
 ###   /      |  /  _|
 ###
-### slicer (c) 2020 cytopyge
+### slicer (c) 2020 - 2021 cytopyge
 ###
 ### usage: slicer "from_string" "to_string" <target_file>
 ### returns text between from_ and to_string in target_file

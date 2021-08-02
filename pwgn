@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/zsh
 #
 ##
 ###
@@ -30,8 +30,8 @@ developer="cytopyge"
 source_dir="$XDG_DATA_HOME/git/code/sources/functions"
 
 
-sourcing() {
-
+sourcing()
+{
 	## define colors
 	source $source_dir/text_appearance
 
@@ -43,12 +43,11 @@ sourcing() {
 
 	## progress bar
 	source $source_dir/progress_bar
-
 }
 
 
-read_input() {
-
+read_input()
+{
 	get_sudo
 
 	clear
@@ -88,7 +87,6 @@ read_input() {
 		tput ed
 
 	fi
-
 }
 
 
@@ -100,38 +98,39 @@ input_validation()
 }
 
 
-hashing() {
+hashing()
+{
 ## input, algorithm
 
 	## sed removes '(stdin)= ' of openssl dgst
 	printf $1 | openssl dgst -$2 | sed 's/^.*= //'
 	#printf $1 | openssl dgst -$2 -binary | xxd -p
-
 }
 
 
-hmacing() {
+hmacing()
+{
 ## sha3 hmac rfc2104
 ## input, algorithm, hmac
 
 	printf $1 | openssl dgst -$2 -hmac $3 | sed 's/^.*= //'
 	#printf $1 | openssl dgst -$2 -hmac $3 -binary | xxd -p
-
 }
 
 
-hash_1_input() {
+hash_1_input()
+{
 ## create sha1 hash from input
 
 	local input=$input
 	local algo="sha1"
 
 	hash_sha1=$(hashing $input $algo)
-
 }
 
 
-hash_3_input() {
+hash_3_input()
+{
 ## create sha3-512 hash from input
 ## keccak sha3 standard fips pub 202
 
@@ -141,21 +140,21 @@ hash_3_input() {
 	hash_sha3512=$(hashing $input $algo)
 
 	# for input='s'; hash_sha3512='723a..16fc'
-
 }
 
 
-clear_input(){
+clear_input()
+{
 ## overwrite input variable, then clear and unset it for security
 
 	input=$(< /dev/random tr -d -c "[:xdigit:]" | head -c 128)
 	input=""
 	unset $input
-
 }
 
 
-print_blocks() {
+print_blocks()
+{
 ## print four lines of eight; two space-separated, four-column,
 ## zero-filled, two-byte quantities of hexadecimal inputdata
 
@@ -163,11 +162,11 @@ print_blocks() {
 	printf $1 | cut -c 33-64 | sed 's/.\{4\}/&  /g'
 	printf $1 | cut -c 65-96 | sed 's/.\{4\}/&  /g'
 	printf $1 | cut -c 97-128 | sed 's/.\{4\}/&  /g'
-
 }
 
 
-round_pool() {
+round_pool()
+{
 ## dynamic truncate hash_sha3512
 ## dividend is based on the sha3512 hash of the input
 
@@ -175,11 +174,11 @@ round_pool() {
 	local dgts="10"
 
 	dividend=$(dynamic_truncate $hs $dgts)
-
 }
 
 
-round_space() {
+round_space()
+{
 ## dynamic truncate hash_sha1
 ## divisor is based on the sha1 hash of the input
 
@@ -187,19 +186,19 @@ round_space() {
 	local dgts="4"
 
 	divisor=$(dynamic_truncate $hs $dgts)
-
 }
 
 
-rounds_number() {
+rounds_number()
+{
 ## input='s'; rounds=532
 
 	rounds=$(( $dividend % $divisor ))
-
 }
 
 
-round_key() {
+round_key()
+{
 ## create hmac key for running_rounds
 ## input='s'; round_key='bb40..d76f'
 
@@ -208,12 +207,11 @@ round_key() {
 	local hmac=$divisor
 
 	round_key=$(hmacing $input $algo $hmac)
-
 }
 
 
-running_rounds() {
-
+running_rounds()
+{
 	## keep hash_sha3512 untouched
 	input_calc=$hash_sha3512
 
@@ -261,13 +259,11 @@ running_rounds() {
 	tput cnorm
 
 	# for input='s' output='b68a..027a'
-
 }
 
 
-
-two_fa() {
-
+two_fa()
+{
 	# two factor authentication
 
 	## human enters 2fa code from separate source
@@ -299,20 +295,18 @@ two_fa() {
 		exit 33
 
 	fi
-
 }
 
 
-output_console() {
-
+output_console()
+{
 	## personal iterations multiplier (pim)
 	printf "$(print_blocks $output)\n"
-
 }
 
 
-output_wlcopy() {
-
+output_wlcopy()
+{
 	printf $output | cut -c -64 | wl-copy -o -n
 	#printf $output | cut -z -c -64 | wl-copy -o -n
 	## cut -z with wl-copy -n creates an ^@ behind the string!
@@ -322,28 +316,25 @@ output_wlcopy() {
 	#printf "$output_64" | cut -c -64 > output.tmp
 	## to variable
 	#clpbrd=$(printf "$output_64" | cut -c -64)
-
-
 }
 
 
-print_qr_code() {
-
+print_qr_code()
+{
 	[[ -n $(command -v qrencode) ]] && printf $1 | qrencode -m 3 -t UTF8
-
 }
 
 
-print_qr_codeblock() {
-
+print_qr_codeblock()
+{
 	echo
 	print_qr_code $hash_sha3512
 	print_blocks $hash_sha3512
-
 }
 
 
-dynamic_truncate() {
+dynamic_truncate()
+{
 	## truncates a sha1 hex string (rfc4226, DynamicTruncate)
 	## get last 4 bits from hash ($hex_str)
 	## get the integer number (0-f > 1-10) of those bits; this is the offset
@@ -356,7 +347,6 @@ dynamic_truncate() {
 	##
 	##	dividend	sha3512			10		1402058969
 	##  divisor		sha1			 4			  2593
-
 
 	local hex_str="$1"
 	local digits="$2"
@@ -382,12 +372,11 @@ dynamic_truncate() {
 	digits_ret=$(( ( (0x${hex_str:$offset:8}) & 0x7FFFFFFF ) % ( 10**$digits ) ))
 
 	echo $digits_ret
-
 }
 
 
-debugging() {
-
+debugging()
+{
 	printf "input:			$input\n"
 	printf "hash_sha1:		$hash_sha1\n"
 	printf "hash_sha3512:	$hash_sha3512\n"
@@ -395,8 +384,8 @@ debugging() {
 	printf "divisor:		$divisor\n"
 	printf "rounds:			$rounds\n"
 	printf "round_key:		$round_key\n"
-
 }
+
 
 sourcing
 read_input

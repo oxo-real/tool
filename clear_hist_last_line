@@ -1,5 +1,0 @@
-#!/bin/bash
-
-printf "remove: $(sed '$!d' $HOME/.history)? (y/N)"
-#sed -i "$(( $( wc -l < $HOME/.history ) -1 )),\$d" $HOME/.history
-

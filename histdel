@@ -1,0 +1,58 @@
+#!/bin/zsh
+
+source_dir="$XDG_DATA_HOME/git/code/sources/functions"
+
+## reply functions
+source $source_dir/reply_functions
+source $source_dir/text_appearance
+
+
+: ' #[DEV]
+hist_file='/home/cytopyge/.cache/temp/DELhistBU'
+#first remove last line from history, then recall last line
+# '
+#: ' #[OPS]
+hist_file='/home/cytopyge/.logs/history/history'
+# '
+
+# remove last line from history
+# when script is called via cli
+# this will be the line: 'sh .. histdel'
+# [CHECK] when bindkey is used
+sed -i -n -e :a -e '1,1!{P;N;D;};N;ba' $hist_file
+
+hist_lines=$(wc -l $hist_file)
+last_cmd=$(tail -1 $hist_file)
+last_cmd="${last_cmd#*;}" # parameter expansion (remove all before ';')
+instances=$(grep -i "$last_cmd" "$hist_file" | wc -l)
+
+l=16
+printf "${YELLOW}*$last_cmd*${NOC}\n"
+echo
+printf "%"$l"s %s\n" "instances:" "$instances"
+printf "%"$l"s %s\n" "total lines:" "$hist_lines"
+echo
+printf "remove from history? (y/N) "
+#[TODO] select matches?
+
+reply_single_hidden_timed
+
+case $reply in
+
+	y)
+		echo
+		echo
+		sed -i "/$last_cmd/d" $hist_file
+		printf "%"$l"s %s\n" "lines removed:" "$instances"
+		hist_lines=$(wc -l $hist_file)
+		printf "%"$l"s %s\n" "total lines:" "$hist_lines"
+		;;
+
+	*)
+		echo
+		echo
+		printf "${RED}removal aborted${NOC}\n"
+		exit
+		;;
+
+esac
