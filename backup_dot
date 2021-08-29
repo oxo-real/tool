@@ -1,0 +1,583 @@
+#!/bin/bash
+#
+##
+###  _                _                      _       _
+### | |__   __ _  ___| | ___   _ _ __     __| | ___ | |_
+### | '_ \ / _` |/ __| |/ / | | | '_ \   / _` |/ _ \| __|
+### | |_) | (_| | (__|   <| |_| | |_) | | (_| | (_) | |_
+### |_.__/ \__,_|\___|_|\_\\__,_| .__/___\__,_|\___/ \__|
+###                             |_| |_____|
+###  _ _|_ _ ._    _  _
+### (_\/|_(_)|_)\/(_|(/_
+###   /      |  /  _|
+###
+### 2020 - 2021 (c) cytopyge
+###
+### usage: sh backup_dot [restore <location>]
+##
+#
+
+
+# script mode for restore
+script_status='[DEV]'
+#script_status='[OPS]'
+
+
+# dependencies
+##	openssl, source/functions
+
+
+# requirements
+## for backup
+### $HOME/.dot/files must be present and contain at least one symlink
+
+
+# functionality
+
+## backup
+##	1.	copy selected files from $XDG_CONFIG_HOME to $HOME/.dot/files
+##		selected files are all symlinks in $HOME/.dot
+##	2.	encrypt specific files or directories
+##		files / directories to encrypt are in $XDG_CONFIG_HOME/file_enc_list
+
+## restore
+##	assumption: git clone https://gitlab.com/cytopyge/dotfiles
+##	1.	copy $files_dir to $HOME/.dot/files
+##	2.	decrypt encrypted files or directories
+##	3.	restore (decrypted) files from $files_dir to $XDG_CONFIG_HOME
+
+## 'restore' as argument restores a backup
+## it needs a restore source location / directory
+args01=$1
+args02=$2	# cloned dotfiles directory location
+
+
+sourcing()
+{
+	# sourcing
+	source_dir="$XDG_DATA_HOME/git/code/sources/functions"
+	source $source_dir/reply_functions
+	source $source_dir/text_appearance
+}
+
+
+initialize()
+{
+	# initializing variables
+
+	case $args01 in
+
+		restore)
+			# restore dir definitions
+
+			#	base_dir
+			#	|
+			#	'-->	link_dir
+			#			|
+			#			'-->	publ_dir
+
+			case $script_status in
+
+				'[OPS]')
+
+					## restore source
+					base_dir="$HOME"
+					link_dir="$base_dir/.dot"
+					publ_dir="$link_dir/files"
+
+					## restore destination
+					conf_dir="$XDG_CONFIG_HOME"
+
+					#script_name="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+					script_dir=$(dirname $0)
+					clone_dir=$args02
+					files_dir="$clone_dir/files"
+					pwd_dir=$PWD
+					;;
+
+				'[DEV]' | *)
+
+					## restore source
+					base_dir="$XDG_CACHE_HOME/test"
+					link_dir="$base_dir/.dot"
+					publ_dir="$link_dir/files"
+
+					# restore destination
+					## for [DEV]	$dest_dir="$conf_dir"
+					## in [OPS] !!	$dest_dir=$(readlink $symlink)
+					conf_dir="$XDG_CACHE_HOME/test/.config"
+
+					#script_name="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+					script_dir=$(dirname $0)
+					clone_dir=$args02
+					files_dir="$clone_dir/files"
+					pwd_dir=$PWD
+					;;
+
+			esac
+
+			plan="restore"
+			from_src="$publ_dir"
+			to_dest="$conf_dir"
+
+			#[DEV]
+			printf "publ_dir:	$publ_dir\n"
+			printf "files_dir:	$files_dir\n"
+
+			;;
+
+		*)
+			# backup dir definitions
+
+			#	base_dir
+			#	|
+			#	'-->	link_dir
+			#			|
+			#			'-->	publ_dir
+
+			## backup source
+			conf_dir="$XDG_CONFIG_HOME"
+
+			## backup destination
+			base_dir="$HOME"
+			link_dir="$base_dir/.dot"
+			publ_dir="$link_dir/files"
+
+			## backup encryption
+			files_2_encrypt="$conf_dir/file_enc_list"
+
+			plan="backup"
+			from_src="$conf_dir"
+			to_dest="$publ_dir"
+			;;
+
+	esac
+}
+
+
+create_directories()
+{
+	case $plan in
+
+		restore)
+			[[ ! -d $publ_dir ]] && mkdir -p $publ_dir
+			[[ ! -d $conf_dir ]] && mkdir -p $conf_dir
+			;;
+
+		backup)
+			[[ -d $publ_dir ]] || mkdir -p $publ_dir
+			;;
+
+	esac
+}
+
+
+read_symlinks()
+{
+	## read symlinks
+	case $plan in
+
+		restore)
+			symlinks=$(find $clone_dir -maxdepth 1 -type l | sort)
+			;;
+
+		backup)
+			symlinks=$(find $link_dir -maxdepth 1 -type l | sort)
+			;;
+
+	esac
+
+	if [[ -z $symlinks ]]; then
+
+				printf "no symlinks found\n"
+				printf "exiting\n"
+				exit 23
+
+	fi
+
+	echo
+	printf "reading symlinks:\n$symlinks\n"
+	#printf "$(wc -l $symlinks) symlinks read\n"
+	echo
+
+}
+
+
+the_plan()
+{
+	printf "$plan from ${GREEN}$from_src${NOC} to ${YELLOW}$to_dest${NOC}\n"
+	sleep 3
+}
+
+
+enter_password()
+{
+	#pwgn(r5r6)
+	sh /home/cytopyge/.local/share/git/code/tools/pwgn
+	pw=$(wl-paste -n)
+}
+
+
+copy_files()
+{
+	echo
+	printf "copying symlink files\n"
+
+	while IFS= read -r symlink; do
+
+		if [[ -f $symlink ]]; then
+
+			printf "$symlink ... "
+
+			# create filename as shown in ls
+
+			f_name=$(basename $symlink)
+
+			# follow symlinks and copy to $publ_dir
+			: '
+			#		----------------------
+			#		 dry run
+			#		----------------------
+			printf "cp -fLr $symlink --> $publ_dir/$f_name\n"
+			# '
+
+			#: '
+			#		----------------------
+			#		 OR do the real thing
+			#		----------------------
+			cp -fLr $symlink $publ_dir/$f_name
+			# '
+
+			printf "copied\n"
+
+		fi
+
+	done <<< "$symlinks"
+}
+
+
+copy_directories()
+{
+	echo
+	printf "copying symlink directories\n"
+
+	while IFS= read -r symlink; do
+
+		if [[ -d $symlink ]]; then
+
+			printf "$symlink ... "
+
+			# create directory name as shown in ls
+
+			d_name=$(basename $symlink)
+
+			# remove existing excrpted tarball of directory
+			if [[ -f $publ_dir/$d_name ]]; then
+
+				rm -rf $publ_dir/$d_name
+
+			fi
+
+			# follow symlinks and copy to $publ_dir
+			: '
+			#		----------------------
+			#		 dry run
+			#		----------------------
+			printf "cp -fLr $symlink --> $publ_dir/$d_name\n"
+			# '
+
+			#: '
+			#		----------------------
+			#		 OR do the real thing
+			#		----------------------
+			cp -fLr $symlink $publ_dir/$d_name
+			# '
+
+			printf "copied\n"
+
+		fi
+
+	done <<< "$symlinks"
+
+}
+
+
+make_tarballs()
+{
+	# if line in file_enc_list is a directory,
+	# then make a tarball that will later be encrypted
+
+	echo
+	printf "creating tarballs\n"
+
+	while IFS= read -r line; do
+
+		# remove existing copy of $line
+		rm -rf $publ_dir/$(basename $line)
+
+		# and make a tarball instead
+		if [[ ! -f $line && -d $line ]]; then
+
+			printf "$line ... "
+
+			# $line is a directory
+			# here are source files of the tarball
+			tar_src=$line
+
+			#tarball archive name
+			tar_arch=$publ_dir/$(basename $tar_src)
+
+			# create tar_arch
+			tar -czf $tar_arch $tar_src 1>&2 2>/dev/null
+
+			printf "tarballed\n"
+
+		fi
+
+	done < $files_2_encrypt
+}
+
+
+encrypt_items()
+{
+	echo
+	printf "encrypting\n"
+
+	# encrypt selected files
+
+	while IFS= read -r line; do
+
+		if [[ ! -f $line && -d $line ]]; then
+
+			# $line is a directory
+			# here are source files of the tarball
+			tar_src=$line
+
+			# tarball archive name
+			tar_arch=$publ_dir/$(basename $tar_src)
+
+			# encrypted file name
+			enc_dir_name=$(basename $tar_arch)
+			[[ -d $enc_dir_name ]] || mkdir -p $enc_dir_name
+
+			openssl_name=$publ_dir/$enc_dir_name.aes.tmp
+
+			printf "$tar_arch ... "
+
+			# encrypt $tar_arch
+			openssl enc -a -aes-256-cbc -pbkdf2 \
+				-in $tar_arch \
+				-out $openssl_name \
+				-pass pass:$pw
+
+			# overwrite $file
+			# so that only the encrypted version remains
+			mv $openssl_name $publ_dir/$enc_dir_name
+
+			printf "encrypted\n"
+
+		elif [[ -f $line && ! -d $line ]]; then
+
+			# $line is a file
+			# we encrypt the file directly (no tarballing)
+
+			# file_copy name
+			file_name_last_part=$(printf "$line" | sed 's/\/home\/cytopyge\/.config\///')
+			file_copy=$publ_dir/$file_name_last_part
+			#file_copy=$publ_dir/$(basename $line)
+
+			# encrypted file name
+			enc_file_name=$file_copy
+
+			printf "$file_copy ... "
+
+			# encrypt $tar_arch
+			openssl enc -a -aes-256-cbc -pbkdf2 \
+				-in "$file_copy" \
+				-out "$enc_file_name.aes.tmp" \
+				-pass pass:$pw
+
+			# overwrite $file
+			# so that only the encrypted version remains
+			mv $enc_file_name.aes.tmp $enc_file_name
+
+			printf "encrypted\n"
+
+		fi
+
+	done < $files_2_encrypt
+}
+
+
+restore_link_dir()
+{
+	# assumption: git clone https://gitlab.com/cytopyge/dotfiles
+	## copy all the dotfiles directory contents to $link_dir
+
+	echo
+	printf "copy dotfiles to $link_dir\n"
+	cp -r $clone_dir/. $link_dir
+}
+
+
+restore_conf_dir()
+{
+	echo
+	printf "restore conf_dir\n"
+
+	while IFS= read -r symlink; do
+
+		case $script_status in
+
+			'[OPS]')
+
+				# for every symlink in symlink list (while read symlink)
+				# copy the matching file or folder name (basename symlink)
+				# to it`s original destination (readlink symlink)
+				f_name=$(basename $symlink)
+				dest=$(readlink $symlink)
+				;;
+
+			'[DEV]' | *)
+
+				f_name=$(basename $symlink)
+				dest=$conf_dir
+
+				dst_sub_dir=$(printf "$(readlink $symlink)" | \
+					sed 's/\/home\/cytopyge\/.config\///' | \
+					sed 's/'$f_name'\///')
+					;;
+
+		esac
+
+		: '
+		#		---------------------------
+		#		 copy disabled	(dry run)
+		#		---------------------------
+		printf " cp -r $publ_dir/$f_name --- $dest\n"
+		# '
+
+		#: '
+		#		---------------------------
+		#		 copy enabled	(live run)
+		#		---------------------------
+
+
+		if [[ "${f_name:0:1}" == "." ]]; then
+
+			# copy one file
+			case $script_status in
+
+				'[OPS]')
+
+					[[ -d $dest ]] || mkdir -p $dest
+					printf "copy $publ_dir/$f_name to $dest\n"
+					cp $publ_dir/$f_name $dest
+					;;
+
+				'[DEV]' | *)
+
+					[[ -d $dest/$dst_sub_dir ]] || mkdir -p $dest/$dst_sub_dir
+					printf "copy $publ_dir/$f_name to $dest/$dst_sub_dir/$f_name\n"
+					cp $publ_dir/$f_name $dest/$dst_sub_dir/$f_name
+
+					;;
+
+			esac
+
+		else
+
+			# copy a directory
+			case $script_status in
+
+				'[OPS]')
+
+					[[ -d $dest ]] || mkdir -p $dest
+					printf "copy $publ_dir/$f_name to $dest\n"
+					cp $publ_dir/$f_name $dest
+					;;
+
+				'[DEV]' | *)
+
+					[[ -d $dest/$dst_sub_dir ]] || mkdir -p $dest/$dst_sub_dir
+					cp -r $publ_dir $dest/$dst_sub_dir
+					printf "copy ${GREEN}$publ_dir${NOC} to ${YELLOW}$dest/$dst_sub_dir${NOC}\n"
+					;;
+
+			esac
+
+
+
+
+
+		fi
+		#cp -r $publ_dir/$f_name/. $dest/$dest_sub_dir
+		# '
+
+	done <<< "$symlinks"
+}
+
+
+find_encrypted_items()
+{
+	conf_dir_all_items=$(find $conf_dir)
+
+	for item in $conf_dir_all_items; do
+
+		item_meta=$(file $item)
+
+		if [[ $item_meta == *"openssl"* ]]; then
+
+			decrypt_items
+
+		fi
+
+	done
+}
+
+
+decrypt_items()
+{
+	printf "openssl current item: $item\n"
+	#openssl
+}
+
+check_tarballs()
+{
+	#[TODO] no of encrypted files = file_enc_list | wc -l
+	tarballs_no=$(ls $publ_dir/*.tar | wc -l)
+}
+
+
+if [[ -z $args01 ]]; then
+
+	## backup
+	sourcing
+	initialize
+	the_plan
+	create_directories
+	read_symlinks
+
+	copy_files
+	copy_directories
+	make_tarballs
+
+	enter_password
+	encrypt_items
+
+elif [[ $args01 == "restore" ]]; then
+
+	sourcing
+	initialize
+	the_plan
+	create_directories
+	read_symlinks
+
+	restore_link_dir
+	restore_conf_dir
+	find_encrypted_items
+
+	#enter_password
+	#decrypt_items
+
+fi

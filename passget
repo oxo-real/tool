@@ -15,7 +15,7 @@ store="$HOME/.password-store"
 ## the gpg files can contain more than just the password though
 ## this script make use of that
 ## here we call the gpg file: file
-## files can search for several items
+## files can be searched for several items
 ## regular items are: url, login, password
 
 
@@ -47,7 +47,7 @@ get_item_auto() {
 get_password() {
 
 	#pass $file -c
-	pass $file | head -n 1 | wl-copy -o
+	pass $file | head -n 1 | wl-copy -n -o
 
 }
 
@@ -63,6 +63,12 @@ auto_entry() {
 	#printf "$item "
 	notify-send "$item"
 	sleep 10
+
+	item="userid"
+	get_item
+	#printf "$item "
+	notify-send "$item"
+	sleep $t
 
 	item="login"
 	get_item

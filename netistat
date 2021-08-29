@@ -79,7 +79,7 @@ for interface in $(ls $scn); do
 
 		ipin=$(ip a show dev $interface | grep 'inet ' | awk '{print $2}')
 
-		ipex4=$(host myip.opendns.com resolver1.opendns.com 2>&1 | \
+		ipex4=$(host -W 3 myip.opendns.com resolver1.opendns.com 2>&1 | \
 			tail -n 1 | rev | cut -d ' ' -f 1 | rev)
 		ipex6=$(ip a | grep inet6 | grep -v fe80 | awk '{print $2}')
 		# fe80:* is a local ipv6 address block

@@ -1,0 +1,17 @@
+#!/bin/bash
+
+delete_file()
+{
+	[[ -f $file ]] && rm $file
+}
+
+
+delete_dir()
+{
+	[[ -d $dir ]] && rm -rf $dir
+}
+
+
+dir="$HOME/Desktop" && delete_dir
+dir="$HOME/Downloads" && delete_dir
+file="$HOME/nohup.out" && delete_file
