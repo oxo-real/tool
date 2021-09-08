@@ -42,6 +42,7 @@ case $reply in
 	y)
 		echo
 		echo
+		# remove lines
 		sed -i "/$last_cmd/d" $hist_file
 		printf "%"$l"s %s\n" "lines removed:" "$instances"
 		hist_lines=$(wc -l $hist_file)
