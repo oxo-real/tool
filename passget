@@ -19,15 +19,16 @@ store="$HOME/.password-store"
 ## regular items are: url, login, password
 
 
-get_item() {
-
-	pass show $file | grep ^$item: | awk '{print $2}' | wl-copy -o
-
+get_item()
+{
+	item_value=$(pass show $file | grep ^$item: | awk '{print $2}')
+	[[ -z $item_value ]] && exit 10
+	printf "$item_value" | wl-copy -o
 }
 
 
-get_item_auto() {
-
+get_item_auto()
+{
 	find $store -name $file.gpg 2> /dev/null
 
 	if [[ $? == 0 ]]; then
@@ -40,20 +41,18 @@ get_item_auto() {
 		exit
 
 	fi
-
 }
 
 
-get_password() {
-
+get_password()
+{
 	#pass $file -c
 	pass $file | head -n 1 | wl-copy -n -o
-
 }
 
 
-auto_entry() {
-
+auto_entry()
+{
 	## sleep time
 	t=5
 
@@ -91,7 +90,6 @@ auto_entry() {
 	get_item
 	#printf "$item "
 	notify-send "$item"
-
 }
 
 

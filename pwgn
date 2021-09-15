@@ -46,45 +46,70 @@ sourcing()
 }
 
 
-read_input()
+optical_input()
 {
+	input=$(zbarcam --oneshot --raw)
+}
+
+
+keyboard_input()
+{
+	## give clear line for entry
+	## clear screen and home cursor
+	tput clear
+	#tput el1
+
+	#read input
+	read input
+
+	##[TODO] add option to hide keyboard entry
+
+	## clear screen and home cursor
+	tput clear
+	## remove line above cursor
+	### restore cursor position
+	### mind screen scrolling on errors!
+	#tput rc
+	### cursor up one line
+	#tput cuu1
+	### clear to end of screen
+	#tput ed
+}
+
+
+choose_input()
+{
+	# choose optical or manual input
+
 	get_sudo
 
 	clear
 	## save cursor position
 	tput sc
 
-	printf "${YELLOW}O${NOC}ptical scan and decode from video device"
+	printf "${YELLOW}O${NOC}ptical scan and decode from video device "
+
+	# hide cursor
+	tput civis
 
 	reply_single_hidden_timed
 
+	## clear screen and home cursor
+	tput clear
+	## show cursor again
+	tput cnorm
 	## restore cursor position
-	tput rc
+	#tput rc
 	## clear to end of screen
-	tput ed
+	#tput ed
 
-	if printf "$reply" | grep -iq "^o"; then
+	if printf "$reply" | grep -q "^O"; then
 
-		#optical input
-
-		input=$(zbarcam --oneshot --raw)
+		optical_input
 
 	else
 
-		# no optical input
-
-		## give clear line for entry
-		read input
-		##[TODO] add option to hide keyboard entry
-
-		## remove line above cursor
-		### restore cursor position
-		### mind screen scrolling on errors!
-		tput rc
-		### cursor up one line
-		#tput cuu1
-		### clear to end of screen
-		tput ed
+		keyboard_input
 
 	fi
 }
@@ -93,7 +118,7 @@ read_input()
 input_validation()
 {
 
-	[[ -z $input ]] && exit
+	[[ -z $input ]] && exit 10
 
 }
 
@@ -149,6 +174,7 @@ clear_input()
 
 	input=$(< /dev/random tr -d -c "[:xdigit:]" | head -c 128)
 	input=""
+	#[TODO] when using symlink pwgn it generatews error not enough arguments
 	unset $input
 }
 
@@ -388,7 +414,7 @@ debugging()
 
 
 sourcing
-read_input
+choose_input
 input_validation
 hash_1_input
 hash_3_input
