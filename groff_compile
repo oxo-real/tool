@@ -1,0 +1,40 @@
+#!/bin/sh
+
+ms_file=$1
+bib_file=$2
+
+comp_bib()
+{
+	[[ -z $bib_file ]] && bib_file="$XDG_DATA_HOME/data/gtd/6ref/bibliography/bib.ms"
+	refer -p $bib_file $ms_file
+}
+
+comp_2pdf()
+{
+	# toc
+	## .XS\nheading\n.XE and .TC at eof
+	# preproccess
+	# -k	preconv
+	# -e	eqn
+	# -g	grn
+	# -G	grap
+	# -j	chem
+	# -p	pic
+	# -s	soelim
+	# -t	tbl
+	# -ms	classic document format
+	# -mom	mom
+	# -mm	mm
+	# -T	output device
+	groff -e -k -m ms -T pdf > $ms_file.pdf
+	#groff -kegjpst -m mom -T pdf > $ms_file.pdf
+	#groff -e -k -m mm -T pdf > $ms_file.pdf
+
+	# toc
+	# .XS\nheading\n.XE and .TC at bof
+	#pdfoff -mspdf > $ms_file.pdf
+	#pdfroff -e -k -mspdf > $ms_file.pdf
+	#pdfroff -mspdf > $ms_file.pdf
+}
+
+comp_bib | comp_2pdf

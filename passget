@@ -1,13 +1,11 @@
 #!/bin/bash
 
-## usage: pass_get file [item | [auto_entry]]
+## usage: passget OR passget $file $item
 
-set -e
-
-file=$1
-item=$2
+#set -e
 
 store="$HOME/.password-store"
+options=(url userid password unlock otp auto_entry)
 
 ## pass calls the gpg files passwords in their help file
 ## so insert a new password means making a new gpg file
@@ -51,6 +49,13 @@ get_password()
 }
 
 
+get_otp()
+{
+	pass otp $file | wl-copy -n -o
+	exit
+}
+
+
 auto_entry()
 {
 	## sleep time
@@ -59,25 +64,16 @@ auto_entry()
 	item="url"
 	get_item_auto
 	qutebrowser $url &
-	#printf "$item "
 	notify-send "$item"
 	sleep 10
 
 	item="userid"
 	get_item
-	#printf "$item "
-	notify-send "$item"
-	sleep $t
-
-	item="login"
-	get_item
-	#printf "$item "
 	notify-send "$item"
 	sleep $t
 
 	item="password"
 	get_password 1> /dev/null #no stdout
-	#printf "$item "
 	notify-send "$item"
 	sleep $t
 
@@ -88,15 +84,31 @@ auto_entry()
 
 	item="unlock"
 	get_item
-	#printf "$item "
 	notify-send "$item"
 }
+
+
+if [[ -n $1 ]]; then
+	file=$1
+	item=$2
+else
+	file=$(ls $store | fzf | sed 's/.gpg//')
+	if [[ -n $(printf "$file" | grep otp) ]]; then
+		get_otp
+	else
+		item=$(printf '%s\n' "${options[@]}" | fzf)
+	fi
+fi
 
 
 case $item in
 
 	password)
 		get_password
+	;;
+
+	otp)
+		get_otp
 	;;
 
 	auto_entry)
