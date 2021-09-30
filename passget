@@ -1,11 +1,29 @@
 #!/bin/bash
+#
+##
+###                                 _
+###  _ __   __ _ ___ ___  __ _  ___| |_
+### | '_ \ / _` / __/ __|/ _` |/ _ \ __|
+### | |_) | (_| \__ \__ \ (_| |  __/ |_
+### | .__/ \__,_|___/___/\__, |\___|\__|
+### |_|                  |___/
+###
+###  _ _|_ _   ._  _  _
+### (_\/|_(_)\/|_)(_|(/_
+###   /      / |   _|
+###
+### passget: fzf cli wrapper for pass
+###
+### usage:	passget
+###			OR
+###			passget $file $item
+##
+#
 
-## usage: passget OR passget $file $item
-
-#set -e
-
+## location of the pass password store
 store="$HOME/.password-store"
-options=(url userid password unlock otp auto_entry)
+## items that can be retrieved
+items=(url userid password unlock otp show auto_entry)
 
 ## pass calls the gpg files passwords in their help file
 ## so insert a new password means making a new gpg file
@@ -56,6 +74,11 @@ get_otp()
 }
 
 
+pass_show()
+{
+	pass show $file
+}
+
 auto_entry()
 {
 	## sleep time
@@ -96,7 +119,7 @@ else
 	if [[ -n $(printf "$file" | grep otp) ]]; then
 		get_otp
 	else
-		item=$(printf '%s\n' "${options[@]}" | fzf)
+		item=$(printf '%s\n' "${items[@]}" | fzf)
 	fi
 fi
 
@@ -113,6 +136,10 @@ case $item in
 
 	auto_entry)
 		auto_entry
+	;;
+
+	show)
+		pass_show
 	;;
 
 	*)
