@@ -25,6 +25,7 @@ lb_string="$1"
 rb_string="$2"
 file="$3"
 
+#[[ -z $file ]] && read -t 0
 
 # define colors
 RED='\033[0;31m' # red

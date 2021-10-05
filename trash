@@ -1,0 +1,7 @@
+#!/bin/sh
+items="$@"
+trash="$XDG_CACHE_HOME/trash"
+
+[[ -d $trash ]] || mkdir -p $trash
+
+mv $items $trash

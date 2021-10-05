@@ -26,7 +26,8 @@ comp_2pdf()
 	# -mom	mom
 	# -mm	mm
 	# -T	output device
-	groff -e -k -m ms -T pdf > $ms_file.pdf
+	/opt/share/neatroff/neatroff/roff > $ms_file.pdf
+	#groff -e -k -m ms -T pdf > $ms_file.pdf
 	#groff -kegjpst -m mom -T pdf > $ms_file.pdf
 	#groff -e -k -m mm -T pdf > $ms_file.pdf
 

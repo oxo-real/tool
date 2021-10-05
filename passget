@@ -23,7 +23,7 @@
 ## location of the pass password store
 store="$HOME/.password-store"
 ## items that can be retrieved
-items=(url userid password unlock otp show auto_entry)
+items=(url userid password peacto unlock otp show auto_entry)
 
 ## pass calls the gpg files passwords in their help file
 ## so insert a new password means making a new gpg file
