@@ -8,7 +8,7 @@ trash="$XDG_CACHE_HOME/trash"
 # (i.e. -rf); then skip these
 # and just move items to trash
 if [[ "$(head -c 1 "$items")" == "-" ]]; then
-	# awk remove first field from $items
+	items= printf "$items" | awk -F ' ' '!($1="")'
 fi
 
 # mv is aliased to mv -v
