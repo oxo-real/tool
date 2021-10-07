@@ -39,10 +39,6 @@ src=$2				# source directory
 dest=$3				# destination directory
 
 
-# for hajime/5dtcf.sh
-XDG_DATA_HOME="$HOME/.local/share"
-
-
 sourcing()
 {
 	# external code sources
