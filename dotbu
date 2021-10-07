@@ -12,8 +12,8 @@
 ###
 ### © 2020 - 2021 cytopyge
 ###
-### usage:	sh dotbu restore [<rs_src> <rs_dest>]
-###			sh dotbu backup  [<bu_src> <bu_dest>]
+### usage:	dotbu restore [<rs_src> <rs_dest>]
+###			dotbu backup  [<bu_src> <bu_dest>]
 ##
 #
 
@@ -79,6 +79,11 @@ initialize()
 				re_src=$src
 				re_dest=$dest
 			;;
+
+		*)
+			# no mode entry
+			printf "enter mode as backup or restore\n"
+			exit 4
 
 	esac
 
@@ -593,7 +598,7 @@ verify()
 enter_password()
 {
 	#pwgn(r5r6)
-	sh /home/cytopyge/.local/share/git/code/tools/pwgn
+	sh $XDG_DATA_HOME/git/code/tools/pwgn
 	pw=$(wl-paste -n)
 	echo
 }
