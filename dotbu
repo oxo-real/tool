@@ -12,8 +12,11 @@
 ###
 ### © 2020 - 2021 cytopyge
 ###
-### usage:	dotbu restore [<rs_src> <rs_dest>]
-###			dotbu backup  [<bu_src> <bu_dest>]
+###	usage:	dotbu backup  [<bu_src> <bu_dest>]
+###			dotbu restore [<rs_src> <rs_dest>]
+###
+### i.e.:	dotbu backup $XDG_CONFIG_HOME $HOME/.dot/files
+###			dotbu restore $HOME/.dot/files $XDG_CONFIG_HOME
 ##
 #
 
@@ -87,7 +90,7 @@ initialize()
 
 	esac
 
-	printf "\nmode:  ${INV}${BOLD} $mode ${NOC}\n"
+	printf "\nmode:   ${INV}${BOLD} $mode ${NOC}\n"
 
 }
 
@@ -360,8 +363,8 @@ crypt()
 				if [[ $(printf "$fpcl_location" | grep '^c ') ]]; then
 
 					# make relative location in fpcl_file absolute to destination
-					# destination, because files are already copied at this point
-					# and ecryption has to be done in destination, not source!
+					# (bu_dest), because files are already copied at this point
+					# and encryption has to be done in destination, not source!
 					crypt_loc="$bu_dest/$(printf "$fpcl_location" | awk '{print $2}')"
 
 
@@ -370,7 +373,7 @@ crypt()
 
 						printf "$crypt_loc"
 
-						## create a tar archive name
+						## create a tar archive name (variable)
 						tar_name="$crypt_loc.tar"
 
 						## create directory if non-existent
@@ -378,14 +381,14 @@ crypt()
 						[[ -d $tar_name_dir ]] || mkdir -p $tar_name_dir
 
 						## create a tar archive with directory contents
-						tar -czf $tar_name $crypt_loc 1>&2 2>/dev/null
+						tar -czf $tar_name -C $bu_src $fpcl_location  1>&2 2>/dev/null
+						#tar -czf $tar_name $crypt_loc 1>&2 2>/dev/null
 						printf ".tar"
 
 						## remove crypt_loc directory
 						destroy $crypt_loc
 
 						## encrypt the tar archive
-						tar_name="$crypt_loc.tar"
 						tar_crypt_name="$tar_name.aes"
 						openssl enc -a -aes-256-cbc -pbkdf2 \
 							-in $tar_name \
@@ -461,17 +464,17 @@ crypt()
 				fi
 
 
+				# find lines starting with 'c space'
 				if [[ $(printf "$fpcl_location" | grep '^c ') ]]; then
 
-
 					# make relative location in fpcl_file absolute to destination
-					# destination, because files are already copied at this point
+					# (re_dest), because files are already copied at this point
 					# and decryption has to be done in destination, not source!
 					crypt_loc="$re_dest/$(printf "$fpcl_location" | awk '{print $2}')"
 
 					tput sc
 
-					# crypt_loc is a directory
+					# crypt_loc is a tar.aes file
 
 					if [[ -f "$crypt_loc.tar.aes" ]]; then
 
@@ -498,11 +501,11 @@ crypt()
 						destroy $tar_crypt_name
 
 						## create directory if non-existent
-						tar_name_dir="$re_dest/$crypt_loc"
-						[[ -d $tar_name_dir ]] || mkdir -p $tar_name_dir
+						[[ -d $crypt_loc ]] || mkdir -p $crypt_loc
 
 						## extract contents from tar archive
-						tar -xzf $tar_name $crypt_loc 1>&2 2>/dev/null
+						tar -xzf $tar_name -C $re_dest/ $fpcl_location 1>&2 2>/dev/null
+						#tar -xzf $tar_name $crypt_loc 1>&2 2>/dev/null
 
 						tput rc
 						tput ed
