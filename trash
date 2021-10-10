@@ -1,15 +1,19 @@
 #!/bin/sh
-items="$@"
-trash="$XDG_CACHE_HOME/trash"
 
+trash="$XDG_CACHE_HOME/trash"
 [[ -d $trash ]] || mkdir -p $trash
+
+items="$@"
 
 # if rm options are given in $1
 # (i.e. -rf); then skip these
 # and just move items to trash
-if [[ "$(head -c 1 "$items")" == "-" ]]; then
-	items= printf "$items" | awk -F ' ' '!($1="")'
+
+if [[ "$(printf -- "$items" | head -c 1)" == "-" ]]; then
+
+	items="$(echo $items | awk '!($1="")')"
+
 fi
 
-# mv is aliased to mv -v
+# mv items to trash
 mv $items $trash
