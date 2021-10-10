@@ -1,19 +1,93 @@
 #!/bin/sh
 
+# definition of a trashcan
+
 trash="$XDG_CACHE_HOME/trash"
 [[ -d $trash ]] || mkdir -p $trash
 
+
+# items to trash
+
 items="$@"
 
-# if rm options are given in $1
-# (i.e. -rf); then skip these
-# and just move items to trash
 
-if [[ "$(printf -- "$items" | head -c 1)" == "-" ]]; then
+# rm is aliased to trash
 
+## if rm options are given (in $1)
+## (i.e. -rf); then skip these
+## and move the following items to trash
+
+## if there is more than one argument given
+## i.e. when 'rm -rf directory' is entered then
+## argument1 = '-rf' and argument2 = 'directory'
+[[ $# -gt 1 ]] && \
+
+	## check if argument1 starts with an '-', then is's meant for rm
+	## (printf -- to prevent taking argument1 as printf argument)
+	[[ "$(printf -- "$1" | head -c 1)" == "-" ]] && \
+
+	## argument1 is no existing file
+	[[ ! -f "$1" ]] && \
+
+	## argument1 is no existing directory
+	[[ ! -d "$1" ]] && \
+
+	## argument1 is no existing symlink
+	[[ ! -L "$1" ]] && \
+
+	## remove argument1 which is meant as option for rm
 	items="$(echo $items | awk '!($1="")')"
 
-fi
 
 # mv items to trash
-mv $items $trash
+
+## not in the trash directory
+[[ "$PWD" != "$trash" ]] && \
+
+	# trash!
+	mv -- $items $trash
+
+
+# trash empty
+
+## option empty
+if [[ "$1" == 'empty' ]] || \
+	#[TODO] option --empty gets removed!!
+	[[ "$1" == '--empty' ]]; then
+
+	## no more options
+	if [[ "$1" == "$@" ]]; then
+
+		## in the trash directory
+		if [[ "$PWD" == "$trash" ]]; then
+
+			printf "cannot remove myself\n"
+			exit 11
+
+		## not in the trash directory
+		elif [[ "$PWD" != "$trash" ]]; then
+
+			## empty all trash
+			rm -rf $trash/ && \
+				printf "trash emptied\n" && \
+				exit 0
+
+		fi
+
+	fi
+
+	## more options after 'empty'; selected files
+	if [[ -n "$2" ]]; then
+
+		## remove argument1 which is '--empty'
+		items="$(echo $items | awk '!($1="")')"
+
+		## remove all selected files from trash
+		for item in $items; do
+
+			rm -rf $trash/$item
+
+		done
+	fi
+
+fi

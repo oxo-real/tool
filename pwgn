@@ -93,6 +93,7 @@ choose_input()
 	tput civis
 
 	reply_single_hidden_timed
+	#[TODO] add time variable (if waiting is too long)
 
 	## clear screen and home cursor
 	tput clear
