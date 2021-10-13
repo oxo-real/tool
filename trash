@@ -10,6 +10,8 @@ trash="$XDG_CACHE_HOME/trash"
 
 items="$@"
 
+#[TODO] files with spaces!
+
 
 # rm is aliased to trash
 
