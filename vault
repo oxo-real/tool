@@ -100,18 +100,6 @@ check_target_validity()
 }
 
 
-close_cd()
-{
-	#[TODO]
-	if [[ $action == "close" && $PWD == "$mountpoint" ]]; then
-
-		cd
-
-	fi
-
-}
-
-
 check_target_status()
 {
 
@@ -860,7 +848,18 @@ close_target()
 
 unmount()
 {
+	# if pwd is inside mountpoint on close
+	if [[ $action == "close" ]] && \
+		[[ -n $(echo $PWD | grep $mountpoint) ]]; then
 
+			printf "${RED}cannot unmount myself!${NOC}\n"
+			printf "please move to another directory and run again\n"
+			exit 66
+
+	fi
+
+
+	# unmount
 	if [[ -n $mountpoint && $mountpoint != "n/a" ]]; then
 
 			sudo umount $mountpoint
@@ -868,7 +867,6 @@ unmount()
 			printf "\n$vlt_mapper unmounted from $mountpoint\n"
 
 	fi
-
 }
 
 

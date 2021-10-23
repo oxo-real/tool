@@ -121,7 +121,6 @@ validate_source()
 		printf "source:		$src\n"
 
 	fi
-
 }
 
 
@@ -390,10 +389,15 @@ crypt()
 
 						## encrypt the tar archive
 						tar_crypt_name="$tar_name.aes"
-						openssl enc -a -aes-256-cbc -pbkdf2 \
+						openssl enc \
+							-e \
+							-aes-256-cbc \
+							-base64 \
+							-pbkdf2 \
+							-salt \
+							-pass pass:$pw \
 							-in $tar_name \
-							-out $tar_crypt_name \
-							-pass pass:$pw
+							-out $tar_crypt_name
 
 						## remove the unencrypted tar archive
 						destroy $tar_name
@@ -416,10 +420,15 @@ crypt()
 						[[ -d $file_name_dir ]] || mkdir -p $file_name_dir
 
 						## encrypt the file
-						openssl enc -a -aes-256-cbc -pbkdf2 \
+						openssl enc \
+							-e \
+							-aes-256-cbc \
+							-base64 \
+							-pbkdf2 \
+							-salt \
+							-pass pass:$pw \
 							-in $file_name \
-							-out $file_crypt_name \
-							-pass pass:$pw
+							-out $file_crypt_name
 
 						## remove the unencrypted file
 						destroy $file_name
@@ -488,10 +497,15 @@ crypt()
 
 						## decrypt the aes file
 						tar_crypt_name="$crypt_loc.tar.aes"
-						openssl enc -d -a -aes-256-cbc -pbkdf2 \
+						openssl enc \
+							-d \
+							-aes-256-cbc \
+							-base64 \
+							-pbkdf2 \
+							-salt \
+							-pass pass:$pw \
 							-in $tar_crypt_name \
-							-out $tar_name \
-							-pass pass:$pw
+							-out $tar_name
 
 						tput rc
 						tput ed
@@ -536,10 +550,15 @@ crypt()
 						#[[ -d $file_name_dir ]] || mkdir -p $file_name_dir
 
 						## decrypt the aes file
-						openssl enc -d -a -aes-256-cbc -pbkdf2 \
+						openssl enc \
+							-d \
+							-aes-256-cbc \
+							-pbkdf2 \
+							-salt \
+							-base64 \
+							-pass pass:$pw \
 							-in $file_crypt_name \
-							-out $file_name \
-							-pass pass:$pw
+							-out $file_name
 
 						## remove the encrypted file
 						destroy $file_name.aes
