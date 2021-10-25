@@ -381,7 +381,8 @@ make_fs ()
 permissions()
 {
 
-	sudo chown -R $USER:wheel $mountpoint
+	group="wheel"
+	sudo chown -R $USER:$group $mountpoint
 
 }
 
@@ -852,6 +853,7 @@ unmount()
 	if [[ $action == "close" ]] && \
 		[[ -n $(echo $PWD | grep $mountpoint) ]]; then
 
+			echo
 			printf "${RED}cannot unmount myself!${NOC}\n"
 			printf "please move to another directory and run again\n"
 			exit 66

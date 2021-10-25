@@ -174,9 +174,9 @@ clear_input()
 ## overwrite input variable, then clear and unset it for security
 
 	input=$(< /dev/random tr -d -c "[:xdigit:]" | head -c 128)
-	input=""
-	#[TODO] when using symlink pwgn it generatews error not enough arguments
-	unset $input
+	#input=""
+	#[TODO] when using symlink pwgn it generates error not enough arguments
+	#unset $input
 }
 
 
@@ -185,10 +185,16 @@ print_blocks()
 ## print four lines of eight; two space-separated, four-column,
 ## zero-filled, two-byte quantities of hexadecimal inputdata
 
-	printf $1 | cut -c 1-32 | sed 's/.\{4\}/&  /g'
-	printf $1 | cut -c 33-64 | sed 's/.\{4\}/&  /g'
-	printf $1 | cut -c 65-96 | sed 's/.\{4\}/&  /g'
-	printf $1 | cut -c 97-128 | sed 's/.\{4\}/&  /g'
+	row1=$(printf $1 | cut -c 1-32 | sed 's/.\{4\}/&  /g')
+	row2=$(printf $1 | cut -c 33-64 | sed 's/.\{4\}/&  /g')
+	row3=$(printf $1 | cut -c 65-96 | sed 's/.\{4\}/&  /g')
+	row4=$(printf $1 | cut -c 97-128 | sed 's/.\{4\}/&  /g')
+
+	printf '\e[38;2;215;215;215m%s\e[m\n' "$row1"
+	printf '\e[38;2;155;155;155m%s\e[m\n' "$row2"
+	printf '\e[38;2;215;215;215m%s\e[m\n' "$row3"
+	printf '\e[38;2;155;155;155m%s\e[m\n' "$row4"
+
 }
 
 
