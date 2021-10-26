@@ -1,0 +1,127 @@
+#!/bin/bash
+#
+##
+### usage: enc_bu -e <source> <destination>
+### usage: enc_bu -d <source> <destination>
+###
+###
+#
+
+timestamp="`date "+%Y%m%d_%H%M%S"`"
+tar_tmp="$XDG_CACHE_HOME/temp/"
+
+ciphers=(aes-256-gcm aria-256-cbc bf-cbc camellia-256-cbc cast5-cbc chacha20 idea-cbc)
+#ciphers=(aes-256-gcm id-aes256-GCM)
+cipher='aes-256-cbc'
+
+
+mode()
+{
+	# en- or decryption
+	if [[ $1 == "-d" ]]; then
+
+		mode="decr"
+		src=$2
+		dst=$3
+
+	elif [[ $1 == "-e" ]]; then
+
+		mode="encr"
+		src="$1"
+		dst="$2"
+
+	fi
+}
+
+
+stype()
+{
+	# source is file or directory
+	if [[ -f $src ]]; then
+
+		stype='file'
+
+	elif [[ -d $src ]]; then
+
+		stype='dir'
+
+	fi
+}
+
+
+create_tar()
+{
+	# create tar archive
+	[[ -f $src ]] && sub_dir=$(dirname $src)
+#	[[ -d $src ]] && sub_dir=$src
+
+	tar -cvf $tar_tmp -C $sub_dir $src
+}
+
+
+encrypt()
+{
+	# encryption
+	openssl enc -e -base64 -$cipher -salt -pbkdf2 -in $file_in -out $file_out
+}
+
+
+encrypt_t()
+{
+	# following encryption rounds
+	openssl enc -e -base64 -$cipher -salt -pbkdf2 -in $tar_tmp -out $dst_t
+}
+
+
+encrypt_1()
+{
+	# last encryption round
+	openssl enc -e -base64 -$cipher -salt -pbkdf2 -in $dst_t -out $dst
+}
+
+
+decrypt()
+{
+	# decrypt tar archive
+	openssl enc -d -base64 -aes-256-cbc -salt -pbkdf2 -in $src -out $tar_tmp
+}
+
+
+extract_tar()
+{
+	# extract tar archive
+	tar -xvf $tar_tmp
+}
+
+
+destroy_tar()
+{
+	rm -rf $tar_tmp
+}
+
+
+case $mode in
+
+	encr)
+
+		case $stype in
+
+			file)
+
+				encrypt
+				;;
+
+			dir)
+				create_tar
+				encrypt
+				destroy_tar
+				;;
+
+	decr)
+
+		decrypt
+		extract_tar
+		#destroy_tar
+		;;
+
+esac
