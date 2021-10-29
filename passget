@@ -21,10 +21,14 @@
 #
 
 ## location of the pass password store
+## recommended to mount an encrypted vault container
+## then symlink .password-store to the mounted container
 store="$HOME/.password-store"
+
 ## items that can be retrieved
-items=("1 url" "2 userid" "3 password" "4 otp" "5 unlock" "6 peacto" "7 show" "8 auto_entry")
-#items=(url userid password peacto unlock otp show auto_entry)
+items=("1 url" "2 userid" "3 password" "4 otp" "5 unlock" "6 peacto" "7 auto_entry" \
+	"------------" \
+	"91 show" "92 edit")
 
 ## pass calls the gpg files passwords in their help file
 ## so insert a new password means making a new gpg file
@@ -39,7 +43,7 @@ items=("1 url" "2 userid" "3 password" "4 otp" "5 unlock" "6 peacto" "7 show" "8
 get_item()
 {
 	item_value=$(pass show $file | grep ^$item: | awk '{print $2}')
-	[[ -z $item_value ]] && exit 10
+	[[ -z $item_value ]] && printf "no valid item!\n" && exit 10
 	printf "$item_value" | wl-copy -o
 }
 
@@ -75,9 +79,9 @@ get_otp()
 }
 
 
-pass_show()
+pass_item()
 {
-	pass show $file
+	pass $item $file
 }
 
 auto_entry()
@@ -89,7 +93,7 @@ auto_entry()
 	get_item_auto
 	qutebrowser $url &
 	notify-send "$item"
-	sleep 10
+	sleep $((t * 2))
 
 	item="userid"
 	get_item
@@ -112,47 +116,63 @@ auto_entry()
 }
 
 
-if [[ -n $1 ]]; then
+retrieve_file()
+{
+	if [[ -n $1 ]]; then
 
-	file=$1
-	item=$2
-
-else
-
-	file=$(ls $store | fzf | sed 's/.gpg//')
-
-	if [[ -n $(printf "$file" | grep otp) ]]; then
-
-		get_otp
+		file=$1
+		item=$2
 
 	else
 
-		item=$(printf '%s\n' "${items[@]}" | fzf | awk '{print $2}')
+		file=$(ls $store | fzf | sed 's/.gpg//')
+
+		if [[ -n $(printf "$file" | grep otp) ]]; then
+
+			get_otp
+
+		else
+
+			item=$(printf '%s\n' "${items[@]}" | fzf | awk '{print $2}')
+
+		fi
 
 	fi
+}
 
-fi
+
+process_item()
+{
+	case $item in
+
+		password)
+			get_password
+			;;
+
+		otp)
+			get_otp
+			;;
+
+		auto_entry)
+			auto_entry
+			;;
+
+		show | edit)
+			printf "$item\n"
+			pass_item
+			;;
+
+		---------)
+			exit 99
+			;;
+
+		*)
+			get_item
+			;;
+
+	esac
+}
 
 
-case $item in
-
-	password)
-		get_password
-	;;
-
-	otp)
-		get_otp
-	;;
-
-	auto_entry)
-		auto_entry
-	;;
-
-	show)
-		pass_show
-	;;
-
-	*)
-		get_item
-
-esac
+retrieve_file
+process_item
