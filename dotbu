@@ -283,6 +283,7 @@ copy()
 
 
 				# find lines starting with 'hashtag space'
+				# to add to exclude list
 				if [[ $(printf "$fpcl_location" | grep '^# ') ]]; then
 
 					location_to_add="$(printf "$fpcl_location" | awk '{print $2}')"
@@ -294,7 +295,7 @@ copy()
 			done < $fpcl_file
 
 			# copy files to destination
-			rsync -aAXv --exclude-from=$rsync_exclude_list $bu_src/ $bu_dest
+			rsync -aAXv --exclude-from=$rsync_exclude_list --delete $bu_src/ $bu_dest
 
 			# remove rsync exclude list
 			rm $rsync_exclude_list
@@ -381,11 +382,34 @@ crypt()
 
 						## create a tar archive with directory contents
 						tar -czf $tar_name -C $bu_src $fpcl_location  1>&2 2>/dev/null
-						#tar -czf $tar_name $crypt_loc 1>&2 2>/dev/null
 						printf ".tar"
 
 						## remove crypt_loc directory
 						destroy $crypt_loc
+
+						## calculate new $tar_name hash
+						tar_name_hash_new=$(openssl sha3-512 $tar_name | awk '{print $2}')
+
+						## get existing $tar_name hash
+						[[ -f $tar_name.hash ]] && \
+							tar_name_hash_exist=$(< $tar_name.hash) || \
+							tar_name_hash_exist=0
+
+						## compare hash_new with hash_exist
+						if [[ "$tar_name_hash_new" != "$tar_name_hash_exist" ]]; then
+
+							printf "$tar_name_hash_new" > "$tar_name.hash"
+
+						elif [[ "$tar_name_hash_new" == "$tar_name_hash_exist" ]]; then
+
+							## remove the unencrypted tar archive
+							destroy $tar_name
+
+							printf ".aes\n"
+
+							continue
+
+						fi
 
 						## encrypt the tar archive
 						tar_crypt_name="$tar_name.aes"
@@ -409,15 +433,39 @@ crypt()
 
 					elif [[ -f $crypt_loc ]]; then
 
-						printf "$crypt_loc"
-
 						## create encrypted file name
 						file_name="$crypt_loc"
 						file_crypt_name="$file_name.aes"
 
-					## create directory if non-existent
+						## create directory if non-existent
 						file_name_dir=$(dirname $file_name)
 						[[ -d $file_name_dir ]] || mkdir -p $file_name_dir
+
+						printf "$file_name"
+
+						## calculate new $file_name hash
+						file_name_hash_new=$(openssl sha3-512 $file_name | awk '{print $2}')
+
+						## get existing $file_name hash
+						[[ -f $file_name.hash ]] && \
+							file_name_hash_exist=$(< $file_name.hash) || \
+							file_name_hash_exist=0
+
+						## compare hash_new with hash_exist
+						if [[ "$file_name_hash_new" != "$file_name_hash_exist" ]]; then
+
+							printf "$file_name_hash_new" > "$file_name.hash"
+
+						elif [[ "$file_name_hash_new" == "$file_name_hash_exist" ]]; then
+
+							## remove the unencrypted tar archive
+							destroy $file_name
+
+							printf ".aes\n"
+
+							continue
+
+						fi
 
 						## encrypt the file
 						openssl enc \
@@ -643,6 +691,6 @@ initialize
 validate_source
 validate_destination
 copy
-modify
+#modify
 crypt
 verify

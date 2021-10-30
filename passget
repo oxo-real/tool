@@ -40,6 +40,14 @@ items=("1 url" "2 userid" "3 password" "4 otp" "5 unlock" "6 peacto" "7 auto_ent
 ## regular items are: url, login, password
 
 
+check_mountpoint()
+{
+	mountpoint -q $store
+	[[ $? -eq 0 ]] || printf "no valid store\n"
+	exit 32
+}
+
+
 get_item()
 {
 	item_value=$(pass show $file | grep ^$item: | awk '{print $2}')
@@ -174,5 +182,6 @@ process_item()
 }
 
 
+check_mountpoint
 retrieve_file
 process_item

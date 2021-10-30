@@ -1,0 +1,5 @@
+#!/bin/bash
+
+spicules=$(cat $XDG_DATA_HOME/git/notes/linux/shell/cmd_cat | sort -u | fzf)
+
+swaymsg -t command exec $spicules
