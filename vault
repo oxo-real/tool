@@ -33,6 +33,8 @@
 # mountpoint	(close, info)
 #
 # dependencies: source_dir
+#
+# example:		vault open $XDG_DATA_HOME/media/vault/pass $HOME/dock/vlt/pass
 
 
 # initialize hardcoded variables
@@ -440,7 +442,7 @@ check_mp_dir()
 
 	else
 
-		## mountpoint is clear!
+		## mountpoint is available!
 		c=1
 
 	fi

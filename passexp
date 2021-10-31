@@ -1,11 +1,18 @@
 #!/bin/bash
 
 exp_file=$1
+vlt_pass="$HOME/.password-store"
 
-gpg_files=$(find $HOME/.password-store/ -type f -name '*.gpg')
+mountpoint -q $vlt_pass
+[[ $? != 0 ]] && printf "open vault pass and mount to password-store\n"
+# vault open $XDG_DATA_HOME/media/vault/pass ~/dock/vlt/pass
+
+# find all gpg files
+gpg_files=$(find $vlt_pass/ -type f -name '*.gpg')
 
 for file in $gpg_files
 do
+
 	printf "$file\n" >> $exp_file
 	printf ">>>>> >>>>>\n" >> $exp_file
 	pass_file=$(printf $file | \
@@ -14,4 +21,5 @@ do
 	printf "$pass_file\n" >> $exp_file
 	pass show $pass_file >> $exp_file
 	printf "<<<<< <<<<<\n" >> $exp_file
+
 done

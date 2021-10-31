@@ -22,12 +22,6 @@
 ##
 #
 
-
-source $XDG_DATA_HOME/git/code/sources/functions/text_appearance
-
-file=$1
-item=$2
-
 ## location of the pass password store
 ## recommended to mount an encrypted vault container
 ## then symlink .password-store to the mounted container
@@ -51,82 +45,45 @@ items=("1 url" "2 userid" "3 password" "4 otp" "5 unlock" "6 peacto" "7 auto_ent
 check_mountpoint()
 {
 	mountpoint -q $store
-	[[ $? -ne 0 ]] && printf "store is no mountpoint\n" && exit 32
+	[[ $? -ne 0 ]] && printf "no valid store\n" && exit 32
 }
 
 
-get_file()
-{
-	if [[ -z $file ]]; then
-
-		file=$(ls $store | fzf)
-
-	fi
-}
-
-
-get_item_type()
-{
-	if [[ -z $item ]]; then
-
-		item=$(printf '%s\n' "${items[@]}" | fzf | awk '{print $2}')
-
-	fi
-}
-
-
-process_file()
-{
-	# remove a '.gpg' extension
-	file=$(printf $file | sed 's/.gpg$//')
-
-	# otp file
-	if [[ -n $(printf "$file" | grep ^otp) ]]; then
-
-		get_otp
-
-		exit 0
-
-	fi
-}
-
-
-get_item_value()
+get_item()
 {
 	item_value=$(pass show $file | grep ^$item: | awk '{print $2}')
-
-	[[ -z $item_value ]] && printf "${RED}no item value${NOC}\n" && exit 10
-
-	printf "$item_value" | wl-copy -n -o
+	[[ -z $item_value ]] && printf "no valid item!\n" && exit 10
+	printf "$item_value" | wl-copy -o
 }
 
+
+get_item_auto()
+{
+	find $store -name $file.gpg 2> /dev/null
+
+	if [[ $? == 0 ]]; then
+
+		url=$(pass show $file | grep ^$item: | awk '{print $2}')
+
+	else
+
+		printf "error finding $file in $store\n"
+		exit
+
+	fi
+}
 
 
 get_password()
 {
+	#pass $file -c
 	pass $file | head -n 1 | wl-copy -n -o
 }
 
 
 get_otp()
 {
-	if [[ "$(printf $file | head -c 4)" != "otp_" ]]; then
-
-		file="otp_$file"
-
-	fi
-
-	if [[ -f $store/$file.gpg ]]; then
-
-		pass otp $file | wl-copy -n -o
-
-	else
-
-		otp=0
-
-	fi
-
-
+	pass otp $file | wl-copy -n -o
 	exit
 }
 
@@ -136,14 +93,13 @@ pass_item()
 	pass $item $file
 }
 
-
 auto_entry()
 {
 	## sleep time
 	t=5
 
 	item="url"
-	get_item
+	get_item_auto
 	qutebrowser $url &
 	notify-send "$item"
 	sleep $((t * 2))
@@ -159,15 +115,38 @@ auto_entry()
 	sleep $t
 
 	item="otp"
-	get_otp
-	if [[ -z $otp ]]; then
-		notify-send "$item"
-		sleep $t
-	fi
+	pass otp $file | wl-copy -o
+	notify-send "$item"
+	sleep $t
 
 	item="unlock"
 	get_item
 	notify-send "$item"
+}
+
+
+retrieve_file()
+{
+	if [[ -n $1 ]]; then
+
+		file=$1
+		item=$2
+
+	else
+
+		file=$(ls $store | fzf | sed 's/.gpg//')
+
+		if [[ -n $(printf "$file" | grep otp) ]]; then
+
+			get_otp
+
+		else
+
+			item=$(printf '%s\n' "${items[@]}" | fzf | awk '{print $2}')
+
+		fi
+
+	fi
 }
 
 
@@ -187,12 +166,8 @@ process_item()
 			auto_entry
 			;;
 
-		show)
-			printf "$file\n"
-			pass_item
-			;;
-
-		edit)
+		show | edit)
+			printf "$item\n"
 			pass_item
 			;;
 
@@ -201,7 +176,7 @@ process_item()
 			;;
 
 		*)
-			get_item_value
+			get_item
 			;;
 
 	esac
@@ -209,7 +184,5 @@ process_item()
 
 
 check_mountpoint
-get_file
-process_file
-get_item_type
+retrieve_file
 process_item

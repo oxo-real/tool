@@ -1,5 +1,7 @@
 #!/bin/bash
 
-spicules=$(cat $XDG_DATA_HOME/git/notes/linux/shell/cmd_cat | sort -u | fzf)
+spicules=$(cat $XDG_DATA_HOME/git/notes/linux/shell/cmd_cat | sort | fzf | wl-copy -n -p)
 
-swaymsg -t command exec $spicules
+swaymsg -t command exec echo -n $spicules | wl-copy -p
+#swaymsg -t exec echo -n $spicules | wl-copy
+#swaymsg -t command exec $spicules
