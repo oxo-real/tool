@@ -110,25 +110,33 @@ check_target_status()
 		# target_c_type (target create type)
 		# because target_type already used in action open)
 
+		# human info
+		lsblk -i --tree -o name,fstype,uuid,path,size,fsuse%,fsused,label,mountpoint
 
 		if [[ -b $target ]]; then
 
 			target_c_type="block_device"
 
-			printf "${RED}$target is a $target_c_type!${NOC}\n"
+			printf "${MAGENTA}$target${NOC} is a $target_c_type!\n"
 			printf "are you sure to overwrite an entire $target_c_type? (y/N) "
 			reply_single
 			echo
 
 			if printf "$reply" | grep -iq "^y"; then
 
-				printf "${RED}about to overwrite $target_c_type $target${NOC}\n"
-				printf "really sure? (y/N) "
+				printf "about to ${MAGENTA}overwrite${NOC} $target_c_type $target\n"
+
+				# human info
+				blk_dev_info=$(lsblk -i --tree -o name,fstype,uuid,path,size,fsuse%,fsused,label,mountpoint | grep $target)
+				printf "${BOLD}$blk_dev_info${NORMAL}\n"
+
+				printf "please confirm? (y/N) "
 				reply_single
 				echo
 
 				if printf "$reply" | grep -iq "^y"; then
 
+					echo
 					return
 
 				else
@@ -273,37 +281,36 @@ create_vlt_mapper_name()
 }
 
 
-create_vault()
+write_random_data()
 {
-
 	printf "writing random data to $target\n"
 
-	# dd if target is an entire block device
+	# dd if target is a block device
 	if [[ $target_c_type == "block_device" ]]; then
 
-	#	dd \
-	#		if=/dev/random \
-	#		of=/dev/mmcblk0 \
-	#		bs=1M \
-	#		iflag=fullblock \
-	#		status=progress
-		a=1
+		sudo dd \
+			if=/dev/random \
+			of=$target \
+			bs=1M \
+			iflag=fullblock \
+			status=progress
+	#		a=1
 
-	# else dd if target is an entire partition
+	# else dd if target is a partition
 	elif [[ $target_c_type == "partition" ]]; then
 
-	#	dd \
+	#	sudo dd \
 	#		if=/dev/random \
-	#		of=/dev/mmcblk0 \
+	#		of=$target \
 	#		bs=1M \
 	#		iflag=fullblock \
 	#		status=progress
 		a=1
 
-	# else dd if target is an entire partition
+	# else dd if target is a file
 	elif [[ $target_c_type == "file" ]]; then
 
-		dd \
+		sudo dd \
 			if=/dev/random \
 			of=$target \
 			bs=1M \
@@ -312,8 +319,13 @@ create_vault()
 			status=progress
 
 	fi
+}
 
-	echo
+
+create_vault()
+{
+	#write_random_data
+
 	printf "setting up crypto on $target\n"
 
 	## aes-cbc-essiv:sha256 (plain)
@@ -341,14 +353,13 @@ create_vault()
 	## aes-xts-plain64 (luks2)
 
 	#:'
-	cryptsetup luksFormat --type luks2 --verify-passphrase $target
+	sudo cryptsetup luksFormat --type luks2 --verify-passphrase $target
 	echo
 	#'
 
 	## validate target
 	printf "validating $target:\n"
 	file $target
-
 }
 
 
