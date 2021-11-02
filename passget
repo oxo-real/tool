@@ -90,6 +90,9 @@ get_element_type()
 
 process_object()
 {
+	# empty object selection
+	[[ -z $object ]] && exit 0
+
 	# otp object
 	if [[ -n $(printf "$object" | grep ^otp) ]]; then
 

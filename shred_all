@@ -39,18 +39,14 @@ source_dir="$XDG_DATA_HOME/git/code/sources/functions"
 
 main()
 {
-
 	sourcing
 	get_sudo
-
 	destroying
-
 }
 
 
 sourcing()
 {
-
 	## define colors
 	source $source_dir/text_appearance
 
@@ -59,7 +55,6 @@ sourcing()
 
 	## user authentication
 	source $source_dir/get_sudo
-
 }
 
 
