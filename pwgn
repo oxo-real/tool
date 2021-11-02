@@ -1,4 +1,4 @@
-#!/bin/zsh
+#!/bin/sh
 #
 ##
 ###
@@ -57,23 +57,14 @@ keyboard_input()
 	## give clear line for entry
 	## clear screen and home cursor
 	tput clear
-	#tput el1
 
 	#read input
 	read input
 
-	##[TODO] add option to hide keyboard entry
+	##[TODO] press tab to hide keyboard entry
 
 	## clear screen and home cursor
 	tput clear
-	## remove line above cursor
-	### restore cursor position
-	### mind screen scrolling on errors!
-	#tput rc
-	### cursor up one line
-	#tput cuu1
-	### clear to end of screen
-	#tput ed
 }
 
 
@@ -92,17 +83,12 @@ choose_input()
 	# hide cursor
 	tput civis
 
-	reply_single_hidden_timed
-	#[TODO] add time variable (if waiting is too long)
+	reply_single_hidden_timer
 
 	## clear screen and home cursor
 	tput clear
 	## show cursor again
 	tput cnorm
-	## restore cursor position
-	#tput rc
-	## clear to end of screen
-	#tput ed
 
 	if printf "$reply" | grep -q "^O"; then
 
@@ -130,7 +116,6 @@ hashing()
 
 	## sed removes '(stdin)= ' of openssl dgst
 	printf $1 | openssl dgst -$2 | sed 's/^.*= //'
-	#printf $1 | openssl dgst -$2 -binary | xxd -p
 }
 
 
@@ -140,7 +125,6 @@ hmacing()
 ## input, algorithm, hmac
 
 	printf $1 | openssl dgst -$2 -hmac $3 | sed 's/^.*= //'
-	#printf $1 | openssl dgst -$2 -hmac $3 -binary | xxd -p
 }
 
 
@@ -304,7 +288,7 @@ two_fa()
 	read two_fa
 
 	## set variables to send to genotp
-	secret="$HOME/_git/private/vault/totp.key"
+	secret="$XDG_DATA_HOME/git/private/vault/totp.key"
 	mode="totp"
 	alg="sha512"
 	digits="12"
@@ -314,7 +298,7 @@ two_fa()
 	from_hmac="1"
 
 	## call genotp to get current code
-	eval $(source $HOME/_git/notes/crypto/2fa/genotp/genotp.sh; echo code="$code";)
+	eval $(source $XDG_DATA_HOME/git/notes/crypto/2fa/genotp/genotp.sh; echo code="$code";)
 
 	## code from genotp is 12 digits (for aesthetic purposes there)
 	## first two though are always leading zeros
@@ -341,12 +325,12 @@ output_console()
 output_wlcopy()
 {
 	printf $output | cut -c -64 | wl-copy -o -n
-	#printf $output | cut -z -c -64 | wl-copy -o -n
-	## cut -z with wl-copy -n creates an ^@ behind the string!
-	## for barebone tty usage
-	## beware! potentially unsafe
+
 	## to file
+	### for barebone tty usage
+	### beware! potentially unsafe
 	#printf "$output_64" | cut -c -64 > output.tmp
+
 	## to variable
 	#clpbrd=$(printf "$output_64" | cut -c -64)
 }

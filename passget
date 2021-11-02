@@ -23,10 +23,10 @@
 #
 
 
-source $XDG_DATA_HOME/git/code/sources/functions/text_appearance
-
 object=$1
 element=$2
+
+source $XDG_DATA_HOME/git/code/sources/functions/text_appearance
 
 ## store_l is the symlink location (to the pass password store)
 ## recommended to mount an encrypted vault container
@@ -40,9 +40,9 @@ store=$(readlink $store_l)
 ## objects can be searched for one or more elements
 ## regular elements are: url, userid, password
 ## elements that can be retrieved with passget are:
-elements=("1 url" "2 userid" "3 password" "4 otp" "5 unlock" "6 peacto" "7 auto_entry" \
+elements=("1 url" "2 userid" "" "3 password" "4 otp" "5 unlock" "6 peacto" "" "7 auto_entry" \
 	"------------" \
-	"91 show" "92 edit")
+	"91 obj_show" "92 obj_edit" "99 obj_name")
 
 ## the pass help file refers to objects by naming them 'passwords'
 ## so insert a new password means making a new .gpg file
@@ -78,7 +78,7 @@ get_object()
 }
 
 
-get_element_type()
+get_element()
 {
 	if [[ -z $element ]]; then
 
@@ -108,7 +108,7 @@ get_element_value()
 {
 	element_value=$(pass show $object | grep ^$element: | awk '{print $2}')
 
-	[[ -z $element_value ]] && printf "${RED}no element value${NOC}\n" && exit 10
+	check_element_value
 
 	printf "$element_value" | wl-copy -n -o
 }
@@ -134,54 +134,117 @@ get_otp()
 
 		pass otp $object | wl-copy -n -o
 
-	else
-
-		otp=0
-
 	fi
 
+	# reset object value for human info
+	object=$(printf $object | cut -c 5-)
 
-	exit
+	[[ -z $element_value ]] && element="$element ${RED}no element value${NOC}"
 }
 
 
 pass_element()
 {
+	# run pass natively with $element
+	clear
+	human_info
 	pass $element $object
+}
+
+
+check_element_value()
+{
+	## no auto_entry
+	if [[ -z $ae ]]; then
+
+		if [[ -z $element ]]; then
+
+			element="${RED}no element selected${NOC}"
+
+		elif [[ -z $element_value ]]; then
+
+			element="$element ${RED}no value${NOC}"
+
+		fi
+		#[[ -z $element ]] && printf "${RED}no element selected${NOC}\n" && exit 10
+		#[[ -z $element_value ]] && printf "${RED}no element value${NOC}\n" && exit 10
+
+	fi
+
+	## auto_entry
+	if [[ -n $ae ]]; then
+
+		# [TODO] [[ -z $element_value ]] && element_value="${RED}no element value${NOC}"
+		[[ -z $element_value ]] && notify-send "no element value" && exit
+
+	fi
+}
+
+
+human_info()
+{
+	if [[ -z $ae ]]; then
+
+		printf "$object $element\n"
+
+	elif [[ -n $ae ]]; then
+
+		notify-send "$element"
+		sleep $t
+
+	fi
+	#printf "$object $element\n"
 }
 
 
 auto_entry()
 {
+	ae=1
 	## sleep time
 	t=5
 
 	element="url"
-	get_element
-	qutebrowser $url &
-	notify-send "$element"
-	sleep $((t * 2))
+	get_element_value
+	qutebrowser --target tab $element_value &
+	t=$((t * 2))
+	human_info
+	#notify-send "$element"
+	#sleep $((t * 2))
 
 	element="userid"
-	get_element
-	notify-send "$element"
-	sleep $t
+	get_element_value
+	t=$t
+	human_info
+	#notify-send "$element"
+	#sleep $t
 
 	element="password"
 	get_password 1> /dev/null #no stdout
-	notify-send "$element"
-	sleep $t
+	human_info
+	#notify-send "$element"
+	#sleep $t
 
 	element="otp"
 	get_otp
 	if [[ -z $otp ]]; then
-		notify-send "$element"
-		sleep $t
+		human_info
+		#notify-send "$element"
+		#sleep $t
 	fi
 
 	element="unlock"
-	get_element
-	notify-send "$element"
+	get_element_value
+	if [[ -z $otp ]]; then
+		human_info
+		#notify-send "$element"
+		#sleep $t
+	fi
+}
+
+
+get_object_name()
+{
+	printf "$object" | wl-copy -n -o
 }
 
 
@@ -191,23 +254,31 @@ process_element()
 
 		password)
 			get_password
+			human_info
 			;;
 
 		otp)
 			get_otp
+			human_info
 			;;
 
 		auto_entry)
 			auto_entry
 			;;
 
-		show)
-			printf "$object\n"
+		obj_show)
+			element="show"
 			pass_element
 			;;
 
-		edit)
+		obj_edit)
+			element="edit"
 			pass_element
+			;;
+
+		obj_name)
+			get_object_name
+			human_info
 			;;
 
 		---------)
@@ -216,6 +287,7 @@ process_element()
 
 		*)
 			get_element_value
+			human_info
 			;;
 
 	esac
@@ -225,5 +297,5 @@ process_element()
 check_mountpoint
 get_object
 process_object
-get_element_type
+get_element
 process_element
