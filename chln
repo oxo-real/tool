@@ -1,0 +1,25 @@
+#!/bin/bash
+
+: '
+change symlinks $HOME to other $USER
+old: /home/user01/dir/symlink
+new: /home/user02/dir/symlink
+
+applied on $HOME/.config/shln
+when it is moved to another $USER
+
+place this script in same directory
+as where the symlinks reside
+# '
+
+for symlink in $(find . -type l); do
+
+	new_target=$( \
+	readlink $symlink | \
+	cut -d / -f 4- | \
+	awk -v new_home="$HOME/" '{print new_home $0}' \
+	)
+
+	ln -sf $new_target $symlink
+
+done

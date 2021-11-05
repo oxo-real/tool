@@ -1,0 +1,8 @@
+#!/bin/bash
+
+exec=$1
+
+export PS4='+($(basename ${BASH_SOURCE[0]}):${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+set -x
+
+sh $exec

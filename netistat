@@ -5,6 +5,8 @@ source $source_dir/text_appearance
 
 scn="/sys/class/net/"
 
+printf "${BOLD}interface	status${NORMAL}\n"
+
 for interface in $(ls $scn); do
 
 	case $(cat $scn/$interface/carrier 2>&1) in
