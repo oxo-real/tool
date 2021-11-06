@@ -392,7 +392,7 @@ crypt()
 
 						## get existing $tar_name hash
 						[[ -f $tar_name.hash ]] && \
-							tar_name_hash_exist=$(< $tar_name.hash) || \
+							tar_name_hash_exist=$(cat $tar_name.hash) || \
 							tar_name_hash_exist=0
 
 						## compare hash_new with hash_exist
