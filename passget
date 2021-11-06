@@ -12,6 +12,8 @@
 ### (_\/|_(_)\/|_)(_|(/_
 ###   /      / |   _|
 ###
+### (c) 2020 - 2021 cytopyge
+###
 ### passget: fzf cli wrapper for pass
 ###
 ### usage:	passget
@@ -56,7 +58,7 @@ elements=("1 url" "2 userid" "" "3 password" "4 otp" "5 unlock" "6 peacto" "" "7
 check_mountpoint()
 {
 	mountpoint -q $store_l
-	[[ $? -ne 0 ]] && printf "store is not mounted\n" && exit 32
+	[[ $? -ne 0 ]] && printf "${RED}store is not mounted${NOC}\n" && exit 32
 }
 
 

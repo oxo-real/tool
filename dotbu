@@ -294,8 +294,14 @@ copy()
 
 			done < $fpcl_file
 
+
+			# keep files with .aes and .hash extensions
+			printf "*.aes\n" >> "$rsync_exclude_list"
+			printf "*.hash\n" >> "$rsync_exclude_list"
+
 			# copy files to destination
 			rsync -aAXv --exclude-from=$rsync_exclude_list --delete $bu_src/ $bu_dest
+			#rsync -aAXv --exclude-from=$rsync_exclude_list $bu_src/ $bu_dest
 
 			# remove rsync exclude list
 			rm $rsync_exclude_list
@@ -365,6 +371,8 @@ crypt()
 					# make relative location in fpcl_file absolute to destination
 					# (bu_dest), because files are already copied at this point
 					# and encryption has to be done in destination, not source!
+
+					# crypt_loc is the location (file/dir) that has to be encrypted
 					crypt_loc="$bu_dest/$(printf "$fpcl_location" | awk '{print $2}')"
 
 
@@ -391,8 +399,8 @@ crypt()
 						tar_name_hash_new=$(openssl sha3-512 $tar_name | awk '{print $2}')
 
 						## get existing $tar_name hash
-						[[ -f $tar_name.hash ]] && \
-							tar_name_hash_exist=$(cat $tar_name.hash) || \
+						[[ -f "$tar_name.hash" ]] && \
+							tar_name_hash_exist=$(cat "$tar_name.hash") || \
 							tar_name_hash_exist=0
 
 						## compare hash_new with hash_exist
@@ -405,7 +413,7 @@ crypt()
 							## remove the unencrypted tar archive
 							destroy $tar_name
 
-							printf ".aes\n"
+							printf ".aes unchanged\n"
 
 							continue
 

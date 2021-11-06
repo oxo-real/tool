@@ -1,4 +1,4 @@
-#!/bin/bas
+#!/bin/bash
 #
 ##
 ### usage: enc_bu -e <source> <destination>
@@ -8,7 +8,7 @@
 #
 
 args="$@"
-mode=$1
+opr=$1
 src=$(realpath "$2")
 dst=$(realpath "$3")
 
@@ -19,22 +19,22 @@ cipher_list=$(\
 	awk 'NR > 1 {for(i=1;i<=NF;i++){print $i}}' \
 	)
 
-tmp_dir="$XDG_CACHE_HOME/temp/cryptr"
+tmp_dir="$XDG_CACHE_HOME/temp/cryptr/$timestamp"
 [[ ! -d $tmp_dir ]] && mkdir -p $tmp_dir
 
 pwd_dir="$PWD"
 
 
-mode()
+oper()
 {
-	# en- or decryption
-	if [[ $mode == "-e" ]]; then
+	# operation: encrypt or decrypt
+	if [[ $opr == "-e" ]]; then
 
-		mode="encr"
+		oper="encr"
 
-	elif [[ $mode == "-d" ]]; then
+	elif [[ $opr == "-d" ]]; then
 
-		mode="decr"
+		oper="decr"
 
 	fi
 }
@@ -43,7 +43,7 @@ mode()
 source_type()
 {
 	# source is file or directory
-	# (needed only for encr)
+	# (only for oper = encr)
 	if [[ -f $src ]]; then
 
 		source_type='file'
@@ -79,7 +79,7 @@ select_ciphers()
 }
 
 
-print_cipher_pool()
+create_cipher_pool_file()
 {
 	cipher_pool_file="$(dirname $dst)/$(basename $src).cpf"
 	printf "%s\n" ${cipher_pool[@]} > "$cipher_pool_file"
@@ -91,15 +91,9 @@ running_rounds()
 	round=1
 	rounds=$cipher_pool_amount
 
-	#[DEV]
-	printf "$cipher_pool\n"
-
 	for cipher in ${cipher_pool[@]}; do
 
 		printf "$round/$rounds $cipher\n"
-
-		#if [[ $round == 1 ]]; then
-
 
 		case $round in
 
@@ -152,7 +146,7 @@ encrypt_first()
 	file_out=$tmp_dir/$(basename $file_in).$round
 
 	## encrypt
-	openssl enc -e -base64 -$cipher -salt -pbkdf2 -in $file_in -out $file_out -pass pass:$pd
+	openssl enc -$opr -base64 -$cipher -salt -pbkdf2 -in $file_in -out $file_out -pass pass:$pd
 }
 
 
@@ -167,7 +161,7 @@ encrypt_next()
 	file_out=$tmp_dir/$(basename $file_in).$round
 
 	# next ecryption round
-	openssl enc -e -base64 -$cipher -salt -pbkdf2 -in $file_in -out $file_out -pass pass:$pd
+	openssl enc -$opr -base64 -$cipher -salt -pbkdf2 -in $file_in -out $file_out -pass pass:$pd
 }
 
 
@@ -177,7 +171,7 @@ encrypt_last()
 	file_out=$dst
 
 	# last encryption round
-	openssl enc -e -base64 -$cipher -salt -pbkdf2 -in $file_in -out $file_out -pass pass:$pd
+	openssl enc -$opr -base64 -$cipher -salt -pbkdf2 -in $file_in -out $file_out -pass pass:$pd
 }
 
 
@@ -197,17 +191,24 @@ encrypt_once()
 	## define file_out
 	file_out=$dst
 
-	openssl enc -e -base64 -$cipher -salt -pbkdf2 -in $file_in -out $file_out -pass pass:$pd
+	openssl enc -$opr -base64 -$cipher -salt -pbkdf2 -in $file_in -out $file_out -pass pass:$pd
 }
 
 
 encrypt()
 {
 	select_ciphers
-	print_cipher_pool
+	create_cipher_pool_file
 	running_rounds
 	create_box
 	cleanup
+}
+
+
+decrypt_once()
+{
+	file_in="timestamp"
+	file_out=$dst
 }
 
 
@@ -215,10 +216,17 @@ decrypt()
 {
 	[[ -z $dst ]] && dst=$pwd_dir
 
-	open_box
-	cipher_pool=$(tac $cipher_pool_file)
-	# decrypt tar archive
-	#>>>>>openssl enc -d -base64 -aes-256-cbc -salt -pbkdf2 -in $src -out $tmp_dir -pass pass:$pd
+	check_if_box
+	#open_box
+
+	running_rounds
+}
+
+
+openssl_e_d()
+{
+	openssl enc -$opr -base64 -aes-256-cbc -salt -pbkdf2 -in $file_in -out $file_out -pass pass:$pd
+
 }
 
 
@@ -253,22 +261,45 @@ create_box()
 }
 
 
+check_if_box()
+{
+	if [[ -n $(printf "$src" | grep '.box$') ]]; then
+
+		if [[ -n $($(file -b $src) | grep 'tar archive') ]]; then
+
+			# src is a tar file with box extension
+			open_box
+
+		fi
+
+	fi
+}
+
+
 open_box()
 {
-	mkdir -p $tmp_dir/$timestamp
-	tar -xvf $src -C $tmp_dir/$timestamp
+	# extract box contents (2 files)
+	mkdir -p $tmp_dir
+	tar -xvf $src -C $tmp_dir
 
 	# find .cryptfile
-	crypt_file=$(find $tmp_dir/$timestamp -name ".crypt")
+	crypt_file=$(find $tmp_dir -name "*.crypt")
 
 	# find cypher pool file
-	cipher_pool_file=$(find $tmp_dir/$timestamp -name ".cpf")
+	cipher_pool_file=$(find $tmp_dir -name "*.cpf")
+}
+
+
+get_box_contents()
+{
+	cipher_pool=($(tac $cipher_pool_file))
+	cipher_pool_amount=${#cipher_pool[@]}
 }
 
 
 cleanup()
 {
-	case $mode in
+	case $oper in
 
 		encr)
 			destroy_tar
@@ -285,10 +316,10 @@ cleanup()
 
 main()
 {
-	mode
+	oper
 	get_password
 
-	case $mode in
+	case $oper in
 
 		encr)
 
