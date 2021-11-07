@@ -11,6 +11,8 @@ args="$@"
 opr=$1
 src=$(realpath "$2")
 dst=$(realpath "$3")
+# box	 = dst.crx file
+#		!= dst openssl enc file_out
 
 timestamp="`date "+%Y%m%d_%H%M%S"`"
 
@@ -19,10 +21,10 @@ cipher_list=$(\
 	awk 'NR > 1 {for(i=1;i<=NF;i++){print $i}}' \
 	)
 
-tmp_dir="$XDG_CACHE_HOME/temp/cryptr/$timestamp"
+tmp_dir="$XDG_CACHE_HOME/temp/cryptrTEMP/$timestamp"
 [[ ! -d $tmp_dir ]] && mkdir -p $tmp_dir
 
-pwd_dir="$PWD"
+pw_dir="$PWD"
 
 
 oper()
@@ -30,10 +32,12 @@ oper()
 	# operation: encrypt or decrypt
 	if [[ $opr == "-e" ]]; then
 
+		opr="e"
 		oper="encr"
 
 	elif [[ $opr == "-d" ]]; then
 
+		opr="d"
 		oper="decr"
 
 	fi
@@ -58,17 +62,20 @@ source_type()
 
 create_tar()
 {
-	tar_file=$tmp_dir/$src.tar
-	sub_dir=$(dirname $src)
+	# remove the first / from src to prevent // in tar_file
+	tar_file=$tmp_dir/$(printf "$src" | cut -c 2-).tar
+	mkdir -p $(dirname $tar_file)
+	src_sub_dir=$(dirname $src)
+	src_tar_get=$(basename $src)
 
 	# create tar archive
-	tar -cvf $tar_file -C $sub_dir $src
+	tar -cvf $tar_file -C $src_sub_dir $src_tar_get
 }
 
 
 select_ciphers()
 {
-	#cipher pool array
+	# cipher pool array
 	cipher_pool=($(\
 		openssl enc -ciphers | \
 		awk 'NR > 1 {for(i=1;i<=NF;i++){print $i}}' | \
@@ -93,7 +100,7 @@ running_rounds()
 
 	for cipher in ${cipher_pool[@]}; do
 
-		printf "$round/$rounds $cipher\n"
+		printf "$round($rounds) $cipher\n"
 
 		case $round in
 
@@ -168,7 +175,7 @@ encrypt_next()
 encrypt_last()
 {
 	## define file_out
-	file_out=$dst
+	file_out="$src.crypt"
 
 	# last encryption round
 	openssl enc -$opr -base64 -$cipher -salt -pbkdf2 -in $file_in -out $file_out -pass pass:$pd
@@ -177,26 +184,54 @@ encrypt_last()
 
 encrypt_once()
 {
-	## define file_in
-	if [[ $source_type == "file" ]]; then
+	case $oper in
 
-		file_in="$src"
+		encr)
 
-	elif [[ $source_type == "dir" ]]; then
 
-		file_in="$tar_file"
+			## define file_in
+			case $source_type in
 
-	fi
+				file)
 
-	## define file_out
-	file_out=$dst
+					file_in=$src
+					;;
 
-	openssl enc -$opr -base64 -$cipher -salt -pbkdf2 -in $file_in -out $file_out -pass pass:$pd
+				dir)
+
+					file_in=$tar_file
+					;;
+
+			esac
+
+
+			## define openssl enc file_out
+			file_out=$src.crypt
+
+			;;
+
+		decr)
+
+			## define file_in
+			file_in=$crypt_file
+
+			## define out
+			file_out=$dst
+
+			;;
+
+	esac
+
+	openssl_enc
 }
 
 
 encrypt()
 {
+	# dst is location of the crx file
+	[[ -z $dst ]] && dst="$pw_dir"
+	[[ -d $dst ]] || printf "${RED}destination directory not found${NOC}\n"
+
 	select_ciphers
 	create_cipher_pool_file
 	running_rounds
@@ -205,27 +240,40 @@ encrypt()
 }
 
 
-decrypt_once()
-{
-	file_in="timestamp"
-	file_out=$dst
-}
-
-
 decrypt()
 {
-	[[ -z $dst ]] && dst=$pwd_dir
+	if [[ -f $src ]]; then
+		printf "${RED}cryptr error: source file not found${NOC}\n" && exit 217
+	fi
+	[[ -z $src ]] && printf "${RED}cryptr error: missing src & dest file${NOC}\n" && exit 217
+
+	[[ -z $dst ]] && printf "${RED}cryptr error: missing destination file${NOC}\n" && exit 217
+	[[ -f $dst ]] && printf "${RED}cryptr error: destination file already exists${NOC}\n" && exit 217
+
+	[[ -d $(dirname $dst) ]] || mkdir -p $(dirname $dst)
 
 	check_if_box
-	#open_box
-
+	open_box
+	get_crypto_data
 	running_rounds
 }
 
 
-openssl_e_d()
+openssl_enc()
 {
-	openssl enc -$opr -base64 -aes-256-cbc -salt -pbkdf2 -in $file_in -out $file_out -pass pass:$pd
+	case $oper in
+
+		encr)
+			openssl enc -$opr -base64 -$cipher -salt -pbkdf2 -in $file_in \
+				-out $file_out -pass pass:$pd
+			;;
+
+		decr)
+			openssl enc -$opr -base64 -$cipher -salt -pbkdf2 -in $file_in \
+				-pass pass:$pd
+			;;
+
+	esac
 
 }
 
@@ -239,7 +287,8 @@ extract_tar()
 
 destroy_tar()
 {
-	rm -rf $tmp_dir
+	tmp_dir_del=$(printf $tmp_dir | cut -d / -f -6)
+	rm -rf $tmp_dir_del
 }
 
 
@@ -252,9 +301,10 @@ get_password()
 
 create_box()
 {
-	tar_file=$(dirname $dst)/$(basename $src).box
+	# create crypto box (crx)
+	tar_file=$dst/$(basename $src).crx
 
-	files="$dst $cipher_pool_file"
+	files="$file_out $cipher_pool_file"
 
 	# create tar archive
 	tar -cvf $tar_file -C $(dirname $tar_file) $files
@@ -265,10 +315,11 @@ check_if_box()
 {
 	if [[ -n $(printf "$src" | grep '.box$') ]]; then
 
-		if [[ -n $($(file -b $src) | grep 'tar archive') ]]; then
+		if [[ -n $(file -b $src | grep 'tar archive') ]]; then
 
 			# src is a tar file with box extension
-			open_box
+			#open_box
+			continue
 
 		fi
 
@@ -281,19 +332,25 @@ open_box()
 	# extract box contents (2 files)
 	mkdir -p $tmp_dir
 	tar -xvf $src -C $tmp_dir
-
-	# find .cryptfile
-	crypt_file=$(find $tmp_dir -name "*.crypt")
-
-	# find cypher pool file
-	cipher_pool_file=$(find $tmp_dir -name "*.cpf")
 }
 
 
-get_box_contents()
+get_crypto_data()
 {
+	# a box file always contains only 2 files;
+	# the crypto pool file (cpf) and
+	# the encrypted (tar) file
+	# so we can use the '! -name' construct
+
+	# find encrypted (tar) file
+	crypt_file=$(find $tmp_dir -type f ! -name "*.cpf")
+
+	# find cypher pool file
+	cipher_pool_file=$(find $tmp_dir -name "*.cpf")
+
+	# get cypher pool details
 	cipher_pool=($(tac $cipher_pool_file))
-	cipher_pool_amount=${#cipher_pool[@]}
+	cipher_pool_amount=${#cipher_pool_file[@]}
 }
 
 
@@ -304,6 +361,7 @@ cleanup()
 		encr)
 			destroy_tar
 			rm -rf $files
+			rm -rf $tmp_dir
 			;;
 
 		decr)
