@@ -68,6 +68,10 @@ create_tar()
 	src_sub_dir=$(dirname $src)
 	src_tar_get=$(basename $src)
 
+	#[DEV]
+	printf ">>> src_sub_dir	$src_sub_dir\n"
+	printf ">>> src_tar_get	$src_tar_get\n"
+
 	# create tar archive
 	tar -cvf $tar_file -C $src_sub_dir $src_tar_get
 }
@@ -242,14 +246,20 @@ encrypt()
 
 decrypt()
 {
-	if [[ -f $src ]]; then
+	if [[ ! -f $src ]]; then
 		printf "${RED}cryptr error: source file not found${NOC}\n" && exit 217
+	elif [[ -z $src ]]; then
+		printf "${RED}cryptr error: missing src & dest file${NOC}\n" && exit 217
 	fi
-	[[ -z $src ]] && printf "${RED}cryptr error: missing src & dest file${NOC}\n" && exit 217
 
-	[[ -z $dst ]] && printf "${RED}cryptr error: missing destination file${NOC}\n" && exit 217
-	[[ -f $dst ]] && printf "${RED}cryptr error: destination file already exists${NOC}\n" && exit 217
+	if [[ -f $dst ]]; then
+		printf "${RED}cryptr error: destination file already exists${NOC}\n" && exit 217
+	fi
+	if [[ -d $dst ]]; then
+		printf "${RED}cryptr error: destination directory already exists${NOC}\n" && exit 217
+	fi
 
+	[[ -z $dst ]] && dst="$pw_dir"
 	[[ -d $(dirname $dst) ]] || mkdir -p $(dirname $dst)
 
 	check_if_box
