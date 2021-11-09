@@ -73,7 +73,7 @@ create_tar()
 	printf ">>> src_tar_get	$src_tar_get\n"
 
 	# create tar archive
-	tar -cvf $tar_file -C $src_sub_dir $src_tar_get
+	tar -czf $tar_file -C $src_sub_dir $src_tar_get
 }
 
 
@@ -92,7 +92,8 @@ select_ciphers()
 
 create_cipher_pool_file()
 {
-	cipher_pool_file="$(dirname $dst)/$(basename $src).cpf"
+	#[TODO] temp file remove afterwards
+	cipher_pool_file="$src.cpf"
 	printf "%s\n" ${cipher_pool[@]} > "$cipher_pool_file"
 }
 
@@ -314,10 +315,11 @@ create_box()
 	# create crypto box (crx)
 	tar_file=$dst/$(basename $src).crx
 
-	files="$file_out $cipher_pool_file"
+	sub_dir=$(dirname $file_out)
 
 	# create tar archive
-	tar -cvf $tar_file -C $(dirname $tar_file) $files
+	tar -czf $tar_file -C $sub_dir $file_out
+	tar -rzf $tar_file -C $sub_dir $cipher_pool_file
 }
 
 
