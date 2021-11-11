@@ -43,8 +43,10 @@ store=$(readlink $store_l)
 ## regular elements are: url, userid, password
 ## elements that can be retrieved with passget are:
 elements=("1 url" "2 userid" "" "3 password" "4 otp" "5 unlock" "6 peacto" "" "7 auto_entry" \
-	"------------" \
-	"91 obj_show" "92 obj_edit" "99 obj_name")
+	"" \
+	"91 obj_show" "92 obj_edit" "99 obj_name" \
+	"" \
+	"0 cancel")
 
 ## the pass help file refers to objects by naming them 'passwords'
 ## so insert a new password means making a new .gpg file
@@ -185,9 +187,11 @@ check_element_value()
 
 human_info()
 {
+	error_message
+
 	if [[ -z $ae ]]; then
 
-		printf "$object $element\n"
+		printf "$object $element ${RED}$error${NOC}\n"
 
 	elif [[ -n $ae ]]; then
 
@@ -195,7 +199,18 @@ human_info()
 		sleep $t
 
 	fi
-	#printf "$object $element\n"
+
+}
+
+
+error_message()
+{
+	## selected empty line in element menu
+	if [[ $element == "" ]]; then
+
+		error="no valid selection"
+
+	fi
 }
 
 
@@ -283,8 +298,12 @@ process_element()
 			human_info
 			;;
 
-		---------)
-			exit 99
+		"")
+			human_info
+			;;
+
+		cancel)
+			exit
 			;;
 
 		*)
