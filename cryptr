@@ -167,8 +167,8 @@ encrypt_first()
 	## define file_out
 	file_out=$tmp_dir/$(basename $file_in).$round
 
-	## encrypt
-	openssl enc -$opr -base64 -$cipher -salt -pbkdf2 -in $file_in -out $file_out -pass pass:$pd
+	openssl_enc
+	#openssl enc -$opr -base64 -$cipher -salt -pbkdf2 -in $file_in -out $file_out -pass pass:$pd
 }
 
 
@@ -176,19 +176,30 @@ encrypt_next()
 {
 	# next encryption round
 
-	## define file_in
-	file_in="$file_out"
+	case $oper in
 
-	## define file_out
-	file_out=$tmp_dir/$(basename $file_in).$round
+		encr)
+			## define file_in
+			file_in="$file_out"
 
-	# next ecryption round
-	openssl enc -$opr -base64 -$cipher -salt -pbkdf2 -in $file_in -out $file_out -pass pass:$pd
+			## define file_out
+			file_out=$tmp_dir/$(basename $file_in).$round
+			;;
+
+		decr)
+			file_in=$crypt_file
+			;;
+
+	esac
+
+	openssl_enc
+	#openssl enc -$opr -base64 -$cipher -salt -pbkdf2 -in $file_in -out $file_out -pass pass:$pd
 }
 
 
 encrypt_last()
 {
+	# last encryption round
 	case $oper in
 
 		decr)
@@ -203,7 +214,6 @@ encrypt_last()
 
 	esac
 
-	# last encryption round
 	openssl_enc
 	#openssl enc -$opr -base64 -$cipher -salt -pbkdf2 -in $file_in -out $file_out -pass pass:$pd
 }
@@ -214,7 +224,6 @@ encrypt_once()
 	case $oper in
 
 		encr)
-
 
 			## define file_in
 			case $source_type in
@@ -294,20 +303,15 @@ decrypt()
 
 openssl_enc()
 {
-	case $oper in
-
-		encr)
-			openssl enc -$opr -base64 -$cipher -salt -pbkdf2 -in $file_in \
-				-out $file_out -pass pass:$pd
-			;;
-
-		decr)
-			openssl enc -$opr -base64 -$cipher -salt -pbkdf2 -in $file_in \
-				-pass pass:$pd
-			;;
-
-	esac
-
+	openssl enc \
+		-$opr \
+		-base64 \
+		-$cipher \
+		-salt \
+		-pbkdf2 \
+		-in $file_in \
+		-out $file_out \
+		-pass pass:$pd
 }
 
 
