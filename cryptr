@@ -5,111 +5,232 @@
 ### usage: enc_bu -d <source> <destination>
 ###
 ###
+### -e creates a tar crypto box (tcx) file
+### -d decrypts a tcx file
 #
 
+cipher_suite="gnupg"
+#cipher_suite="openssl"
+
 args="$@"
-opr=$1
-src=$(realpath "$2")
-dst=$(realpath "$3")
-# crx	 = dst.crx file
-#		!= dst openssl enc file_out
-
-timestamp="`date "+%Y%m%d_%H%M%S"`"
-
-cipher_list=$(\
-	openssl enc -ciphers | \
-	awk 'NR > 1 {for(i=1;i<=NF;i++){print $i}}' \
-	)
-
-tmp_dir="$XDG_CACHE_HOME/temp/cryptrTEMP/$timestamp"
-[[ ! -d $tmp_dir ]] && mkdir -p $tmp_dir
-
-pw_dir="$PWD"
 
 
-oper()
+initialize()
 {
-	# operation: encrypt or decrypt
-	if [[ $opr == "-e" ]]; then
+	timestamp="`date "+%Y%m%d_%H%M%S"`"
 
-		opr="e"
-		oper="encr"
+	tmp_dir="$XDG_CACHE_HOME/temp/cryptr/$timestamp"
+	[[ ! -d $tmp_dir ]] && mkdir -p $tmp_dir
 
-	elif [[ $opr == "-d" ]]; then
-
-		opr="d"
-		oper="decr"
-
-	fi
+	pw_dir="$PWD"
 }
 
 
-source_type()
+arguments()
 {
-	# source is file or directory
-	# (only for oper = encr)
-	if [[ -f $src ]]; then
+	opr=$(printf -- "$args" | awk '{print $1}')
+	src=$(printf -- "$args" | awk '{print $2}')
+	dst=$(printf -- "$args" | awk '{print $3}')
 
-		source_type='file'
-
-	elif [[ -d $src ]]; then
-
-		source_type='dir'
-
-	fi
+	operation
+	src_validate
+	dst_validate
 }
 
 
-create_tar()
+operation()
 {
-	# remove the first / from src to prevent // in tar_file
-	tar_file=$tmp_dir/$(printf "$src" | cut -c 2-).tar
+	# encrypt or decrypt
+	case $opr in
+
+		-e)
+
+			case $cipher_suite in
+
+				gnupg)
+
+					# encrypt with symmetric cipher
+					opr="c"
+					;;
+
+				openssl)
+
+					opr="e"
+					;;
+
+			esac
+			oper="encr"
+			;;
+
+		-d)
+
+			opr="d"
+			oper="decr"
+			;;
+
+	esac
+}
+
+
+src_validate()
+{
+	# rewrite src full path
+	src="$(realpath $src)"
+
+	# src does not exist
+	if [[ ! -f $src ]]; then
+
+		printf "${RED}source file not found${NOC}\n"
+		exit 5
+
+	elif [[ -z $src ]]; then
+
+		printf "${RED}missing src & dest file${NOC}\n"
+		exit 5
+
+	fi
+
+	case $oper in
+
+		encr)
+
+			src_sub_dir=$(dirname $src)
+			src_tar_get=$(basename $src)
+			;;
+
+		decr)
+
+			#[DEV]
+			dev_txt="src limitations here"
+
+
+
+
+			;;
+
+	esac
+}
+
+
+dst_validate()
+{
+	# dst file or directory already exists
+	if [[ -f $dst ]] || [[ -d $dst ]]; then
+
+		printf "${RED}destination file or directory already exists${NOC}\n"
+		exit 4
+
+	fi
+
+
+	case $oper in
+
+		encr)
+
+			#[DEV]
+			dev_txt="dst encr limitations here"
+			;;
+
+		decr)
+
+			#[DEV]
+			dev_txt="dst decr limitations here"
+			;;
+
+	esac
+
+	# dst is empty
+	if [[ -z $dst  ]]; then
+
+		dst="$pw_dir"
+
+	fi
+
+	# rewrite dst full path
+	dst="$(realpath $dst)"
+
+}
+
+
+tar_create()
+{
+	tar_file=$tmp_dir/$src_tar_get.tar
+	#tar_file=$tmp_dir/$(printf "$src" | cut -c 2-).tar
+
 	mkdir -p $(dirname $tar_file)
-	src_sub_dir=$(dirname $src)
-	src_tar_get=$(basename $src)
-
-	#[DEV]
-	printf ">>> src_sub_dir	$src_sub_dir\n"
-	printf ">>> src_tar_get	$src_tar_get\n"
 
 	# create tar archive
 	tar -czf $tar_file -C $src_sub_dir $src_tar_get
 }
 
 
-select_ciphers()
+cipher_select()
 {
-	# cipher pool array
-	cipher_pool=($(\
-		openssl enc -ciphers | \
-		awk 'NR > 1 {for(i=1;i<=NF;i++){print $i}}' | \
-		cut -c 2- | \
-		fzf -m \
-		))
-	cipher_pool_amount=${#cipher_pool[@]}
+	case $cipher_suite in
+
+		openssl)
+
+			# openssl cipher select array
+			cipher_pool=$(\
+				openssl enc -ciphers | \
+				awk 'NR > 1 {for(i=1;i<=NF;i++){print $i}}' | \
+				cut -c 2-\
+			)
+
+			cipher_select=( $(\
+				printf "$cipher_pool" | \
+				fzf -m\
+			) )
+
+			cipher_select_amount=${#cipher_select[@]}
+			;;
+
+		gnupg)
+
+			# gnupg cipher select array
+			cipher_pool=$(\
+				gpg --version | \
+				grep -i -A 1 cipher | \
+				cut -d " " -f 2- | \
+				xargs | \
+				sed 's/ //'g | \
+				tr ',' '\n'\
+			)
+
+			#cipher_select=$(printf "$cipher_pool" | fzf -m)
+			cipher_select=( $(\
+				printf "$cipher_pool" | \
+				fzf -m\
+			) )
+
+			cipher_select_amount=${#cipher_select[@]}
+			;;
+
+	esac
 }
 
 
-create_cipher_pool_file()
+cipher_select_file()
 {
 	#[TODO] temp file remove afterwards
-	cipher_pool_file="$src.cpf"
-	printf "%s\n" ${cipher_pool[@]} > "$cipher_pool_file"
+	cipher_select_file="$src.csf"
+	printf "%s\n" ${cipher_select[@]} > "$cipher_select_file"
 }
 
 
 running_rounds()
 {
 	round=1
-	rounds=$cipher_pool_amount
+	rounds=$cipher_select_amount
 
-	for cipher in ${cipher_pool[@]}; do
+	for cipher in ${cipher_select[@]}; do
 
 		printf "$cipher $round($rounds)\n"
 
 		case $round in
 
 			1)
+
 				case $rounds in
 
 					1)
@@ -123,11 +244,13 @@ running_rounds()
 				esac
 				;;
 
-			$rounds )
+			$rounds)
+
 				encrypt_last
 				;;
 
 			*)
+
 				encrypt_next
 				;;
 
@@ -146,29 +269,20 @@ encrypt_first()
 	case $oper in
 
 		encr)
-			## define file_in
-			if [[ $source_type == "file" ]]; then
 
-				file_in="$src"
-
-			elif [[ $source_type == "dir" ]]; then
-
-				file_in="$tar_file"
-
-			fi
+			file_in=$tar_file
 			;;
 
 		decr)
+
 			file_in=$crypt_file
 			;;
 
 	esac
 
-	## define file_out
 	file_out=$tmp_dir/$(basename $file_in).$round
 
-	openssl_enc
-	#openssl enc -$opr -base64 -$cipher -salt -pbkdf2 -in $file_in -out $file_out -pass pass:$pd
+	crypt_now
 }
 
 
@@ -179,21 +293,22 @@ encrypt_next()
 	case $oper in
 
 		encr)
-			## define file_in
-			file_in="$file_out"
 
-			## define file_out
-			file_out=$tmp_dir/$(basename $file_in).$round
+			file_in=$file_out
+
+			# remove previous round extension from file_in
+			round_pr=$(( round - 1 ))
+			file_out=$tmp_dir/$(basename $(printf $file_in | sed "s/$round_pr$/$round/"))
 			;;
 
 		decr)
+
 			file_in=$crypt_file
 			;;
 
 	esac
 
-	openssl_enc
-	#openssl enc -$opr -base64 -$cipher -salt -pbkdf2 -in $file_in -out $file_out -pass pass:$pd
+	crypt_now
 }
 
 
@@ -203,19 +318,20 @@ encrypt_last()
 	case $oper in
 
 		decr)
+
 			file_in="$file_out"
 			file_out="$dst"
 			;;
 
 		encr)
+
 			## define file_out
 			file_out="$src.crypt"
 			;;
 
 	esac
 
-	openssl_enc
-	#openssl enc -$opr -base64 -$cipher -salt -pbkdf2 -in $file_in -out $file_out -pass pass:$pd
+	crypt_now
 }
 
 
@@ -225,104 +341,85 @@ encrypt_once()
 
 		encr)
 
-			## define file_in
-			case $source_type in
-
-				file)
-
-					file_in=$src
-					;;
-
-				dir)
-
-					file_in=$tar_file
-					;;
-
-			esac
-
-
-			## define openssl enc file_out
+			file_in=$tar_file
 			file_out=$src.crypt
-
 			;;
 
 		decr)
 
-			## define file_in
 			file_in=$crypt_file
-
-			## define out
 			file_out=$dst
-
 			;;
 
 	esac
 
-	openssl_enc
+	crypt_now
 }
 
 
 encrypt()
 {
-	# dst is location of the crx file
-	[[ -z $dst ]] && dst="$pw_dir"
-	[[ -d $dst ]] || printf "${RED}destination directory not found${NOC}\n"
-
-	select_ciphers
-	create_cipher_pool_file
+	cipher_select
+	cipher_select_file
 	running_rounds
-	create_crx
+	tcx_create
 	cleanup
 }
 
 
 decrypt()
 {
-	if [[ ! -f $src ]]; then
-		printf "${RED}cryptr error: source file not found${NOC}\n" && exit 217
-	elif [[ -z $src ]]; then
-		printf "${RED}cryptr error: missing src & dest file${NOC}\n" && exit 217
-	fi
-
-	if [[ -f $dst ]]; then
-		printf "${RED}cryptr error: destination file already exists${NOC}\n" && exit 217
-	fi
-	if [[ -d $dst ]]; then
-		printf "${RED}cryptr error: destination directory already exists${NOC}\n" && exit 217
-	fi
-
-	[[ -z $dst ]] && dst="$pw_dir"
-	[[ -d $(dirname $dst) ]] || mkdir -p $(dirname $dst)
-
-	check_if_crx
-	open_crx
+	tcx_check
+	tcx_open
 	get_crypto_data
 	running_rounds
 }
 
 
-openssl_enc()
+crypt_now()
 {
-	openssl enc \
-		-$opr \
-		-base64 \
-		-$cipher \
-		-salt \
-		-pbkdf2 \
-		-in $file_in \
-		-out $file_out \
-		-pass pass:$pd
+	case $cipher_suite in
+
+		openssl)
+
+			openssl enc \
+				-$opr \
+				-base64 \
+				-$cipher \
+				-salt \
+				-pbkdf2 \
+				-pass pass:$pd \
+				-in $file_in \
+				-out $file_out
+			;;
+
+		gnupg)
+
+			printf "$pd" | \
+			gpg \
+				-$opr \
+				--armor \
+				--cipher-algo $cipher \
+				--pinentry-mode loopback \
+				--passphrase-fd 0 \
+				--batch \
+				--output $file_out \
+				$file_in
+				#--sign \
+			;;
+
+	esac
 }
 
 
-extract_tar()
+tar_extract()
 {
 	# extract tar archive
 	tar -xvf $tmp_dir
 }
 
 
-destroy_tar()
+tar_destroy()
 {
 	tmp_dir_del=$(printf $tmp_dir | cut -d / -f -6)
 	rm -rf $tmp_dir_del
@@ -332,37 +429,37 @@ destroy_tar()
 get_password()
 {
 	#[TODO] DEV
-	pd="1"
+	pd='123'
 }
 
 
-create_crx()
+tcx_create()
 {
-	# create crypto box (crx)
-	tar_file=$dst/$(basename $src).crx
+	# create crypto box (tcx)
+	tar_file=$dst/$(basename $src).tcx
 
 	sub_dir=$(dirname $src)
 	#sub_dir=$(dirname $file_out)
 
 	file_out="$(basename $file_out)"
-	cipher_pool_file="$(basename $cipher_pool_file)"
+	cipher_select_file="$(basename $cipher_select_file)"
 
 	# create tar archive
 	tar -cf $tar_file $file_out
 	#tar -cf $tar_file -C $sub_dir $file_out
-	tar -rf $tar_file $cipher_pool_file
-	#tar -rf $tar_file -C $sub_dir $cipher_pool_file
+	tar -rf $tar_file $cipher_select_file
+	#tar -rf $tar_file -C $sub_dir $cipher_select_file
 }
 
 
-check_if_crx()
+tcx_check()
 {
-	if [[ -n $(printf "$src" | grep '.crx$') ]]; then
+	if [[ -n $(printf "$src" | grep '.tcx$') ]]; then
 
 		if [[ -n $(file -b $src | grep 'tar archive') ]]; then
 
-			# src is a tar file with crx extension
-			#open_crx
+			# src is a tar file with tcx extension
+			#tcx_open
 			continue
 
 		fi
@@ -371,7 +468,7 @@ check_if_crx()
 }
 
 
-open_crx()
+tcx_open()
 {
 	# extract crypto box contents (2 files)
 	mkdir -p $tmp_dir
@@ -381,20 +478,20 @@ open_crx()
 
 get_crypto_data()
 {
-	# a crx file always contains only 2 files;
-	# the crypto pool file (cpf) and
+	# a tcx file always contains only 2 files;
+	# the cipher select file (csf) and
 	# the encrypted (tar) file
 	# so we can use the '! -name' construct
 
 	# find encrypted (tar) file
-	crypt_file=$(find $tmp_dir -type f ! -name "*.cpf")
+	crypt_file=$(find $tmp_dir -type f ! -name "*.csf")
 
-	# find cypher pool file
-	cipher_pool_file=$(find $tmp_dir -name "*.cpf")
+	# find cypher select file
+	cipher_select_file=$(find $tmp_dir -name "*.csf")
 
-	# get cypher pool details
-	cipher_pool=($(tac $cipher_pool_file))
-	cipher_pool_amount=${#cipher_pool[@]}
+	# get cypher select details
+	cipher_select=($(tac $cipher_select_file))
+	cipher_select_amount=${#cipher_select[@]}
 }
 
 
@@ -403,14 +500,16 @@ cleanup()
 	case $oper in
 
 		encr)
-			destroy_tar
+
+			tar_destroy
 			rm -rf $file_out
-			rm -rf $cipher_pool_file
+			rm -rf $cipher_select_file
 
 			;;
 
 		decr)
-			#[TODO] destroy_opened_crx
+
+			#[TODO] destroy_opened_tcx
 			;;
 
 	esac
@@ -419,34 +518,22 @@ cleanup()
 
 main()
 {
-	oper
+	initialize
+	arguments
 	get_password
 
 	case $oper in
 
 		encr)
 
-			source_type
-
-			case $source_type in
-
-				file)
-
-					encrypt
-					;;
-
-				dir)
-					create_tar
-					encrypt
-					;;
-
-			esac
+			tar_create
+			encrypt
 			;;
 
 		decr)
 
 			decrypt
-			extract_tar
+			tar_extract
 			;;
 
 	esac
