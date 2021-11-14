@@ -5,12 +5,12 @@
 ### usage: enc_bu -d <source> <destination>
 ###
 ###
-### -e creates a tar crypto box (tcx) file
-### -d decrypts a tcx file
+### -e creates a tar box (tarx) file
+### -d decrypts a tarx file
 #
 
-cipher_suite="gnupg"
-#cipher_suite="openssl"
+#cipher_suite="gnupg"
+cipher_suite="openssl"
 
 args="$@"
 
@@ -103,9 +103,6 @@ src_validate()
 			#[DEV]
 			dev_txt="src limitations here"
 
-
-
-
 			;;
 
 	esac
@@ -123,29 +120,39 @@ dst_validate()
 	fi
 
 
+
+
 	case $oper in
 
 		encr)
 
 			#[DEV]
 			dev_txt="dst encr limitations here"
+
+			# dst is empty
+			if [[ -z $dst  ]]; then
+
+				dst="$pw_dir"
+
+			fi
+
 			;;
 
 		decr)
 
 			#[DEV]
 			dev_txt="dst decr limitations here"
+
+			# dst is empty
+			if [[ -z $dst  ]]; then
+
+				dst="$pw_dir"
+				#[TODO] dst must be filename!
+			fi
+
 			;;
 
 	esac
-
-	# dst is empty
-	if [[ -z $dst  ]]; then
-
-		dst="$pw_dir"
-
-	fi
-
 	# rewrite dst full path
 	dst="$(realpath $dst)"
 
@@ -234,11 +241,11 @@ running_rounds()
 				case $rounds in
 
 					1)
-						encrypt_once
+						crypt_once
 						;;
 
 					*)
-						encrypt_first
+						crypt_first
 						;;
 
 				esac
@@ -246,12 +253,12 @@ running_rounds()
 
 			$rounds)
 
-				encrypt_last
+				crypt_last
 				;;
 
 			*)
 
-				encrypt_next
+				crypt_next
 				;;
 
 		esac
@@ -262,9 +269,9 @@ running_rounds()
 }
 
 
-encrypt_first()
+crypt_first()
 {
-	# first encryption round
+	# first round en- or decryption
 
 	case $oper in
 
@@ -286,9 +293,9 @@ encrypt_first()
 }
 
 
-encrypt_next()
+crypt_next()
 {
-	# next encryption round
+	# next round en- or decryption
 
 	case $oper in
 
@@ -312,9 +319,9 @@ encrypt_next()
 }
 
 
-encrypt_last()
+crypt_last()
 {
-	# last encryption round
+	# last round en- or decryption
 	case $oper in
 
 		decr)
@@ -335,8 +342,9 @@ encrypt_last()
 }
 
 
-encrypt_once()
+crypt_once()
 {
+	# only round en- or decryption
 	case $oper in
 
 		encr)
@@ -362,15 +370,15 @@ encrypt()
 	cipher_select
 	cipher_select_file
 	running_rounds
-	tcx_create
+	tarx_create
 	cleanup
 }
 
 
 decrypt()
 {
-	tcx_check
-	tcx_open
+	tarx_check
+	tarx_open
 	get_crypto_data
 	running_rounds
 }
@@ -433,10 +441,10 @@ get_password()
 }
 
 
-tcx_create()
+tarx_create()
 {
-	# create crypto box (tcx)
-	tar_file=$dst/$(basename $src).tcx
+	# create tar box (tarx)
+	tar_file=$dst/$(basename $src).tarx
 
 	sub_dir=$(dirname $src)
 	#sub_dir=$(dirname $file_out)
@@ -452,14 +460,14 @@ tcx_create()
 }
 
 
-tcx_check()
+tarx_check()
 {
-	if [[ -n $(printf "$src" | grep '.tcx$') ]]; then
+	if [[ -n $(printf "$src" | grep '.tarx$') ]]; then
 
 		if [[ -n $(file -b $src | grep 'tar archive') ]]; then
 
-			# src is a tar file with tcx extension
-			#tcx_open
+			# src is a tar file with tarx extension
+			#tarx_open
 			continue
 
 		fi
@@ -468,7 +476,7 @@ tcx_check()
 }
 
 
-tcx_open()
+tarx_open()
 {
 	# extract crypto box contents (2 files)
 	mkdir -p $tmp_dir
@@ -478,7 +486,7 @@ tcx_open()
 
 get_crypto_data()
 {
-	# a tcx file always contains only 2 files;
+	# a tarx file always contains only 2 files;
 	# the cipher select file (csf) and
 	# the encrypted (tar) file
 	# so we can use the '! -name' construct
@@ -509,7 +517,7 @@ cleanup()
 
 		decr)
 
-			#[TODO] destroy_opened_tcx
+			#[TODO] destroy_opened_tarx
 			;;
 
 	esac
