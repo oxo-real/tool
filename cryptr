@@ -525,7 +525,7 @@ cleanup()
 		decr)
 
 			tar_destroy
-			\rm -rf $file_out
+			#\rm -rf $file_out
 			\rm -rf $cipher_select_file
 			;;
 
@@ -549,6 +549,7 @@ decrypt()
 	tarx_open
 	get_crypto_data
 	running_rounds
+	cleanup
 }
 
 
