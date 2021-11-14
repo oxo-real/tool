@@ -9,7 +9,7 @@
 ###
 ### 2020 - 2021 (c) cytopyge
 ###
-### remove files to trash
+### remove files to an intermediate location
 ###
 ### dependencies: alias rm="trash"
 ### usage:	rm [-options] <location>
@@ -135,18 +135,18 @@ process_arguments()
 }
 
 
-trash_now()
-{
-	mv -f -- "$item" $trash
-}
-
-
 trash_empty()
 {
 	## empty trashcan
 	rm -rf $trash && \
 		printf "trashcan emptied\n" && \
 		exit 0
+}
+
+
+trash_now()
+{
+	mv -f -- "$item" $trash
 }
 
 
