@@ -471,7 +471,7 @@ tarx_check()
 		if [[ -n $(file -b $src | grep 'tar archive') ]]; then
 
 			## src is a tar file with tarx extension
-			continue
+			dev_txt="tarx file is tar archive"
 
 		fi
 
