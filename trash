@@ -23,6 +23,12 @@ items=( "$@" )
 epoch="$(date +%s)"
 
 
+reset_sudo()
+{
+	sudo -k
+}
+
+
 define_trashcan()
 {
 	# definition of a trashcan
@@ -137,16 +143,16 @@ process_arguments()
 
 trash_weight()
 {
-	weight=$(du -sh $XDG_CACHE_HOME/trash | awk '{print $1}')
+	weight=$(sudo du -sh $XDG_CACHE_HOME/trash | awk '{print $1}')
 }
 
 
 trash_empty()
 {
 	## empty trashcan
+	trash_weight
 	rm -rf $trash && \
-		printf "trashcan emptied\n" && \
-		printf "$weight cleared\n" && \
+		printf "$weight trash cleared\n" && \
 		exit 0
 }
 
@@ -159,6 +165,7 @@ trash_now()
 
 main()
 {
+	reset_sudo
 	define_trashcan
 	process_args_array
 	process_arguments
