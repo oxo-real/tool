@@ -1,26 +1,26 @@
 #!/bin/bash
 #
 ##
-###                                 _
-###  _ __   __ _ ___ ___  __ _  ___| |_
-### | '_ \ / _` / __/ __|/ _` |/ _ \ __|
-### | |_) | (_| \__ \__ \ (_| |  __/ |_
-### | .__/ \__,_|___/___/\__, |\___|\__|
-### |_|                  |___/
+###                                     _
+###  _ __   __ _ ___ ___      __ _  ___| |_
+### | '_ \ / _` / __/ __|    / _` |/ _ \ __|
+### | |_) | (_| \__ \__ \   | (_| |  __/ |_
+### | .__/ \__,_|___/___/____\__, |\___|\__|
+### |_|                |_____|___/
 ###
 ###  _ _|_ _   ._  _  _
 ### (_\/|_(_)\/|_)(_|(/_
 ###   /      / |   _|
 ###
-### (c) 2020 - 2021 cytopyge
+###	(c)	2020 - 2021 cytopyge
 ###
-### passget: fzf cli wrapper for pass
+### pass_get:	fzf cli wrapper for pass
 ###
-### usage:	passget
-###			OR
-###			passget $object
-###			OR
-###			passget $object $element
+### usage:		pass_get
+###				OR
+###				pass_get $object
+###				OR
+###				pass_get $object $element
 ##
 #
 
@@ -41,7 +41,7 @@ store=$(readlink $store_l)
 
 ## objects can be searched for one or more elements
 ## regular elements are: url, userid, password
-## elements that can be retrieved with passget are:
+## elements that can be retrieved with pass_get are:
 elements=("1 url" "2 userid" "" "3 password" "4 otp" "5 unlock" "6 peacto" "" "7 auto_entry" \
 	"" \
 	"91 obj_show" "92 obj_edit" "99 obj_name" \

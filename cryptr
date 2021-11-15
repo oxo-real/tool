@@ -19,13 +19,21 @@
 ### -d decrypt a tarx file
 ### cryptr -d <source> [destination]
 ###
+### ---------------------
+### !! SECURITY WARNING!!
+### ^^^^^^^^^^^^^^^^^^^^^
+### risks in multi-user systems!
+###
 ##
 #
 
 
 ## select cipher suite
-cipher_suite="gnupg"
-#cipher_suite="openssl"
+#cipher_suite="gnupg"
+cipher_suite="openssl"
+
+## enter pass object
+pass_object="test"
 
 
 args="$@"
@@ -394,7 +402,8 @@ crypt_now()
 
 		gnupg)
 
-			printf "$pd" | \
+			#printf "$psph" | \
+			pass $pass_object | \
 			gpg \
 				-$opr \
 				--armor \
@@ -415,7 +424,7 @@ crypt_now()
 				-$cipher \
 				-salt \
 				-pbkdf2 \
-				-pass pass:$pd \
+				-pass pass:`pass $pass_object` \
 				-in $file_in \
 				-out $file_out
 			;;
@@ -437,13 +446,6 @@ tar_destroy()
 {
 	tmp_dir_del=$(printf $tmp_dir | cut -d / -f -6)
 	\rm -rf $tmp_dir_del
-}
-
-
-get_password()
-{
-	##[TODO] DEV
-	pd='123'
 }
 
 
@@ -557,7 +559,6 @@ main()
 {
 	initialize
 	arguments
-	get_password
 
 	case $oper in
 
