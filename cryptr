@@ -513,6 +513,25 @@ get_crypto_data()
 }
 
 
+round_pass()
+{
+	## sha3-512 hash for every round
+	input=$(printf "$cipher_suite$cipher$file_out")
+
+	case $cipher_suite in
+
+		gnupg)
+			ropa=$(printf "$input" | gpg --print-md sha3-512)
+			;;
+
+		openssl)
+			ropa=$(printf "$input" | openssl dgst -sha3-512)
+			;;
+
+	esac
+}
+
+
 cleanup()
 {
 	case $oper in
