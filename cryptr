@@ -29,11 +29,8 @@
 
 
 ## select cipher suite
-#cipher_suite="gnupg"
-cipher_suite="openssl"
-
-## enter pass object
-pass_object="test"
+cipher_suite="gnupg"
+#cipher_suite="openssl"
 
 
 args="$@"
@@ -241,6 +238,8 @@ running_rounds()
 
 	for cipher in ${cipher_select[@]}; do
 
+		round_pass
+
 		printf "$cipher $round($rounds)\n"
 
 		case $round in
@@ -402,8 +401,8 @@ crypt_now()
 
 		gnupg)
 
-			#printf "$psph" | \
-			pass $pass_object | \
+			#pass $pass_object | \
+			printf "$ropa" | \
 			gpg \
 				-$opr \
 				--armor \
@@ -424,9 +423,10 @@ crypt_now()
 				-$cipher \
 				-salt \
 				-pbkdf2 \
-				-pass pass:`pass $pass_object` \
 				-in $file_in \
-				-out $file_out
+				-out $file_out \
+				-pass pass:`printf "$ropa"`
+				#-pass pass:`pass $pass_object`
 			;;
 
 	esac
@@ -516,19 +516,55 @@ get_crypto_data()
 round_pass()
 {
 	## sha3-512 hash for every round
-	input=$(printf "$cipher_suite$cipher$file_out")
+	## every round has an unique round password (ropa)
+	case $oper in
+
+		encr)
+
+			ropa_round=$round
+			;;
+
+		decr)
+
+			## invert round counter to match encr
+			ropa_round=$(( $rounds + 1 - $round ))
+			;;
+
+	esac
+
+	ropa_string=$(printf "$ro_pass$cipher_suite$cipher$ropa_round")
 
 	case $cipher_suite in
 
 		gnupg)
-			ropa=$(printf "$input" | gpg --print-md sha3-512)
+			ropa=$(\
+				printf "$ropa_string" | \
+				gpg --print-md sha3-512 | \
+				sed 's/ //'g | \
+				tr '[:upper:]' '[:lower:]'\
+			)
+			#[TODO]
+			#line 545: printf: `^': invalid format character
+
+
 			;;
 
 		openssl)
-			ropa=$(printf "$input" | openssl dgst -sha3-512)
+			ropa=$(\
+				printf "$ropa_string" | \
+				openssl dgst -sha3-512 | \
+				sed 's/^.*= //'\
+			)
 			;;
 
 	esac
+}
+
+
+get_password()
+{
+	read -s -p "passphrase: " ro_pass
+	echo
 }
 
 
@@ -539,8 +575,8 @@ cleanup()
 		encr)
 
 			tar_destroy
+			#[TODO] why in pwd? -> temp!
 			\rm -rf $file_out
-			\rm -rf $cipher_select_file
 			;;
 
 		decr)
@@ -578,6 +614,7 @@ main()
 {
 	initialize
 	arguments
+	get_password
 
 	case $oper in
 
