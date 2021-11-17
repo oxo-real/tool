@@ -13,7 +13,7 @@
 ###   /      |  /  _|
 ###
 ### sway exit
-### bemenu application that offers sway exit dialogue
+### terminal cli application that offers a sway fzf exit dialogue
 ### (c) 2019 - 2021 cytopyge
 ###
 ##
