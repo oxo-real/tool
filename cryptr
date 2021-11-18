@@ -532,26 +532,22 @@ round_pass()
 
 	esac
 
-	ropa_string=$(printf "$ro_pass$cipher_suite$cipher$ropa_round")
+	ropa_string=$(printf '%s' "$ro_pass$cipher_suite$cipher$ropa_round")
 
 	case $cipher_suite in
 
 		gnupg)
 			ropa=$(\
-				printf "$ropa_string" | \
+				printf '%s' "$ropa_string" | \
 				gpg --print-md sha3-512 | \
 				sed 's/ //'g | \
 				tr '[:upper:]' '[:lower:]'\
 			)
-			#[TODO]
-			#line 545: printf: `^': invalid format character
-
-
 			;;
 
 		openssl)
 			ropa=$(\
-				printf "$ropa_string" | \
+				printf '%s' "$ropa_string" | \
 				openssl dgst -sha3-512 | \
 				sed 's/^.*= //'\
 			)
