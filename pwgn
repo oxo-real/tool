@@ -104,9 +104,7 @@ choose_input()
 
 input_validation()
 {
-
 	[[ -z $input ]] && exit 10
-
 }
 
 
@@ -178,7 +176,6 @@ print_blocks()
 	printf '\e[38;2;155;155;155m%s\e[m\n' "$row2"
 	printf '\e[38;2;215;215;215m%s\e[m\n' "$row3"
 	printf '\e[38;2;155;155;155m%s\e[m\n' "$row4"
-
 }
 
 
