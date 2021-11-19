@@ -255,6 +255,8 @@ running_rounds()
 		tput rc
 		## clear to end of screen
 		tput ed
+
+		print_qr_codeblock
 		print_blocks $output
 
 		bar_width=38
@@ -342,7 +344,8 @@ print_qr_code()
 print_qr_codeblock()
 {
 	echo
-	print_qr_code $hash_sha3512
+	print_qr_code $output
+	#print_qr_code $hash_sha3512
 	print_blocks $hash_sha3512
 }
 
@@ -407,7 +410,6 @@ input_validation
 hash_1_input
 hash_3_input
 clear_input
-print_qr_codeblock
 round_pool
 round_space
 rounds_number
