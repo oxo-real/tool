@@ -1,4 +1,4 @@
-#i!/bin/sh
+#!/bin/sh
 #
 ##
 ###
@@ -43,6 +43,45 @@ sourcing()
 
 	## progress bar
 	source $source_dir/progress_bar
+}
+
+
+terminal_lines()
+{
+	# at least 34 lines for proper blocks and qr-code
+	term_lines="$(tput lines)"
+
+	if [[ "$term_lines" -le "33" ]]; then
+
+		clear
+		## save cursor position
+		tput sc
+
+		# hide cursor
+		tput civis
+
+		printf "${RED}insufficient terminal lines ($term_lines)${NOC}\n\n"
+		printf "exiting, press ${YELLOW}o${NOC} to override "
+
+		reply_single_hidden_timer
+
+		## clear screen and home cursor
+		tput clear
+		## show cursor again
+		tput cnorm
+
+		if printf "$reply" | grep -q "^o"; then
+
+			continue
+
+		else
+
+			exit 45
+
+		fi
+
+	fi
+
 }
 
 
@@ -405,6 +444,7 @@ debugging()
 
 
 sourcing
+terminal_lines
 choose_input
 input_validation
 hash_1_input
