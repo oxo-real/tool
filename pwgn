@@ -1,4 +1,4 @@
-#!/bin/sh
+#i!/bin/sh
 #
 ##
 ###
@@ -156,9 +156,9 @@ clear_input()
 ## overwrite input variable, then clear and unset it for security
 
 	input=$(< /dev/random tr -d -c "[:xdigit:]" | head -c 128)
-	#input=""
+	input=""
 	#[TODO] when using symlink pwgn it generates error not enough arguments
-	#unset $input
+	unset input
 }
 
 
@@ -229,10 +229,13 @@ running_rounds()
 	## keep hash_sha3512 untouched
 	input_calc=$hash_sha3512
 
-	## save cursor position
-	tput sc
 	## hide cursor
 	tput civis
+
+	print_blocks $hash_sha3512
+
+	## save cursor position
+	tput sc
 
 	for (( round=1; round<=$rounds; round++ ))
 
@@ -343,10 +346,7 @@ print_qr_code()
 
 print_qr_codeblock()
 {
-	echo
 	print_qr_code $output
-	#print_qr_code $hash_sha3512
-	print_blocks $hash_sha3512
 }
 
 
