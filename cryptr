@@ -468,7 +468,7 @@ tarx_create()
 
 tarx_check()
 {
-	if [[ -n $(printf "$src" | grep '.tarx$') ]]; then
+	#if [[ -n $(printf "$src" | grep '.tarx$') ]]; then
 
 		if [[ -n $(file -b $src | grep 'tar archive') ]]; then
 
@@ -477,12 +477,12 @@ tarx_check()
 
 		fi
 
-	else
+	#else
 
-		printf "${RED}no valid tar crypto box (.tarx) file found${NOC}\n"
-		exit
+	#	printf "${RED}no valid tar crypto box (.tarx) file found${NOC}\n"
+	#	exit
 
-	fi
+	#fi
 }
 
 
@@ -561,6 +561,19 @@ get_password()
 {
 	read -s -p "passphrase: " ro_pass
 	echo
+
+	case $oper in
+
+		encr)
+			ro_pass_sha3512=$(printf "$ro_pass" | gpg --print-md sha3-512)
+			read -s -p "verify: " ro_pass
+			echo
+			[[ "$ro_pass_sha3512" == $(printf "$ro_pass" | gpg --print-md sha3-512) ]] || \
+				printf "${RED}passphrase verification failed${NOC}\n"
+				exit 1
+			;;
+
+	esac
 }
 
 

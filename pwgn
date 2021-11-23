@@ -22,12 +22,23 @@
 
 
 # initial definitions
-
 ## initialize hardcoded variables
 script_name="pwgn"
 initial_release_year="2020"
 developer="cytopyge"
 source_dir="$XDG_DATA_HOME/git/code/sources/functions"
+
+
+read_input()
+{
+	: '
+	read input;
+	printf '%s' "$input" | \
+		base64 | \
+		wl-copy -n -o;
+	unset input
+	# '
+}
 
 
 sourcing()
@@ -55,20 +66,21 @@ terminal_lines()
 
 		clear
 		## save cursor position
-		tput sc
+		#tput sc
 
 		# hide cursor
-		tput civis
+		#tput civis
 
-		printf "${RED}insufficient terminal lines ($term_lines)${NOC}\n\n"
+		printf "${RED}insufficient terminal lines ($term_lines need 34)${NOC}\n\n"
 		printf "exiting, press ${YELLOW}o${NOC} to override "
 
 		reply_single_hidden_timer
 
+		echo
 		## clear screen and home cursor
-		tput clear
+		#tput clear
 		## show cursor again
-		tput cnorm
+		#tput cnorm
 
 		if printf "$reply" | grep -q "^o"; then
 
