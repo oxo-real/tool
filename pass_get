@@ -42,10 +42,21 @@ store=$(readlink $store_l)
 ## objects can be searched for one or more elements
 ## regular elements are: url, userid, password
 ## elements that can be retrieved with pass_get are:
-elements=("1 url" "2 userid" "" "3 password" "4 otp" "5 unlock" "6 peacto" "" "7 auto_entry" \
-	"" \
-	"91 obj_show" "92 obj_edit" "99 obj_name" \
-	"" \
+elements=(\
+	"1 url" \
+	"2 userid" \
+	" " \
+	"3 password" \
+	"4 otp" \
+	"5 unlock" \
+	"6 peacto" \
+	" " \
+	"7 auto_entry" \
+	" " \
+	"91 obj_show" \
+	"92 obj_edit" \
+	"99 obj_name" \
+	" " \
 	"0 cancel")
 
 ## the pass help file refers to objects by naming them 'passwords'
@@ -206,7 +217,7 @@ human_info()
 error_message()
 {
 	## selected empty line in element menu
-	if [[ $element == "" ]]; then
+	if [[ $element == " " ]]; then
 
 		error="no valid selection"
 
