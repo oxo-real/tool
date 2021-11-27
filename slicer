@@ -1,11 +1,11 @@
 #!/bin/bash
 #
 ##
-###      _ _
-###  ___| (_) ___ ___ _ __
-### / __| | |/ __/ _ \ '__|
-### \__ \ | | (_|  __/ |
-### |___/_|_|\___\___|_|
+###    __    _
+###  __\ \  (_) ___ ___ _ __
+### / __\ \ | |/ __/ _ \ '__|
+### \__ \\ \| | (_|  __/ |
+### |___/ \_\_|\___\___|_|
 ###
 ###  _ _|_ _ ._    _  _
 ### (_\/|_(_)|_)\/(_|(/_
@@ -13,19 +13,22 @@
 ###
 ### slicer (c) 2020 - 2021 cytopyge
 ###
-### usage: slicer "from_string" "to_string" <target_file>
-### returns text between from_ and to_string in target_file
+### returns slice from target
+### target can be either from file or standard output stream
+### while awk and cut only support single character boundaries,
+### slicer boundaries can be multi-character strings
 ###
+### usage:	slicer from to <target_file>
+###			<stdout> | slicer from to
 ##
 #
 
 
 # variable initialization
-lb_string="$1"
-rb_string="$2"
-file="$3"
+from_string="$1"
+to_string="$2"
+target="$(cat ${3:-/dev/stdin})"
 
-#[[ -z $file ]] && read -t 0
 
 # define colors
 RED='\033[0;31m' # red
@@ -33,53 +36,48 @@ GREEN='\033[0;32m' # green
 NOC='\033[0m' # no color
 
 
-# define left boundary (from)
+# define 'from' boundary (left)
 
-if [[ -z $lb_string ]]; then
+## position of first character of first match in search_string
+from_start=$(\
+	printf "$target" | \
+	grep "$from_string" | \
+	grep -ob "$from_string" | \
+	cut -d ':' -f 1 | \
+	head -n 1\
+)
 
-	lb_end=1
+## from_string length
+from_length=$(printf "$from_string" | wc -c)
 
-else
-
-	## position of first character of first match in search_string
-	lb_start=$(grep -ob "$lb_string" $file | cut -d ':' -f 1 | head -n 1)
-
-	## lb_string length
-	lb_length=$(echo -n "$lb_string" | wc -c)
-
-	## position of last character of search_string
-	lb_end=$(( $lb_start + $lb_length + 1 ))
-
-fi
+## position of last character of search_string
+from_end=$(( $from_start + $from_length + 1 ))
 
 
-# define right boundary (to)
+# define 'to' boundary (right)
 
-if [[ -z $rb_string ]]; then
-
-	rb_start=$(wc -c $file | awk -F " " '{print $1}')
-
-else
-
-	## position of first character of search_string in matching line
-	rb_start=$(grep -ob "$rb_string" $file | cut -d ':' -f 1)
-
-fi
+## position of first character of search_string in matching line
+to_start=$(\
+	printf "$target" | \
+	grep "$to_string" | \
+	grep -ob "$to_string" | \
+	cut -d ':' -f 1\
+)
 
 
-# print and wl-copy result
+# print and wl-copy slice
 
-result=$( cut -c $lb_end-$rb_start $file )
+slice=$(printf "$target" | grep "$from_string" | cut -c $from_end-$to_start)
 
-printf "$result" | wl-copy
+printf "$slice" | wl-copy
 
-## feedback to user
-if [[ -n $result ]]; then
-
-	printf "'$result'\n${GREEN}added to wl-copy${NOC}\n"
-
-else
-
-	printf "${RED}slicer error: unable to slice\n${NOC}"
-
-fi
+### feedback to user
+#if [[ -n $slice ]]; then
+#
+#	printf "'$slice'\n${GREEN}added to wl-copy${NOC}\n"
+#
+#else
+#
+#	printf "${RED}slicer error: unable to slice\n${NOC}"
+#
+#fi
