@@ -784,7 +784,7 @@ fzf_select_target()
 
 	else
 
-		printf "${RED}empty vault list${NOC}\n"
+		printf "${RED}empty list${NOC}\n"
 		exit
 
 	fi
