@@ -11,22 +11,23 @@
 ### (_\/|_(_)|_)\/(_|(/_
 ###   /      |  /  _|
 ###
-### dedup (c) 2020 cytopyge
+### dedup (c) 2020 - 2021 cytopyge
 ###
-### usage: dedup <target_file>
 ### remove duplicate lines from file, while preserving line order
 ###
+### usage: dedup <source_file> [destination_file]
 ##
 #
 
 
-file=$1
+src_file=$1
+dst_file=$2
 
 
-dedup() {
-
+dedup()
+{
 	## cat -n --> print file with added linenumbers (used for sorting)
-	cat -n $file | \
+	cat -n $src_file | \
 
 		## sort -u -k 2 --> output uniq rows based on colomn 2 to EOL
 		sort -u -k 2 | \
@@ -36,8 +37,15 @@ dedup() {
 
 		## remove linenumbers from file, by showing only second column
 		cut -f 2
-
 }
 
 
-dedup
+#if [[ -z $dst_file ]]; then
+
+	dedup
+
+#else
+
+#	dedup > $dst_file
+
+#fi
