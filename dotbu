@@ -10,7 +10,7 @@
 ### (_\/|_(_)|_)\/(_|(/_
 ###   /      |  /  _|
 ###
-### © 2020 - 2021 cytopyge
+### (c) 2020 - 2021 cytopyge
 ###
 ###	usage:	dotbu backup  [<bu_src> <bu_dest>]
 ###			dotbu restore [<rs_src> <rs_dest>]
@@ -291,6 +291,10 @@ copy()
 					printf "$location_to_add\n" >> "$rsync_exclude_list"
 
 				fi
+
+
+				# unchanged originals of encrypted files (no tar)
+				#[TODO]
 
 			done < $fpcl_file
 
