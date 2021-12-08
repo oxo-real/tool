@@ -23,7 +23,7 @@ for interface in $(ls $scn); do
 
 			else
 
-				printf "${GREEN}%-15s${NOC} %s" "$interface" "active connected"
+				printf "${BLUE}%-15s${NOC} %s" "$interface" "active connected"
 
 			fi
 			;;
@@ -104,15 +104,15 @@ for interface in $(ls $scn); do
 		case $interface in
 
 			lo)
-				printf " %s ${GREEN}%s${NOC}" "$ipin"
+				printf " %s ${BLUE}%s${NOC}" "$ipin"
 				;;
 
 			proton0)
-				printf " %s ${GREEN}%s${NOC}" "$ipin" "$ipex"
+				printf " %s ${BLUE}%s${NOC}" "$ipin" "$ipex"
 				;;
 
 			enp*)
-				printf " %s ${GREEN}%s${NOC}" "$ipin" "$ipex"
+				printf " %s ${BLUE}%s${NOC}" "$ipin" "$ipex"
 				;;
 
 		esac

@@ -24,8 +24,8 @@
 # usage:
 # vault info	[target]
 # vault create	<target> [size]
-# vault open	<target> <mountpoint>
-# vault close	<target> [-y, --no-confirm]
+# vault open	[target] [mountpoint]
+# vault close	[target] [-y, --no-confirm]
 # vault close	all		 [-y, --no-confirm]
 #
 # in which 'target' represents a location as:
@@ -33,7 +33,7 @@
 # vlt_mapper	(info, close)
 # mountpoint	(info, close)
 #
-# dependencies: source_dir
+# dependencies: source_dir, fzf
 #
 # example:		vault open $XDG_DATA_HOME/media/vault/pass $HOME/dock/vlt/pass
 
@@ -51,14 +51,14 @@ source_dir="$XDG_DATA_HOME/git/code/sources/functions"
 ## all
 args="$@"
 
-## action (open, close, create or info)
+## action (open, close, create, info or empty)
 action="$1"
 
 ## target
-## target (<vault_file>, <mountpoint>, <vlt_mapper> or 'all')
+## target (<vault_file>, <mountpoint>, <vlt_mapper>, 'all' or empty)
 target="$2"
 
-## location, size or option_no-confirm
+## location, size, option_no-confirm or empty
 arg_3="$3"
 
 
@@ -102,7 +102,7 @@ check_target_validity()
 	elif [[ ! -f $target ]] && [[ ! -d $target ]] && [[ ! -b $target ]]; then
 
 			echo
-			printf "${RED}$target invalid target or permissions${NOC}\n"
+			printf "${MAGENTA}$target invalid target or permissions${NOC}\n"
 			exit 22
 
 	fi
@@ -167,14 +167,14 @@ check_target_status()
 
 			target_c_type="partition"
 
-			printf "${RED}$target is a $target_c_type!${NOC}\n"
+			printf "${MAGENTA}$target is a $target_c_type!${NOC}\n"
 			printf "are you sure to overwrite an entire $target_c_type? (y/N) "
 			reply_single
 			echo
 
 			if printf "$reply" | grep -iq "^y"; then
 
-				printf "${RED}about to overwrite $target_c_type $target${NOC}\n"
+				printf "${MAGENTA}about to overwrite $target_c_type $target${NOC}\n"
 				printf "really sure? (y/N) "
 				reply_single
 				echo
@@ -203,14 +203,14 @@ check_target_status()
 
 			target_c_type="file"
 
-			printf "${RED}$target already exists!${NOC}\n"
+			printf "${MAGENTA}$target already exists!${NOC}\n"
 			printf "overwrite? (y/N) "
 			reply_single
 			echo
 
 			if printf "$reply" | grep -iq "^y"; then
 
-				printf "${RED}about to overwrite $target${NOC}\n"
+				printf "${MAGENTA}about to overwrite $target${NOC}\n"
 				printf "really sure? (y/N) "
 				reply_single
 				echo
@@ -264,7 +264,7 @@ check_container_size()
 
 		# to prevent error: 'requested offset is beyond real size of device'
 
-		printf "${RED}minimum vault size is 18 MB${NOC}\n" && exit 18
+		printf "${MAGENTA}minimum vault size is 18 MB${NOC}\n" && exit 18
 
 	fi
 }
@@ -427,14 +427,14 @@ check_mp_dir()
 	## no mountpoint entry
 	if [[ -z $mountpoint ]]; then
 
-		printf "${RED}empty mountpoint entry${NOC}\n"
+		printf "${MAGENTA}empty mountpoint entry${NOC}\n"
 		printf "vault open <vault_file> <mountpoint>\n"
 		exit 3
 
 	## mountpoint directory does not exist
 	elif [[ ! -d $mountpoint ]]; then
 
-			printf "${RED}$mountpoint does not exist!${NOC}\n" && exit 3
+			printf "${MAGENTA}$mountpoint does not exist!${NOC}\n" && exit 3
 
 	## directory does exist
 	elif [[ -d $mountpoint ]]; then
@@ -682,16 +682,14 @@ show_spec_info()
 	if [[ -z $target_type ]]; then
 
 		## get_vault_data could not assign a target_type
-		#echo
 		printf "no specific info available\n"
-		printf "${RED}no valid target_type $target${NOC}\n"
+		printf "${MAGENTA}no valid target_type $target${NOC}\n"
 
 		exit 77
 
 	else
 
-		#echo
-		printf "%22s${GREEN} %s${NOC}\n" "specific info for:" "$target_type $target"
+		printf "%22s${BLUE} %s${NOC}\n" "specific info for:" "$target_type $target"
 
 		echo
 		printf "%22s %s\n" "crypto source:" $luks_container
@@ -709,7 +707,7 @@ show_spec_info()
 
 		else
 
-			printf "%22s${RED} %s${NOC}\n" "vlt_mapper:" $vlt_mapper
+			printf "%22s${MAGENTA} %s${NOC}\n" "vlt_mapper:" $vlt_mapper
 
 		fi
 
@@ -719,7 +717,7 @@ show_spec_info()
 
 		else
 
-			printf "%22s${RED} %s${NOC}\n" "mountpoint:" $mountpoint
+			printf "%22s${MAGENTA} %s${NOC}\n" "mountpoint:" $mountpoint
 
 		fi
 
@@ -749,7 +747,7 @@ check_no_confirm()
 
 			echo
 			confirmation="negative"
-			printf "${RED}$action $target aborted by user${NOC}\n"
+			printf "${MAGENTA}$action $target aborted by user${NOC}\n"
 
 			if [[ -z $loop_active ]]; then
 
@@ -784,7 +782,7 @@ fzf_select_target()
 
 	else
 
-		printf "${RED}empty list${NOC}\n"
+		printf "${MAGENTA}empty list${NOC}\n"
 		exit
 
 	fi
@@ -845,7 +843,7 @@ unmount()
 		[[ -n $(echo $PWD | grep $mountpoint) ]]; then
 
 			echo
-			printf "${RED}cannot unmount myself!${NOC}\n"
+			printf "${MAGENTA}cannot unmount myself!${NOC}\n"
 			printf "please move to another directory and run again\n"
 			exit 66
 
@@ -892,14 +890,14 @@ vault_list()
 
 	if [[ -z "$info" ]]; then
 
-		printf "${RED}no mapped vaults${NOC}\n"
+		printf "${MAGENTA}no mapped vaults${NOC}\n"
 
 	else
 
-		printf "${GREEN}mapped vaults:${NOC}\n"
+		printf "${BLUE}mapped vaults${NOC}\n"
 		printf "$info_headers\n"
 		printf "$info\n"
-		echo
+	#	echo
 
 	fi
 }
@@ -996,7 +994,7 @@ check_no_confirm_flag()
 
 				*)
 
-					printf "${RED}no valid option:${NOC} '$no_confirm'\n"
+					printf "${MAGENTA}no valid option:${NOC} '$no_confirm'\n"
 					no_confirm=""
 					# no_confirm has no value; a confirmation dialogue comes up
 					printf "exiting\n"
@@ -1006,6 +1004,18 @@ check_no_confirm_flag()
 			esac
 
 		fi
+
+	fi
+}
+
+
+fzf_target_mountpoint()
+{
+	if [[ -z $target ]]; then
+
+		target=$(fd -uu . \/ | fzf --prompt='target ')
+
+		mountpoint=$(fd -uu . \/ | fzf --prompt='mountpoint ')
 
 	fi
 }
@@ -1048,6 +1058,7 @@ main()
 		open)
 
 			mountpoint=$arg_3
+			fzf_target_mountpoint
 
 			load_dependencies
 			#get_sudo
@@ -1083,7 +1094,7 @@ main()
 			;;
 
 		*)
-			printf "${RED}no valid action${NOC}\n"
+			printf "${MAGENTA}no valid action${NOC}\n"
 			exit 40
 			;;
 

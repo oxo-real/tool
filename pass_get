@@ -71,7 +71,7 @@ elements=(\
 check_mountpoint()
 {
 	mountpoint -q $store_l
-	[[ $? -ne 0 ]] && printf "${RED}store is not mounted${NOC}\n" && exit 32
+	[[ $? -ne 0 ]] && printf "${MAGENTA}store is not mounted${NOC}\n" && exit 32
 }
 
 
@@ -154,7 +154,7 @@ get_otp()
 	# reset object value for human info
 	object=$(printf $object | cut -c 5-)
 
-	#[[ -z $element_value ]] && element="$element ${RED}no element value${NOC}"
+	#[[ -z $element_value ]] && element="$element ${MAGENTA}no element value${NOC}"
 }
 
 
@@ -174,22 +174,22 @@ check_element_value()
 
 		if [[ -z $element ]]; then
 
-			element="${RED}no element selected${NOC}"
+			element="${MAGENTA}no element selected${NOC}"
 
 		elif [[ -z $element_value ]]; then
 
-			element="$element ${RED}no value${NOC}"
+			element="$element ${MAGENTA}no value${NOC}"
 
 		fi
-		#[[ -z $element ]] && printf "${RED}no element selected${NOC}\n" && exit 10
-		#[[ -z $element_value ]] && printf "${RED}no element value${NOC}\n" && exit 10
+		#[[ -z $element ]] && printf "${MAGENTA}no element selected${NOC}\n" && exit 10
+		#[[ -z $element_value ]] && printf "${MAGENTA}no element value${NOC}\n" && exit 10
 
 	fi
 
 	## auto_entry
 	if [[ -n $ae ]]; then
 
-		# [TODO] [[ -z $element_value ]] && element_value="${RED}no element value${NOC}"
+		# [TODO] [[ -z $element_value ]] && element_value="${MAGENTA}no element value${NOC}"
 		[[ -z $element_value ]] && notify-send "no element value" && exit
 
 	fi
@@ -202,7 +202,7 @@ human_info()
 
 	if [[ -z $ae ]]; then
 
-		printf "$object $element ${RED}$error${NOC}\n"
+		printf "$object $element ${MAGENTA}$error${NOC}\n"
 
 	elif [[ -n $ae ]]; then
 
