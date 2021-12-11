@@ -864,7 +864,7 @@ unmount()
 clear_cache()
 {
 	sudo sysctl --write vm/drop_caches=3
-	printf "${GREEN}vault closed succesfully${NOC}\n"
+	printf "${BLUE}vault closed${NOC}\n"
 }
 
 
