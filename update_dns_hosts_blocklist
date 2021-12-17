@@ -12,7 +12,7 @@
 ### update_hosts_blocklist
 ### update dns hosts file forbidden entries
 ### https://github.com/StevenBlack/hosts
-### thanks to steven black
+### thanks steven black
 ###
 ##
 #
@@ -26,8 +26,8 @@ source $XDG_DATA_HOME/git/code/sources/functions/text_appearance
 loc_blocklist="$XDG_CONFIG_HOME/hosts"
 
 
-create_git_repo() {
-
+create_git_repo()
+{
 	mkdir -p $loc_blocklist
 	cd $loc_blocklist
 	touch remove_me
@@ -53,31 +53,31 @@ create_git_repo() {
 
 	## go back to where we came from
 	cd -
-
 }
 
 
-download_blocklist () {
-
+download_blocklist()
+{
 	## ... copy THE blocklist into branch blocklist_on
 	cd $loc_blocklist
 	git checkout -f blocklist_on
 
+	#[TODO] define tracking info for branch
+	#[TODO] git pull
 	curl -O http://sbc.io/hosts/alternates/fakenews-gambling-porn-social/hosts
 
 	git add .
-	git commit -a -m "$(date +%Y%m%d_%H%M%S)_blocklist_updated_with_script"
+	git commit -a -m "$(date +%Y%m%d_%H%M%S)_blocklist_updated"
 
 	## symlink /etc/hosts to blocklist
 	sudo ln -sf $XDG_CONFIG_HOME/hosts/hosts /etc/hosts
 
-	printf "${GREEN}update dns hosts blocklist succesfull${NOC}\n"
+	printf "${BLUE}update dns hosts blocklist succesfull${NOC}\n"
 
 	## go back to where we came from
 	cd -
 
 	exit 0
-
 }
 
 
