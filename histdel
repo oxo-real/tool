@@ -35,7 +35,8 @@ echo
 printf "remove from history? (y/N) "
 #[TODO] select matches?
 
-reply_single_hidden_timed
+reply_single_hidden
+#reply_single_hidden_timed
 
 case $reply in
 

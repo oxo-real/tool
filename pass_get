@@ -87,7 +87,7 @@ get_object()
 			# with sed we remove the trailing .gpg extension
 			sed "s/.gpg//g" | \
 			sort | \
-			fzf)
+			fzf --prompt='select object ')
 
 	fi
 }
@@ -97,7 +97,7 @@ get_element()
 {
 	if [[ -z $element ]]; then
 
-		element=$(printf '%s\n' "${elements[@]}" | fzf | awk '{print $2}')
+		element=$(printf '%s\n' "${elements[@]}" | fzf --prompt='select element ' | awk '{print $2}')
 
 	fi
 }
