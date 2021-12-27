@@ -61,22 +61,17 @@ process_args_array()
 		elem1="$(printf -- "${items[0]}")"
 
 		## elem1 starts with a dash
-		[[ "$(printf -- "$elem1" | head -c 1)" == "-" ]] && \
+		if [[ "$(printf -- "$elem1" | head -c 1)" == "-" ]]; then
 
-		## elem1 is no existing file
-		[[ ! -f "$elem1" ]] && \
+			[[ ! -f "$elem1" ]] && \## elem1 is no existing file
+			[[ ! -d "$elem1" ]] && \## elem1 is no existing directory
+			[[ ! -L "$elem1" ]] && \## elem1 is no existing symlink
+			rm_flag="${items[0]}"	## then: remove elem1 which is only meant as flag for rm
 
-		## elem1 is no existing directory
-		[[ ! -d "$elem1" ]] && \
+			#unset 'items[0]'
+			items=("${items[@]:1}")
 
-		## elem1 is no existing symlink
-		[[ ! -L "$elem1" ]] && \
-
-		## then: remove elem1 which is only meant as flag for rm
-		rm_flag="${items[0]}"
-
-		#unset 'items[0]'
-		items=("${items[@]:1}")
+		fi
 
 	## if there is one element in the array
 	elif [[ "${#items[@]}" -eq 1 ]]; then
