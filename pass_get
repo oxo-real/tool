@@ -125,7 +125,8 @@ get_element_value()
 
 	check_element_value
 
-	printf "$element_value" | wl-copy -n -o
+	## '%s' prevents 'invalid format character' error
+	printf '%s' "$element_value" | wl-copy -n -o
 }
 
 

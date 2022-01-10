@@ -1,0 +1,62 @@
+#!/bin/bash
+#
+##
+### pkg_copy
+###
+### copies currently installed version of every pacman installed package
+###
+### usage: pkg_copy <destination>
+##
+#
+
+## package file source
+p_src='/var/cache/pacman/pkg'
+
+## package file destination
+p_dst=$@
+
+
+for package in $(pacman -Qq); do
+
+	# designate currently installed package version
+	p_version=$(\
+		pacman -Qi $package | \
+		grep ^Version | \
+		awk -F ': ' '{print $2}'\
+	)
+
+	# designate package file to copy
+	## .sig files are also copied
+	p_filetocopy=$(\
+		ls $p_src | \
+		grep ^$package-$p_version
+	)
+
+	for file in $p_filetocopy; do
+
+		## with extraneous file deletion in destination
+		#rsync -aAXv --delete --times $file $p_dst
+
+		## without file deletion in destination
+		cp --preserve=timestamps $file $p_dst
+
+		printf "$file\n"
+
+	done
+
+done
+
+
+# number of packages in destination
+p_dst_count=$(ls $p_dst | grep --invert-match .sig$ | wc -l)
+
+# number of packages in source
+p_src_count=$(pacman -Q | wc -l)
+
+printf "$p_dst_count $p_dst\n"
+printf "$p_src_count $p_src\n"
+## if src is greater difference are files of non installed packages
+
+
+# create package uri list
+#for package in $(pacman -Qq); do pacman -Sp $package >> package.list; done
