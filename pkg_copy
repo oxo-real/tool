@@ -12,51 +12,90 @@
 ## package file source
 p_src='/var/cache/pacman/pkg'
 
-## package file destination
+db_name='offline'
+
+## destination root
 p_dst=$@
+
+## package file destination
+p_file_dst=$p_dst/packages
+
+## package database destination
+p_db_dst=$p_dst/database
+
+timestamp=$(date +%s)
+
+# create destination locations if not exist
+[[ -d $p_dst ]] ||		mkdir -p $p_dst
+[[ -d $p_file_dst ]] || mkdir -p $p_file_dst
+[[ -d $p_db_dst ]] ||	mkdir -p $p_db_dst
 
 
 for package in $(pacman -Qq); do
 
-	# designate currently installed package version
-	p_version=$(\
-		pacman -Qi $package | \
-		grep ^Version | \
-		awk -F ': ' '{print $2}'\
-	)
+	pacman -Si $package >/dev/null 2>&1
 
-	# designate package file to copy
-	## .sig files are also copied
-	p_filetocopy=$(\
-		ls $p_src | \
-		grep ^$package-$p_version
-	)
+	if [[ $? -ne 0 ]]; then
 
-	for file in $p_filetocopy; do
+		# pacman_Si error: 'target not found: $package'
 
-		## with extraneous file deletion in destination
-		#rsync -aAXv --delete --times $file $p_dst
+		pacman -Qqmet $package >/dev/null 2>&1
 
-		## without file deletion in destination
-		cp --preserve=timestamps $file $p_dst
+		if [[ $? -eq 0 ]]; then
 
-		printf "$file\n"
+			# unrequired (t) explicitly installed (e) foreign (m) package
+			# package file is probably stored in cache_yay
+			cache_yay=1
 
-	done
+		fi
+
+	else
+
+		# append package info to pacman_qi.list
+		pacman -Sp $package >> $p_dst/"$timestamp"_pacman_qi.list
+		pacman -Qi $package >> $p_dst/"$timestamp"_pacman_qi.list
+
+		# designate currently installed package version
+		p_version=$(\
+			pacman -Qi $package | \
+			grep ^Version | \
+			awk -F ': ' '{print $2}'\
+		)
+
+		# designate package file to copy
+		## .sig files are also copied
+		p_filetocopy=$(\
+			ls $p_src | \
+			grep ^$package-$p_version
+		)
+
+		for file in $p_filetocopy; do
+
+			## with extraneous file deletion in destination
+			#rsync -aAXv --delete --times $file $p_dst
+
+			## without file deletion in destination
+			cp --preserve=timestamps $p_src/$file $p_file_dst
+
+			printf "$file\n"
+
+		done
+
+	fi
 
 done
 
 
 # number of packages in destination
-p_dst_count=$(ls $p_dst | grep --invert-match .sig$ | wc -l)
+p_file_dst_count=$(ls $p_file_dst | grep --invert-match .sig$ | wc -l)
 
 # number of packages in source
 p_src_count=$(pacman -Q | wc -l)
 
-printf "$p_dst_count $p_dst\n"
+printf "$p_file_dst_count $p_dst\n"
 printf "$p_src_count $p_src\n"
 ## if src is greater difference are files of non installed packages
 
 
-# create package uri list
-#for package in $(pacman -Qq); do pacman -Sp $package >> package.list; done
+# build custom package database
+repo-add $p_db_dst/$db_name.db.tar.zst $p_file_dst/*.pkg.tar.zst
