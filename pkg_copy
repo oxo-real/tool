@@ -94,7 +94,6 @@ p_src_count=$(pacman -Q | wc -l)
 
 printf "$p_file_dst_count $p_dst\n"
 printf "$p_src_count $p_src\n"
-## if src is greater difference are files of non installed packages
 
 
 # build custom package database
