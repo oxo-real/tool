@@ -1,22 +1,22 @@
 #!/bin/sh
 #
 ##
-###
 ###  _ ____      ____ _ _ __
 ### | '_ \ \ /\ / / _` | '_ \
 ### | |_) \ V  V / (_| | | | |
 ### | .__/ \_/\_/ \__, |_| |_|
 ### |_|           |___/
-###
 ###  _ _|_ _ ._    _  _
 ### (_\/|_(_)|_)\/(_|(/_
 ###   /      |  /  _|
 ###
 ### pwgn
-### generate unique hex values
+### generate unique hex strings
 ###
-### (c) 2020 - 2021 cytopyge
+### (c) 2020 - 2022 cytopyge
 ###
+### --------------------------------
+### usage: pwgn
 ##
 #
 
@@ -355,8 +355,6 @@ two_fa()
 
 	## code from genotp is 12 digits (for aesthetic purposes there)
 	## first two though are always leading zeros
-	## aegis app produces a maximum of 10 digits
-	## therefore remove first two digits (zeros) from code
 	code=$(printf $code | cut -c 3-)
 
 	if [[ "$two_fa" != "$code" ]]; then

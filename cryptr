@@ -7,19 +7,23 @@
 ### | (__| |  | |_| | |_) | |_| |
 ###  \___|_|   \__, | .__/ \__|_|
 ###            |___/|_|
+###  _ _|_ _ ._    _  _
+### (_\/|_(_)|_)\/(_|(/_
+###   /      |  /  _|
 ###
-### crypto cascade
+### 2021 - 2022 | cytopyge
 ###
-### (c) 2021 cytopyge
-###
+### cryptr
+### --------------------------------
+### crypto with optional cascade
+### --------------------------------
 ### usage:
 ### -e encrypt a tarx file
-### cryptr -e <source> [destination]
+### cryptr [-e] <src> [dest]
 ###
 ### -d decrypt a tarx file
-### cryptr -d <source> [destination]
-###
-### ---------------------
+### cryptr [-d] <src> [dest]
+### --------------------------------
 ### !! SECURITY WARNING!!
 ### ^^^^^^^^^^^^^^^^^^^^^
 ### risks in multi-user systems!
@@ -28,16 +32,31 @@
 #
 
 
+# initial definitions
 ## select cipher suite
 cipher_suite="gnupg"
 #cipher_suite="openssl"
+
+source_dir="$XDG_DATA_HOME/git/code/sources/functions"
 
 
 args="$@"
 
 
+sourcing()
+{
+	## reply functions
+	source $source_dir/reply_functions
+
+	## text appearance
+	source $source_dir/text_appearance
+}
+
+
 initialize()
 {
+	sourcing
+
 	timestamp="`date "+%Y%m%d_%H%M%S"`"
 
 	tmp_dir="$XDG_CACHE_HOME/temp/cryptr/$timestamp"
@@ -49,9 +68,9 @@ initialize()
 
 arguments()
 {
-	opr=$(printf -- "$args" | awk '{print $1}')
-	src=$(printf -- "$args" | awk '{print $2}')
-	dst=$(printf -- "$args" | awk '{print $3}')
+	opr_arg=$(printf -- "$args" | awk '{print $1}')
+	src_arg=$(printf -- "$args" | awk '{print $2}')
+	dst_arg=$(printf -- "$args" | awk '{print $3}')
 
 	operation
 	src_validate
@@ -62,10 +81,15 @@ arguments()
 operation()
 {
 	## encrypt or decrypt
-	case $opr in
+	case $opr_arg in
+
+		-d)
+			opr="d"
+			oper="decr"
+			printf "\noper:		${INV}${BOLD} "$oper"ypting ${NOC}\n"
+			;;
 
 		-e)
-
 			case $cipher_suite in
 
 				gnupg)
@@ -81,12 +105,28 @@ operation()
 
 			esac
 			oper="encr"
+			printf "\noper:		${INV}${BOLD} "$oper"ypting ${NOC}\n"
 			;;
 
-		-d)
+		*)
+			# no -d or -e is given
 
-			opr="d"
-			oper="decr"
+			## correcting variables
+			dst_arg="$src_arg"
+			src_arg="$opr_arg"
+			opr_arg="-e"
+
+			if [[ $(file $src_arg | grep 'tar archive') ]]; then
+
+				[[ $(tar -tvf $src_arg | grep .crypt) ]] && \
+					[[ $(tar -tvf $src_arg | grep .csf) ]] && \
+						# src_arg is a .tarx file
+						opr_arg="-d"
+
+			fi
+
+			## rerun with corrected variables
+			operation
 			;;
 
 	esac
@@ -95,18 +135,18 @@ operation()
 
 src_validate()
 {
-	## rewrite src full path
-	src="$(realpath $src)"
+	## rewrite src (full path)
+	src="$(realpath $src_arg)"
 
 	## src does not exist
-	if [[ ! -f $src ]]; then
+	if [[ ! -f $src ]] && [[ ! -d $src ]] ; then
 
-		printf "${RED}source file not found${NOC}\n"
+		printf "${MAGENTA}source file not found${NOC}\n"
 		exit 5
 
 	elif [[ -z $src ]]; then
 
-		printf "${RED}missing src & dest file${NOC}\n"
+		printf "${MAGENTA}missing src & dest file${NOC}\n"
 		exit 5
 
 	fi
@@ -114,67 +154,146 @@ src_validate()
 	case $oper in
 
 		encr)
-
 			src_sub_dir=$(dirname $src)
 			src_tar_get=$(basename $src)
 			;;
 
 		decr)
-
 			src_txt="no src limitations for decr"
 			;;
 
 	esac
+
+	printf "source:		$src\n"
 }
 
 
 dst_validate()
 {
-	## dst file or directory already exists
-	if [[ -f $dst ]] || [[ -d $dst ]]; then
+	## dst is an optional argument
+	## if empty no arg 3 is given
+	## then dst defaults to pwd
+	if [[ -z $dst_arg ]]; then
 
-		printf "${RED}destination file or directory already exists${NOC}\n"
-		exit 4
+		case $oper in
+
+			encr)
+				## dst is always a file
+				## write dst to pwd
+				dst_sub_dir="$pw_dir"
+				dst_tar_get="$(basename $src).tarx"
+				;;
+
+			decr)
+				## [TODO] dst is a directory if inner tar contains dir or multiple files
+				## [TODO] dst is a file if inner tar contains only one file
+				## write dst to pwd
+				dst_sub_dir="$pw_dir"
+				dst_tar_get="$(basename $src)"
+
+				if [[ "$(printf "$dst_tar_get" | tail -c 5)" == ".tarx" ]]; then
+
+					dst_tar_get="${dst_tar_get::-5}"
+
+				fi
+				;;
+
+		esac
+
+		# rewrite dst_arg with default values
+		dst_arg="$dst_sub_dir/$dst_tar_get"
+
+	## dst arg 3 is given
+	elif [[ -n $dst_arg ]]; then
+
+		dst_sub_dir=$(dirname $dst_arg)
+		dst_tar_get=$(basename $dst_arg)
+
+		case $oper in
+
+			encr)
+				# dst_arg is a nonexistent file
+				# with an valid absolute filepath
+				# or a valid relative path to pwd
+				if [[ ! -f $dst_arg ]]; then
+
+					if [[ -d $(dirname $dst_arg) ]]; then
+
+						dst_arg="$(realpath $dst_arg)"
+
+					elif [[ -d $pwd/$dst_arg ]]; then
+
+						dst_arg="$pwd/$dst_arg"
+
+					fi
+
+					# dst_arg contains subdir(s)
+					if [[ "$dst_sub_dir" != "." ]]; then
+
+						# dst_sub_dir exist otherwise mkdir it
+						[[ -d $dst_sub_dir ]] || mkdir -p $dst_sub_dir
+
+					fi
+
+				fi
+				;;
+
+			decr)
+				# dst_arg is a directory
+				# dst_arg can not be a file
+
+				#if [[ -d $dst_arg ]] || [[ -f $dst_arg ]]; then
+
+				#	printf "${MAGENTA}destination already exists${NOC}\n"
+				#	printf "define alternate destination (arg 3)\n"
+				#	#exit 4
+				# [TODO] warn for existing file / directory (with color)
+
+				#fi
+				;;
+
+		esac
+
+		## rewrite variables
+		dst_sub_dir=$(dirname $dst_arg)
+		dst_tar_get=$(basename $dst_arg) # is a nonexistent directory!
 
 	fi
 
+	## rewrite dst (full path)
+	dst="$(realpath $dst_sub_dir/$dst_tar_get)"
+
 	case $oper in
-
-		encr)
-
-			## dst is empty
-			if [[ -z $dst  ]]; then
-
-				dst="$pw_dir"
-
-			fi
-			;;
 
 		decr)
 
-			## dst is empty
-			if [[ -z $dst  ]]; then
-
-				dst="$pw_dir"
-
-			fi
-
-			dst_file_name=$(basename $src)
+			[[ -d $dst ]] || [[ -f $dst ]] || mkdir -p $dst
 			;;
 
 	esac
 
-	## rewrite dst full path
-	dst="$(realpath $dst)"
+	if [[ -d $dst ]] || [[ -f $dst ]]; then
+
+		printf "destination:	${MAGENTA}$dst${NOC}\n"
+
+	else
+
+		printf "destination:	$dst\n"
+
+	fi
+
+	echo
 }
 
 
 tar_create()
 {
+	# (inner) tar file
+	# will be wrapped in tarx
 	tar_file=$tmp_dir/$src_tar_get.tar
 	mkdir -p $(dirname $tar_file)
 
-	## create tar archive
+	## create (inner) tar archive
 	tar -czf $tar_file -C $src_sub_dir $src_tar_get
 }
 
@@ -363,7 +482,7 @@ crypt_last()
 			file_in=$file_out
 
 			## define file_out
-			file_out=$dst_file_name.plain
+			file_out=$dst.plain
 			;;
 
 	esac
@@ -386,7 +505,7 @@ crypt_once()
 		decr)
 
 			file_in=$crypt_file
-			file_out=$dst_file_name.plain
+			file_out=$dst.plain
 			;;
 
 	esac
@@ -445,44 +564,103 @@ tar_extract()
 tar_destroy()
 {
 	tmp_dir_del=$(printf $tmp_dir | cut -d / -f -6)
+	# \ prevents using aliases
 	\rm -rf $tmp_dir_del
 }
 
 
-tarx_create()
+tarx_define()
 {
 	## create tar box (tarx)
-	tar_file=$dst/$(basename $src).tarx
+	tarx_file=$dst
 
 	file_out=$(realpath $file_out)
 	sub_dir_fo=$(dirname $file_out)
 
 	cipher_select_file=$(realpath $cipher_select_file)
 	sub_dir_csf=$(dirname $cipher_select_file)
-
-	## create tar archive
-	tar -cf $tar_file -C $sub_dir_fo $(basename $file_out)
-	tar -rf $tar_file -C $sub_dir_csf $(basename $cipher_select_file)
 }
 
 
 tarx_check()
 {
-	#if [[ -n $(printf "$src" | grep '.tarx$') ]]; then
+	# check if tarx exists
+	## gpg fails on existence
+	## openssl overwrites without check
 
-		if [[ -n $(file -b $src | grep 'tar archive') ]]; then
+	[[ -f $tarx_file ]] && tarx_exist=1
 
-			## src is a tar file with tarx extension
-			dev_txt="tarx file is tar archive"
 
-		fi
+	case $oper in
 
-	#else
+		encr)
 
-	#	printf "${RED}no valid tar crypto box (.tarx) file found${NOC}\n"
-	#	exit
+			if [[ "$tarx_exist" == "1" ]]; then
 
-	#fi
+				printf "${YELLOW}tarx file: $tarx_file exists${NOC}\n"
+				printf "overwrite? (y/N) "
+				reply_single
+
+				case $reply in
+
+					y)
+						echo
+						printf "please confirm? (y/N) "
+						reply_single
+
+							case $reply in
+
+								y)
+									echo
+									;;
+
+								*)
+									echo
+									printf "${MAGENTA}encryption aborted${NOC}\n"
+									exit 34
+									;;
+
+							esac
+						;;
+
+					*)
+						echo
+						printf "${MAGENTA}encryption aborted${NOC}\n"
+						exit 34
+						;;
+
+				esac
+
+
+			fi
+
+			;;
+
+		decr)
+
+			# src does exist (src_validate)
+			if [[ -n $(file -b $src | grep 'tar archive') ]]; then
+
+				## src is a tar file with tarx extension
+				dev_txt="tarx file is tar archive"
+
+			fi
+
+			#else
+
+			#	printf "${MAGENTA}no valid tar crypto box (.tarx) file found${NOC}\n"
+			#	exit
+
+			#fi
+	esac
+}
+
+
+tarx_create()
+{
+	## create tar archive
+	tar -cf $tarx_file -C $sub_dir_fo $(basename $file_out)
+	tar -rf $tarx_file -C $sub_dir_csf $(basename $cipher_select_file)
 }
 
 
@@ -568,9 +746,17 @@ get_password()
 			ro_pass_sha3512=$(printf "$ro_pass" | gpg --print-md sha3-512)
 			read -s -p "verify: " ro_pass
 			echo
-			[[ "$ro_pass_sha3512" == $(printf "$ro_pass" | gpg --print-md sha3-512) ]] || \
-				printf "${RED}passphrase verification failed${NOC}\n"
+
+			if [[ "$ro_pass_sha3512" == $(printf "$ro_pass" | gpg --print-md sha3-512) ]]; then
+
+				a=0
+
+			else
+
+				printf "${MAGENTA}passphrase verification failed${NOC}\n"
 				exit 1
+
+			fi
 			;;
 
 	esac
@@ -604,6 +790,9 @@ encrypt()
 	cipher_select
 	cipher_select_file
 	running_rounds
+	tarx_define
+	#[TODO] prefer to have tarx_check before get_password
+	tarx_check
 	tarx_create
 	cleanup
 }
