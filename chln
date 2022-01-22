@@ -7,12 +7,9 @@ new: /home/user02/dir/symlink
 
 applied on $HOME/.config/shln
 when it is moved to another $USER
-
-place this script in same directory
-as where the symlinks reside
 # '
 
-for symlink in $(find . -type l); do
+for symlink in $(find $XDG_CONFIG_HOME/shln -type l); do
 
 	new_target=$( \
 	readlink $symlink | \
