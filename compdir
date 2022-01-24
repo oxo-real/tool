@@ -1,0 +1,28 @@
+#!/bin/env zsh
+
+
+if [[ -z $2 ]] ; then
+
+	echo "USAGE: $0 dir1 dir2 [optional rsync arguments]"
+    exit 1
+
+fi
+
+
+set -e
+
+
+src_dir=$1; shift
+dst_dir=$1; shift
+args="$*"
+
+
+## files in src not in dst
+rsync $args -rin --ignore-existing "$src_dir"/ "$dst_dir"/|sed -e 's/^[^ ]* /-->   /'
+
+## files in dst not in src
+rsync $args -rin --ignore-existing "$dst_dir"/ "$src_dir"/|sed -e 's/^[^ ]* /  <-- /'
+
+## files in dst and in src, but they differ
+rsync $args -rin --existing "$src_dir"/ "$dst_dir"/|sed -e 's/^/--X-- /'
+

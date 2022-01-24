@@ -15,7 +15,7 @@
 ### vault
 ### secure file containers
 ###
-### (c) 2019 - 2021 cytopyge
+### (c) 2019 - 2022 cytopyge
 ###
 ##
 #
@@ -890,11 +890,11 @@ vault_list()
 
 	if [[ -z "$info" ]]; then
 
-		printf "${MAGENTA}no mapped vaults${NOC}\n"
+		printf "${MAGENTA}no mapped vaults mounted${NOC}\n"
 
 	else
 
-		printf "${BLUE}mapped vaults${NOC}\n"
+		printf "${BLUE}mapped vaults mounted${NOC}\n"
 		printf "$info_headers\n"
 		printf "$info\n"
 	#	echo
