@@ -110,9 +110,9 @@ validate_source()
 
 	if [[ ! -d $src ]]; then
 
-		printf "source:		${RED}$src${NOC}\n\n"
+		printf "source:		${MAGENTA}$src${NOC}\n\n"
 
-		printf "${RED}source${NOC} does not exist\n"
+		printf "source ${MAGENTA}does not exist${NOC}\n"
 		printf "exiting, bye!\n"
 		exit 11
 
@@ -133,14 +133,14 @@ validate_destination()
 
 			backup)
 
-				printf "${RED}no destination argument${NOC}, exiting, bye!\n"
+				printf "${MAGENTA}no destination argument${NOC}, exiting, bye!\n"
 				exit 11
 				;;
 
 			restore)
 
 				re_dest=$(head -n 1 $src/.src)
-				printf "destination:	${RED}no argument${NOC}\n"
+				printf "destination:	${MAGENTA}no argument${NOC}\n"
 
 				if [[ ! -z $re_dest ]]; then
 
@@ -172,9 +172,9 @@ validate_destination()
 
 	elif [[ ! -d $dest ]]; then
 
-		printf "destination:	${RED}$dest${NOC}\n\n"
+		printf "destination:	${MAGENTA}$dest${NOC}\n\n"
 
-		printf "${RED}destination${NOC} does not exist\n\n"
+		printf "destination ${MAGENTA}does not exist${NOC}\n\n"
 		printf "create? (y/N) "
 		reply_single
 		echo
@@ -217,14 +217,14 @@ validate_destination()
 
 		backup)
 			# req: .fpcl_file in source
-			[[ ! -f $src/.fpcl ]] && printf "${RED}no .fpcl file found in $bu_src${NOC}\n" && exit 21
+			[[ ! -f $src/.fpcl ]] && printf "${MAGENTA}no .fpcl file found in $bu_src${NOC}\n" && exit 21
 			;;
 
 		restore)
 			# req: .src file in source
-			[[ ! -f $src/.src ]] && printf "${RED}no .src file found in $re_src${NOC}\n" && exit 22
+			[[ ! -f $src/.src ]] && printf "${MAGENTA}no .src file found in $re_src${NOC}\n" && exit 22
 			# req: .fpcl_file in source
-			[[ ! -f $src/.fpcl ]] && printf "${RED}no .fpcl file found in $bu_src${NOC}\n" && exit 22
+			[[ ! -f $src/.fpcl ]] && printf "${MAGENTA}no .fpcl file found in $bu_src${NOC}\n" && exit 22
 			;;
 
 	esac
@@ -244,7 +244,7 @@ validate_destination()
 
 			else
 
-				printf "operation ${RED}aborted${NOC}, exiting, bye!\n"
+				printf "operation ${MAGENTA}aborted${NOC}, exiting, bye!\n"
 				exit 23
 
 			fi
@@ -263,40 +263,43 @@ copy()
 
 			rsync_exclude_list="$dest/.rexl"
 
-			while IFS= read -r fpcl_location; do
+			#while IFS= read -r fpcl_location; do
 
 
-				# don 't process ###' commented lines
-				if [[ "$(printf "$fpcl_location" | head -c 3)" == "###" ]]; then
+			#	# don 't process ###' commented lines
+			#	if [[ "$(printf "$fpcl_location" | head -c 3)" == "###" ]]; then
 
-					continue
+			#		continue
 
-				fi
-
-
-				# skip empty lines
-				if [[ -z "$fpcl_location" ]]; then
-
-					continue
-
-				fi
+			#	fi
 
 
-				# find lines starting with 'hashtag space'
-				# to add to exclude list
-				if [[ $(printf "$fpcl_location" | grep '^# ') ]]; then
+			#	# skip empty lines
+			#	if [[ -z "$fpcl_location" ]]; then
 
-					location_to_add="$(printf "$fpcl_location" | awk '{print $2}')"
+			#		continue
 
-					printf "$location_to_add\n" >> "$rsync_exclude_list"
-
-				fi
+			#	fi
 
 
-				# unchanged originals of encrypted files (no tar)
-				#[TODO]
+			#	#[TODO] put only directories to be copied in fpcl
+			#	# rsync include-files-from fpcl
 
-			done < $fpcl_file
+			#	# find lines starting with 'hashtag space'
+			#	# to add to exclude list
+			#	if [[ $(printf "$fpcl_location" | grep '^# ') ]]; then
+
+			#		location_to_add="$(printf "$fpcl_location" | awk '{print $2}')"
+
+			#		printf "$location_to_add\n" >> "$rsync_exclude_list"
+
+			#	fi
+
+
+			#	# unchanged originals of encrypted files (no tar)
+			#	#[TODO]
+
+			#done < $fpcl_file
 
 
 			# keep files with .aes and .hash extensions
@@ -304,7 +307,10 @@ copy()
 			printf "*.hash\n" >> "$rsync_exclude_list"
 
 			# copy files to destination
-			rsync -aAXv --exclude-from=$rsync_exclude_list --delete $bu_src/ $bu_dest
+			rsync -aAXv \
+				--delete \
+				--files-from=$fpcl_file \
+				$bu_src/ $bu_dest
 			#rsync -aAXv --exclude-from=$rsync_exclude_list $bu_src/ $bu_dest
 
 			# remove rsync exclude list
@@ -497,7 +503,7 @@ crypt()
 
 					else
 
-						printf "${RED}$crypt_loc is not a file or directory${NOC}\n"
+						printf "${MAGENTA}$crypt_loc is not a file or directory${NOC}\n"
 
 						continue
 
@@ -631,7 +637,7 @@ crypt()
 
 					else
 
-						printf "${RED}$crypt_loc is not a file or directory${NOC}\n"
+						printf "${MAGENTA}$crypt_loc is not a file or directory${NOC}\n"
 
 						continue
 
