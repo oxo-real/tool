@@ -10,7 +10,7 @@
 ### (_\/|_(_)|_)\/(_|(/_
 ###   /      |  /  _|
 ###
-### (c) 2020 - 2021 cytopyge
+### (c) 2020 - 2022 cytopyge
 ###
 ###	usage:	dotbu backup  [<bu_src> <bu_dest>]
 ###			dotbu restore [<rs_src> <rs_dest>]
@@ -375,11 +375,12 @@ modify()
 
 		backup)
 
-			# remove all git databases
-			#! #find $bu_dest -type d -name .git -exec rm -rf {} \;
+			# remove all (nested) git databases
+			printf "removing .git directories\n"
+			find $bu_dest -type d -name '*.git' -exec rm -rf {} \;
 			;;
 
-		esac
+	esac
 }
 
 
@@ -754,7 +755,7 @@ validate_source
 validate_destination
 create_lists
 copy
-#modify
+modify
 enter_password
 report_plain
 crypt
