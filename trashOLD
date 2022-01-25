@@ -11,8 +11,7 @@
 ###
 ### remove files to an intermediate location
 ###
-### recommendation:	alias rm="trash"
-###
+### dependencies: alias rm="trash"
 ### usage:	rm [-options] <location>
 ###			trash empty
 ##
@@ -61,7 +60,7 @@ process_args_array()
 		## printf -- to prevent taking items[0] as printf argument
 		elem1="$(printf -- "${items[0]}")"
 
-		## elem1 starts with a dash
+		## elem1 starts with a dash (-)
 		if [[ "$(printf -- "$elem1" | head -c 1)" == "-" ]]; then
 
 			## elem1 is no existing file
@@ -118,25 +117,34 @@ process_arguments()
 
 	for item in "${items[@]}"; do
 
-		# remove whitespaces
-		#item_wow=$(printf "$item" | sed -e 's/^[ \t]*//')
+		## define trash_item
+		trash_item="$trash/$item"
 
-		# check if item is already file in $trash
-		if [[ -f "$trash/$item" ]]; then
+		# check if item starts with a slash (/)
+		if [[ "$(echo $item | head -c 1)" == '/' ]]; then
 
-			# trash + epoch
-			trash=$trash/$item'_'$epoch
-
-		# check if item is already directory in $trash
-		elif [[ -d "$trash/$item" ]]; then
-
-			# trash + epoch
-			trash=$trash/$item'_'$epoch
+			# remove first dash to prevent double slash in trash_item
+			trash_item=$trash/$(printf "$item" | cut -c 2-)
 
 		fi
 
-		# remove possible // from trash
-		trash=$(printf "$trash" | sed 's/\/\//\//')
+
+		# check if item is already file in $trash
+		if [[ -f "$trash_item" ]]; then
+
+			# trash + epoch
+			trash=$trash'_'$epoch
+
+		# check if item is already directory in $trash
+		elif [[ -d "$trash_item" ]]; then
+
+			# trash + epoch
+			trash=$trash'_'$epoch
+
+		fi
+
+		# make trash_item directory if not exists
+		#[[ -d $trash_item ]] || mkdir -p $trash_item
 
 		trash_now
 
