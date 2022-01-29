@@ -45,7 +45,7 @@ dest=$3				# destination directory
 sourcing()
 {
 	# external code sources
-	source_dir="$XDG_DATA_HOME/git/code/sources/functions"
+	source_dir="$XDG_DATA_HOME/c/git/code/sources/functions"
 	source $source_dir/reply_functions
 	source $source_dir/text_appearance
 }
@@ -730,7 +730,7 @@ cleanup()
 enter_password()
 {
 	#pwgn(r5r6)
-	sh $XDG_DATA_HOME/git/code/tools/pwgn
+	sh $XDG_DATA_HOME/c/git/code/tools/pwgn
 	pw=$(wl-paste -n)
 	echo
 }

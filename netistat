@@ -1,6 +1,6 @@
 #!/bin/zsh
 
-source_dir='/home/cytopyge/.local/share/git/code/sources/functions/'
+source_dir="$XDG_DATA_HOME/c/git/code/sources/functions/"
 source $source_dir/text_appearance
 
 scn="/sys/class/net/"

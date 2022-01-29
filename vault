@@ -1,4 +1,4 @@
-#!/bin/zsh
+#!/bin/sh
 #
 ##
 ###
@@ -43,7 +43,7 @@
 developer="cytopyge"
 script_name="vault"
 initial_release_year=2019
-source_dir="$XDG_DATA_HOME/git/code/sources/functions"
+source_dir="$XDG_DATA_HOME/c/git/code/sources/functions"
 
 
 # get_args
@@ -79,7 +79,7 @@ load_dependencies()
 	source $source_dir/get_sudo
 
 	## pwgn_location
-	pwgn="$XDG_DATA_HOME/git/code/tools/pwgn"
+	pwgn="$XDG_DATA_HOME/c/git/code/tools/pwgn"
 }
 
 
@@ -462,21 +462,23 @@ generate_pw()
 
 	printf "starting pwgn...\npress 'n' to abort "
 
-	reply_single_hidden_timed
+	reply_single_hidden_timer
 
 	## remove lines above cursor
 	### restore cursor position
-	tput rc
+	#tput rc
 	### cursor up one line
-	tput cuu1
-	tput cuu1
+	#tput cuu1
+	#tput cuu1
 	### clear to end of screen
-	tput ed
+	#tput ed
 
 	if printf "$reply" | grep -iq "^n"; then
 
 		# exit from this loop and continue
-		return
+		#exit 99
+		#continue
+		return 0
 
 	else
 
@@ -885,8 +887,7 @@ vault_list()
 {
 	# show list of all mapper paths with their mountpoints
 
-	info=$(lsblk -lp | grep vlt_ | sort -k 7)
-	info_headers=$(lsblk -lp | head -n 1)
+	info=$(df -h | awk 'NR==1 || /\/vlt_/')
 
 	if [[ -z "$info" ]]; then
 
@@ -895,9 +896,7 @@ vault_list()
 	else
 
 		printf "${BLUE}mapped vaults mounted${NOC}\n"
-		printf "$info_headers\n"
-		printf "$info\n"
-	#	echo
+		printf '%s\n' "$info"
 
 	fi
 }

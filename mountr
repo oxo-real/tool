@@ -28,7 +28,7 @@
 ## initialize hardcoded variables
 script_name="mountr"
 initial_release_year="2020"
-source_dir="$XDG_DATA_HOME/git/code/sources/functions"
+source_dir="$XDG_DATA_HOME/c/git/code/sources/functions"
 
 
 # functions

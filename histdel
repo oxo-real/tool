@@ -1,6 +1,6 @@
 #!/bin/zsh
 
-source_dir="$XDG_DATA_HOME/git/code/sources/functions"
+source_dir="$XDG_DATA_HOME/c/git/code/sources/functions"
 
 ## reply functions
 source $source_dir/reply_functions

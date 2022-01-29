@@ -1,9 +1,10 @@
 #!/bin/env zsh
 
+# usage: compdir dir1 dir2 [rsync_options]
 
 if [[ -z $2 ]] ; then
 
-	echo "USAGE: $0 dir1 dir2 [optional rsync arguments]"
+	echo "USAGE: $0 dir1 dir2 [rsync_options]"
     exit 1
 
 fi

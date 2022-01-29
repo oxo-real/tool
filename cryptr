@@ -11,14 +11,14 @@
 ### (_\/|_(_)|_)\/(_|(/_
 ###   /      |  /  _|
 ###
-### 2021 - 2022 | cytopyge
+###  2021 - 2022  |  cytopyge
 ###
 ### cryptr
 ### --------------------------------
 ### crypto with optional cascade
 ### --------------------------------
 ### usage:
-### -e encrypt a tarx file
+### -e encrypt a file or dir
 ### cryptr [-e] <src> [dest]
 ###
 ### -d decrypt a tarx file
@@ -27,6 +27,7 @@
 ### !! SECURITY WARNING!!
 ### ^^^^^^^^^^^^^^^^^^^^^
 ### risks in multi-user systems!
+### (writing of temporary files)
 ###
 ##
 #
@@ -37,7 +38,8 @@
 cipher_suite="gnupg"
 #cipher_suite="openssl"
 
-source_dir="$XDG_DATA_HOME/git/code/sources/functions"
+gcd="$XDG_DATA_HOME/c/git/code"
+source_dir="$gcd/sources/functions"
 
 
 args="$@"
@@ -298,7 +300,7 @@ tar_create()
 }
 
 
-cipher_select()
+select_cipher()
 {
 	case $cipher_suite in
 
@@ -347,6 +349,8 @@ cipher_select_file()
 {
 	cipher_select_file="$tmp_dir/$(basename $src).csf"
 	printf "%s\n" ${cipher_select[@]} > "$cipher_select_file"
+
+	printf '%s\n' "cipher:		$(tr '\n' ' ' < $cipher_select_file)($cipher_select_amount)"
 }
 
 
@@ -355,12 +359,13 @@ running_rounds()
 	round=1
 	rounds=$cipher_select_amount
 
+	printf '\n%s' "encrypting:	"
+
 	for cipher in ${cipher_select[@]}; do
 
 		round_pass
 
-		printf "$cipher $round($rounds)\n"
-
+		printf '%s' "$cipher "
 		case $round in
 
 			1)
@@ -393,6 +398,8 @@ running_rounds()
 		round=$(( $round + 1 ))
 
 	done
+
+	echo
 }
 
 
@@ -597,7 +604,7 @@ tarx_check()
 
 			if [[ "$tarx_exist" == "1" ]]; then
 
-				printf "${YELLOW}tarx file: $tarx_file exists${NOC}\n"
+				printf "${YELLOW}%s${NOC}\n" "tarx file:	$tarx_file exists"
 				printf "overwrite? (y/N) "
 				reply_single
 
@@ -735,16 +742,17 @@ round_pass()
 }
 
 
-get_password()
+get_pass()
 {
-	read -s -p "passphrase: " ro_pass
+	read -s -p "pass:		" ro_pass
 	echo
 
 	case $oper in
 
 		encr)
+			# verifiy pass
 			ro_pass_sha3512=$(printf "$ro_pass" | gpg --print-md sha3-512)
-			read -s -p "verify: " ro_pass
+			read -s -p "verify:		" ro_pass
 			echo
 
 			if [[ "$ro_pass_sha3512" == $(printf "$ro_pass" | gpg --print-md sha3-512) ]]; then
@@ -753,7 +761,7 @@ get_password()
 
 			else
 
-				printf "${MAGENTA}passphrase verification failed${NOC}\n"
+				printf "${MAGENTA}pass verification failed${NOC}\n"
 				exit 1
 
 			fi
@@ -771,6 +779,7 @@ cleanup()
 
 			tar_destroy
 			#[TODO] why in pwd? -> temp!
+			#[TODO] check these!
 			\rm -rf $file_out
 			;;
 
@@ -787,11 +796,11 @@ cleanup()
 
 encrypt()
 {
-	cipher_select
+	select_cipher
 	cipher_select_file
+	get_pass
 	running_rounds
 	tarx_define
-	#[TODO] prefer to have tarx_check before get_password
 	tarx_check
 	tarx_create
 	cleanup
@@ -803,6 +812,7 @@ decrypt()
 	tarx_check
 	tarx_open
 	get_crypto_data
+	get_pass
 	running_rounds
 	cleanup
 }
@@ -812,7 +822,6 @@ main()
 {
 	initialize
 	arguments
-	get_password
 
 	case $oper in
 

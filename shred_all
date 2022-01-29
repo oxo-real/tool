@@ -34,7 +34,7 @@ passes=10
 script_name="shred_all"
 initial_release_year="2017"
 developer="cytopyge"
-source_dir="$XDG_DATA_HOME/git/code/sources/functions"
+source_dir="$XDG_DATA_HOME/c/git/code/sources/functions"
 
 
 main()

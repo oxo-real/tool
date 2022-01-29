@@ -22,7 +22,7 @@
 ## usage: cd $XDG_CONFIG_HOME/hosts && git checkout blocklist_on
 
 
-source $XDG_DATA_HOME/git/code/sources/functions/text_appearance
+source $XDG_DATA_HOME/c/git/code/sources/functions/text_appearance
 loc_blocklist="$XDG_CONFIG_HOME/hosts"
 
 
@@ -75,7 +75,7 @@ download_blocklist()
 	printf "${BLUE}update dns hosts blocklist succesfull${NOC}\n"
 
 	## go back to where we came from
-	cd -
+	cd - >/dev/null
 
 	exit 0
 }

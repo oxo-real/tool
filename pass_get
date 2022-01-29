@@ -28,7 +28,7 @@
 object=$1
 element=$2
 
-source $XDG_DATA_HOME/git/code/sources/functions/text_appearance
+source $XDG_DATA_HOME/c/git/code/sources/functions/text_appearance
 
 ## store_l is the symlink location (to the pass password store)
 ## recommended to mount an encrypted vault container

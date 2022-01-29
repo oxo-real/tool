@@ -26,7 +26,7 @@
 script_name="pwgn"
 initial_release_year="2020"
 developer="cytopyge"
-source_dir="$XDG_DATA_HOME/git/code/sources/functions"
+source_dir="$XDG_DATA_HOME/c/git/code/sources/functions"
 
 
 read_input()
@@ -341,7 +341,7 @@ two_fa()
 	read two_fa
 
 	## set variables to send to genotp
-	secret="$XDG_DATA_HOME/git/private/vault/totp.key"
+	secret="$XDG_DATA_HOME/c/git/private/vault/totp.key"
 	mode="totp"
 	alg="sha512"
 	digits="12"
@@ -351,7 +351,7 @@ two_fa()
 	from_hmac="1"
 
 	## call genotp to get current code
-	eval $(source $XDG_DATA_HOME/git/notes/crypto/2fa/genotp/genotp.sh; echo code="$code";)
+	eval $(source $XDG_DATA_HOME/c/git/notes/crypto/2fa/genotp/genotp.sh; echo code="$code";)
 
 	## code from genotp is 12 digits (for aesthetic purposes there)
 	## first two though are always leading zeros
@@ -389,6 +389,7 @@ output_wlcopy()
 
 print_qr_code()
 {
+	#[TODO if no qrencode, then just skip printing
 	[[ -n $(command -v qrencode) ]] && printf $1 | qrencode -m 3 -t UTF8
 }
 
