@@ -751,11 +751,11 @@ get_pass()
 
 		encr)
 			# verifiy pass
-			ro_pass_sha3512=$(printf "$ro_pass" | gpg --print-md sha3-512)
+			ro_pass_sha3512=$(printf '%s' "$ro_pass" | gpg --print-md sha3-512)
 			read -s -p "verify:		" ro_pass
 			echo
 
-			if [[ "$ro_pass_sha3512" == $(printf "$ro_pass" | gpg --print-md sha3-512) ]]; then
+			if [[ "$ro_pass_sha3512" == $(printf '%s' "$ro_pass" | gpg --print-md sha3-512) ]]; then
 
 				a=0
 
