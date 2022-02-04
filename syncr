@@ -1,0 +1,226 @@
+#!/bin/env bash
+#
+##
+###  ___ _   _ _ __   ___ _ __
+### / __| | | | '_ \ / __| '__|
+### \__ \ |_| | | | | (__| |
+### |___/\__, |_| |_|\___|_|
+###      |___/
+###  _ _|_ _ ._    _  _
+### (_\/|_(_)|_)\/(_|(/_
+###   /      |  /  _|
+###
+###	syncr
+### synchronize data
+###	2020 - 2022  |  cytopyge
+###
+### usage:
+###			check the switches in main!
+###
+###			syncr <destination> [rsync_options]
+###
+### # examples
+###
+### ## backup
+### syncr /home/cytopyge/dock/transfer/tux/home/cytopyge \
+###						--dry-run --delete dest_backup
+###
+### ## archive
+### syncr /home/cytopyge/dock/transfer/tux/home/cytopyge \
+###						--dry-run dest_archive
+##
+#
+
+## initialize
+args="$@"
+
+## sourcing
+source_dir="$XDG_DATA_HOME/c/git/code/sources/functions"
+source $source_dir/get_sudo
+source $source_dir/reply_functions
+source $source_dir/text_appearance
+
+## user authentication
+#get_sudo
+set -e
+
+## destination
+dest=$1; shift
+[[ ! -d $dest ]] && printf "${MAGENTA}destination not found${NOC}\n" && exit 3
+
+## rsync options
+options="$*"
+
+
+config_fpcl()
+{
+	# synchronize .config			(config_fpcl)
+
+	printf "\n${BLUE}%s${NOC}\n" "synching config_fpcl..."
+
+	## define file process list
+	fpcl_file="$XDG_CONFIG_HOME/.fpcl"
+	fpcl_rsync="$XDG_CONFIG_HOME/.fpcl_rsync"
+
+	## create temporary file fpcl_rsync,
+	## based on fpcl_file
+	## (latter is also used in dotbu)
+	sed 's/^c //' $fpcl_file > $fpcl_rsync
+	printf ".fpcl_rsync\n" >> $fpcl_rsync
+
+	local src="$XDG_CONFIG_HOME"
+	local dst="$dest/.config/"
+
+	rsync -aAXv \
+		--info=ALL \
+		--files-from="$fpcl_rsync" \
+		--recursive \
+		$options \
+		$src $dst
+
+	rm -rf $fpcl_rsync
+}
+
+
+logs()
+{
+	# synchronize .logs				(logs)
+
+	printf "\n${BLUE}%s${NOC}\n" "synching logs..."
+
+	local src="$XDG_LOGS_HOME"
+	local dst="$dest/.logs/"
+
+	rsync -aAXv \
+		--info=ALL \
+		$options \
+		$src $dst
+}
+
+
+local_share_archive()
+{
+	# synchronize .local/share/a	(archive)
+
+	printf "\n${BLUE}%s${NOC}\n" "synching archive..."
+
+	local src="$XDG_DATA_HOME/a"
+	local dst="$dest/.local/share/"
+
+	rsync -aAXv \
+		--info=ALL \
+		--dirs \
+		$options \
+		$src $dst
+}
+
+
+local_share_current()
+{
+	# synchronize .local/share/c	(share_current)
+
+	printf "\n${BLUE}%s${NOC}\n" "synching current..."
+
+	local src="$XDG_DATA_HOME/c"
+	local dst="$dest/.local/share/"
+
+	rsync -aAXv \
+		--info=ALL \
+		--dirs \
+		$options \
+		$src $dst
+}
+
+
+password_store()
+{
+	# synchronize password-store	(password_store)
+
+	printf "\n${BLUE}%s${NOC}\n" "synching password_store..."
+
+	if [[ -d $HOME/dock/vlt/pass ]] && \
+		mountpoint -q $HOME/dock/vlt/pass; then
+
+		local src="$HOME/dock/vlt"
+		local dst="$dest/"
+
+		rsync -aAXv \
+			--info=ALL \
+			$options \
+			$src $dst
+
+	else
+
+		printf "${MAGENTA}error; no password_store found${NOC}\n"
+
+	fi
+}
+
+
+local_share_backup()
+{
+	# synchronize .local/share/b	(backup)
+
+	printf "\n${BLUE}%s${NOC}\n" "synching backup..."
+
+	local src="$XDG_DATA_HOME/b"
+	local dst="$dest/.local/share/"
+
+	rsync -aAXv \
+		--info=ALL \
+		--dirs \
+		$options \
+		$src $dst
+}
+
+
+config_all()
+{
+	# synchronize .config			(config_all)
+
+	printf "\n${BLUE}%s${NOC}\n" "synching config_all..."
+
+	local src="$XDG_CONFIG_HOME"
+	local dst="$dest/.config/"
+
+	rsync -aAXv \
+		--info=ALL \
+		$options \
+		$src $dst
+}
+
+
+local_share_all()
+{
+	# synchronize .local/share		(share_all)
+
+	printf "\n${BLUE}%s${NOC}\n" "synching local_share_all..."
+
+	local src="$XDG_DATA_HOME"
+	local dst="$dest/.local/share/"
+
+	rsync -aAXv \
+		--info=ALL \
+		--dirs \
+		$options \
+		$src $dst
+}
+
+
+main()
+{
+	config_fpcl
+
+	logs
+
+	local_share_archive
+	local_share_current
+
+	password_store
+
+	#backup
+	#config_all
+	#local_share_all
+}
+
+main

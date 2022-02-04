@@ -784,6 +784,7 @@ fzf_select_target()
 
 	else
 
+		#[TODO] umounted vault but still a dev_mapper_vlt
 		printf "${MAGENTA}empty list${NOC}\n"
 		exit
 

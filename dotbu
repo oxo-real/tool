@@ -457,6 +457,7 @@ crypt()
 							printf "$tar_name_hash_new" > "$tar_name.hash"
 
 							## encrypt the tar archive
+							#[TODO] gpg encrypt
 							tar_crypt_name="$tar_name.aes"
 							openssl enc \
 								-e \
