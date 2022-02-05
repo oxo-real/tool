@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 ##
 ### pkg_copy
@@ -19,96 +19,92 @@ p_dst=$@
 
 timestamp=$(date +%s)
 
+rsync_list="$p_dst/$timestamp"_rsync_sp.list
+pacman_qi_list="$p_dst/$timestamp"_pacman_qi.list
+pacman_error_list="$p_dst/$timestamp"_pacman_err.list
+
 # create destination locations if not exist
-[[ -d $p_dst ]] ||		mkdir -p $p_dst
+[[ -d $p_dst ]] || mkdir -p $p_dst
 
-
-## ! ## rsync -aAXv /var/cache/pacman/pkg dock/2
-## ! ## repo-add ~/dock/2/offline.db.tar.zst ~/dock/2/*.pkg.tar.{zst,xz}
+# remove all old lists
+rm -rf $p_dst/*.list
 
 
 for package in $(pacman -Qq); do
 
-	# online check for package existence
-	pacman -Si $package >/dev/null 2>&1
+	pacman -Sp $package >/dev/null 2>&1
 
-	if [[ $? -ne 0 ]]; then
+	case "$?" in
 
-		# pacman_Si error: package '$package' was not found
-		# package is not found online
+		0)
 
-		pacman -Qqmet $package >/dev/null 2>&1
-
-		if [[ $? -eq 0 ]]; then
-
-			# package is an
-			# unrequired (t) explicitly installed (e) foreign (m) package
-			# package file is probably stored in cache_yay
-			cache_yay=1
-
-		fi
-
-	else
-
-		# append package info to pacman_qi.list
-		## package file location
-		pacman -Sp $package >> $p_dst/"$timestamp"_pacman_qi.list
-		## package information
-		pacman -Qi $package >> $p_dst/"$timestamp"_pacman_qi.list
+			# append package info to pacman_qi.list
+			## package file location
+			p_file="$(pacman -Sp $package)"
+			printf "$p_file\n" >> $pacman_qi_list
+			## package information
+			pacman -Qi $package >> $pacman_qi_list
 
 
-		# package current version
-		p_curr_ver=$(\
-			pacman -Qi $package | \
-			grep ^Version | \
-			awk -F ': ' '{print $2}'\
-		)
+			## package current version
+			#p_ver_curr=$(\
+			#	pacman -Qi $package | \
+			#	grep ^Version | \
+			#	awk -F ': ' '{print $2}'\
+			#)
 
-		# package files to copy
-		## existing .sig files are also copied
-		p_files_copy=$(\
-			ls $p_src | \
-			grep ^$package-$p_curr_ver
-		)
+			#printf "$p_ver_curr\n"
 
-		## add to rsync list
-		rsync_list="$p_dst/"$timestamp"_rsync_sp.list"
-		#package_file=$(pacman -Sp $package | sed "s|file:\/\/"$p_src"\/||")
-		#printf '%s\n' "$package_file" >> $rsync_list
-		#printf '%s\n' "$package_file" >> $p_dst/"$timestamp"_rsync_sp.list
-		printf '%s\n' "$p_files_copy" >> $rsync_list
+			## whole file name
+			#p_file=$package-$p_ver_curr
 
-		## with extraneous file deletion in destination
-		#rsync -aAXv --delete --times $file $p_dst
 
-		## without file deletion in destination
-		# create rsync file-from list
+			# delete old package and signature files
+			#p_del_old=$(ls $p_dst | grep $package | grep --invert-match $p_file)
+			#[[ -n $p_del_old ]] && rm -rf $p_dst/$p_del_old
 
-		#cp --preserve=timestamps $p_src/$file $p_dst
-		#rsync -aAXv $p_src/$file $p_dst
 
-		printf "$package\n"
+			# package files to copy
+			## existing .sig files are also copied
+			p_file_abs=$(printf $p_file | sed 's|file://||')
+			## files-from must contain names relative to source
+			p_file_copy=$(printf $p_file_abs | sed "s|$p_src/||")
 
-	fi
+
+			# add to rsync list
+			## packages
+			printf '%s\n' $p_file_copy >> $rsync_list
+
+			## signatures
+			p_file_sig="$p_file_abs.sig"
+
+			if [[ -f $p_file_sig ]]; then
+
+				printf '%s\n' "$p_file_copy.sig" >> $rsync_list
+
+			fi
+			;;
+
+		*)
+
+			printf "error "
+
+			printf "$package\n" >> $pacman_error_list
+			;;
+
+	esac
+
+	printf "$package\n"
 
 done
 
 ## rsync file list
-#
-rsync -aAXv --delete --files-from="$p_dst/"$timestamp"_rsync_sp.list" $p_src $p_dst
+rsync -aAXv \
+	--files-from=$rsync_list \
+	--delete
+	$p_src $p_dst
 
 
 # build custom package database
 ## .zst and older .xz packages
 repo-add $p_dst/$db_name.db.tar.zst $p_dst/*.pkg.tar.{zst,xz}
-
-
-# number of packages in destination
-#p_file_dst_count=$(ls $p_dst | grep --invert-match .sig$ | wc -l)
-
-# number of packages in source
-#p_src_count=$(pacman -Q | wc -l)
-
-#printf "$p_dst_count $p_dst\n"
-#printf "$p_src_count $p_src\n"
-
