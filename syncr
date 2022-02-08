@@ -213,7 +213,7 @@ main()
 
 	logs
 
-	local_share_archive
+	#local_share_archive
 	local_share_current
 
 	password_store
