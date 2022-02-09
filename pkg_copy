@@ -23,88 +23,128 @@ rsync_list="$p_dst/$timestamp"_rsync_sp.list
 pacman_qi_list="$p_dst/$timestamp"_pacman_qi.list
 pacman_error_list="$p_dst/$timestamp"_pacman_err.list
 
-# create destination locations if not exist
+# create destination location if not exist
 [[ -d $p_dst ]] || mkdir -p $p_dst
 
 # remove all old lists
 rm -rf $p_dst/*.list
 
 
-for package in $(pacman -Qq); do
+create_rsync_list()
+{
+	for package in $(pacman -Qq); do
 
-	pacman -Sp $package >/dev/null 2>&1
+		pacman -Sp $package >/dev/null 2>&1
 
-	case "$?" in
+		case "$?" in
 
-		0)
+			0)
 
-			# append package info to pacman_qi.list
-			## package file location
-			p_file="$(pacman -Sp $package)"
-			printf "$p_file\n" >> $pacman_qi_list
-			## package information
-			pacman -Qi $package >> $pacman_qi_list
-
-
-			## package current version
-			#p_ver_curr=$(\
-			#	pacman -Qi $package | \
-			#	grep ^Version | \
-			#	awk -F ': ' '{print $2}'\
-			#)
-
-			#printf "$p_ver_curr\n"
-
-			## whole file name
-			#p_file=$package-$p_ver_curr
+				# append package info to pacman_qi.list
+				## package file location
+				p_file="$(pacman -Sp $package)"
+				printf "$p_file\n" >> $pacman_qi_list
+				## package information
+				pacman -Qi $package >> $pacman_qi_list
 
 
-			# delete old package and signature files
-			#p_del_old=$(ls $p_dst | grep $package | grep --invert-match $p_file)
-			#[[ -n $p_del_old ]] && rm -rf $p_dst/$p_del_old
+				## package current version
+				#p_ver_curr=$(\
+				#	pacman -Qi $package | \
+				#	grep ^Version | \
+				#	awk -F ': ' '{print $2}'\
+				#)
+
+				#printf "$p_ver_curr\n"
+
+				## whole file name
+				#p_file=$package-$p_ver_curr
 
 
-			# package files to copy
-			## existing .sig files are also copied
-			p_file_abs=$(printf $p_file | sed 's|file://||')
-			## files-from must contain names relative to source
-			p_file_copy=$(printf $p_file_abs | sed "s|$p_src/||")
+				# delete old package and signature files
+				#p_del_old=$(ls $p_dst | grep $package | grep --invert-match $p_file)
+				#[[ -n $p_del_old ]] && rm -rf $p_dst/$p_del_old
 
 
-			# add to rsync list
-			## packages
-			printf '%s\n' $p_file_copy >> $rsync_list
-
-			## signatures
-			p_file_sig="$p_file_abs.sig"
-
-			if [[ -f $p_file_sig ]]; then
-
-				printf '%s\n' "$p_file_copy.sig" >> $rsync_list
-
-			fi
-			;;
-
-		*)
-
-			printf "error "
-
-			printf "$package\n" >> $pacman_error_list
-			;;
-
-	esac
-
-	printf "$package\n"
-
-done
-
-## rsync file list
-rsync -aAXv \
-	--files-from=$rsync_list \
-	--delete
-	$p_src $p_dst
+				# package files to copy
+				## existing .sig files are also copied
+				p_file_abs=$(printf $p_file | sed 's|file://||')
+				## files-from must contain names relative to source
+				p_file_copy=$(printf $p_file_abs | sed "s|$p_src/||")
 
 
-# build custom package database
-## .zst and older .xz packages
-repo-add $p_dst/$db_name.db.tar.zst $p_dst/*.pkg.tar.{zst,xz}
+				# add to rsync list
+				## packages
+				printf '%s\n' $p_file_copy >> $rsync_list
+
+				## signatures
+				p_file_sig="$p_file_abs.sig"
+
+				if [[ -f $p_file_sig ]]; then
+
+					printf '%s\n' "$p_file_copy.sig" >> $rsync_list
+
+				fi
+				;;
+
+			*)
+
+				printf "error "
+
+				printf "$package\n" >> $pacman_error_list
+				;;
+
+		esac
+
+		printf "$package\n"
+
+	done
+}
+
+
+rsync_file_list()
+{
+	rsync -aAXv \
+		--files-from=$rsync_list \
+		--delete
+		$p_src $p_dst
+}
+
+
+build_custom_pkg_db()
+{
+	# build custom package database
+	## .zst and older .xz packages
+	repo-add $p_dst/$db_name.db.tar.zst $p_dst/*.pkg.tar.{zst,xz}
+}
+
+
+aur_packages()
+{
+	# compile source code from aur packages
+	## source for hajime/4apps.sh#aur_install
+
+	aur_pkgs=( $(yay -Qqm) )
+	dst_aur="$p_dst/aur"
+
+	cd $dst_aur
+	yay -Gd $(yay -Qqm)
+
+	for package in "${aur_pkgs[@]}"; do
+
+		cd "$dst_aur/$package"
+		makepkg -s
+
+	done
+}
+
+
+main()
+{
+#	create_rsync_list
+#	rsync_file_list
+#	build_custom_pkg_db
+	aur_packages
+}
+
+main

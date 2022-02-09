@@ -1,15 +1,33 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+## usage:	chln [directory]
 
 : '
 change symlinks $HOME to other $USER
 old: /home/user01/dir/symlink
 new: /home/user02/dir/symlink
 
-applied on $HOME/.config/shln
+default applies on $HOME/.config/shln
 when it is moved to another $USER
 # '
 
-for symlink in $(find $XDG_CONFIG_HOME/shln -type l); do
+## non-default target
+target="$1"
+
+if [[ -z "$target" ]]; then
+
+	target="$XDG_CONFIG_HOME/shln"
+
+else
+
+	:
+
+fi
+
+
+# execute chln
+
+for symlink in $(find $target -type l); do
 
 	new_target=$( \
 	readlink $symlink | \
