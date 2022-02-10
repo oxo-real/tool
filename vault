@@ -861,6 +861,17 @@ unmount()
 			printf "\n$vlt_mapper unmounted from $mountpoint\n"
 
 	fi
+
+	# special case: remove vlt_pass
+	## vlt_pass umounted => $HOME/.password-store becomes red
+	case $mountpoint in
+
+		$HOME/dock/vlt/pass)
+
+			rm -rf $mountpoint
+			;;
+
+	esac
 }
 
 
