@@ -141,9 +141,9 @@ aur_packages()
 
 main()
 {
-#	create_rsync_list
-#	rsync_file_list
-#	build_custom_pkg_db
+	create_rsync_list
+	rsync_file_list
+	build_custom_pkg_db
 	aur_packages
 }
 
