@@ -211,10 +211,10 @@ main()
 {
 	config_fpcl
 
-	###logs
+	logs
 
-	#local_share_archive
-	###local_share_current
+	local_share_archive
+	local_share_current
 
 	password_store
 
