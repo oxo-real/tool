@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 #
 ##
-### pkg_copy
+### make_offl_repo
 ###
-### copies currently installed version of every pacman installed package
+### copies pacman package cache to destination
 ###
-### usage: pkg_copy <destination>
+### usage: make_offl_repo <destination>
 ##
 #
 
@@ -106,7 +106,15 @@ rsync_file_list()
 {
 	rsync -aAXv \
 		--files-from=$rsync_list \
-		--delete
+		--delete \
+		$p_src $p_dst
+}
+
+
+rsync_all_packages()
+{
+	rsync -aAXv \
+		--delete \
 		$p_src $p_dst
 }
 
@@ -141,8 +149,9 @@ aur_packages()
 
 main()
 {
-	create_rsync_list
-	rsync_file_list
+	#create_rsync_list
+	#rsync_file_list
+	rsync_all_packages
 	build_custom_pkg_db
 	aur_packages
 }

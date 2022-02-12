@@ -48,8 +48,12 @@ set -e
 dest=$1; shift
 [[ ! -d $dest ]] && printf "${MAGENTA}destination not found${NOC}\n" && exit 3
 
-## rsync options
+## added rsync options
 options="$*"
+
+## rsync options
+# -a	is equivalent to -rlptgoD
+# --dirs	will create directories specified in the list on the destination
 
 
 config_fpcl()
@@ -71,10 +75,11 @@ config_fpcl()
 	local src="$XDG_CONFIG_HOME"
 	local dst="$dest/.config/"
 
+	[[ -d $dst ]] || mkdir -p $dst
+
 	rsync -aAXv \
 		--info=ALL \
 		--files-from="$fpcl_rsync" \
-		--recursive \
 		$options \
 		$src $dst
 
@@ -90,6 +95,8 @@ logs()
 
 	local src="$XDG_LOGS_HOME"
 	local dst="$dest/.logs/"
+
+	[[ -d $dst ]] || mkdir -p $dst
 
 	rsync -aAXv \
 		--info=ALL \
@@ -107,6 +114,8 @@ local_share_archive()
 	local src="$XDG_DATA_HOME/a"
 	local dst="$dest/.local/share/"
 
+	[[ -d $dst ]] || mkdir -p $dst
+
 	rsync -aAXv \
 		--info=ALL \
 		--dirs \
@@ -123,6 +132,8 @@ local_share_current()
 
 	local src="$XDG_DATA_HOME/c"
 	local dst="$dest/.local/share/"
+
+	[[ -d $dst ]] || mkdir -p $dst
 
 	rsync -aAXv \
 		--info=ALL \
@@ -143,6 +154,8 @@ password_store()
 
 		local src="$HOME/dock/vlt"
 		local dst="$dest/"
+
+		[[ -d $dst ]] || mkdir -p $dst
 
 		rsync -aAXv \
 			--info=ALL \
@@ -166,6 +179,8 @@ local_share_backup()
 	local src="$XDG_DATA_HOME/b"
 	local dst="$dest/.local/share/"
 
+	[[ -d $dst ]] || mkdir -p $dst
+
 	rsync -aAXv \
 		--info=ALL \
 		--dirs \
@@ -183,6 +198,8 @@ config_all()
 	local src="$XDG_CONFIG_HOME"
 	local dst="$dest/.config/"
 
+	[[ -d $dst ]] || mkdir -p $dst
+
 	rsync -aAXv \
 		--info=ALL \
 		$options \
@@ -198,6 +215,8 @@ local_share_all()
 
 	local src="$XDG_DATA_HOME"
 	local dst="$dest/.local/share/"
+
+	[[ -d $dst ]] || mkdir -p $dst
 
 	rsync -aAXv \
 		--info=ALL \

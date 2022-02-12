@@ -1,0 +1,21 @@
+#!/usr/bin/env sh
+
+# timezone info
+# tip: leave search empty and pipe to fzf
+
+search=$1
+time_format='%a %F %T'
+zone_info='/usr/share/zoneinfo/posix/'
+
+find -L $zone_info -type f | grep -i "$search" |
+	while read z; do
+
+		## rfc-2822 format
+		d=$(TZ=$z date -R)
+
+		## other time_format
+		#d=$(TZ=$z date +"$time_format")
+
+		printf "%23s %-34s\n" "$d" ${z#$zone_info}
+
+	done
