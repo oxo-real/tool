@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 ##
 ###  _ ____      ____ _ _ __
@@ -13,7 +13,7 @@
 ### pwgn
 ### generate unique hex strings
 ###
-### (c) 2020 - 2022 cytopyge
+### 2020 - 2022  |  cytopyge
 ###
 ### --------------------------------
 ### usage: pwgn
@@ -64,7 +64,7 @@ terminal_lines()
 
 	if [[ "$term_lines" -le "33" ]]; then
 
-		clear
+		#clear
 		## save cursor position
 		#tput sc
 
@@ -107,14 +107,16 @@ keyboard_input()
 {
 	## give clear line for entry
 	## clear screen and home cursor
-	tput clear
+	#tput clear
 
 	#read input
 	read input
+	printf "\033[2K\r"
 
 	##[TODO] press tab to hide keyboard entry
 
 	## clear screen and home cursor
+	## need this one for proper qr & blocks printing
 	tput clear
 }
 
@@ -125,9 +127,9 @@ choose_input()
 
 	get_sudo
 
-	clear
+	#clear
 	## save cursor position
-	tput sc
+	#tput sc
 
 	printf "${YELLOW}O${NOC}ptical scan and decode from video device "
 
@@ -137,12 +139,14 @@ choose_input()
 	reply_single_hidden_timer
 
 	## clear screen and home cursor
-	tput clear
+	#tput clear
 	## show cursor again
+	echo
 	tput cnorm
 
 	if printf "$reply" | grep -q "^O"; then
 
+		## entry must be shift+o
 		optical_input
 
 	else

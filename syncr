@@ -94,7 +94,7 @@ logs()
 	printf "\n${BLUE}%s${NOC}\n" "synching logs..."
 
 	local src="$XDG_LOGS_HOME"
-	local dst="$dest/.logs/"
+	local dst="$dest"
 
 	[[ -d $dst ]] || mkdir -p $dst
 
@@ -112,6 +112,25 @@ local_share_archive()
 	printf "\n${BLUE}%s${NOC}\n" "synching archive..."
 
 	local src="$XDG_DATA_HOME/a"
+	local dst="$dest/.local/share/"
+
+	[[ -d $dst ]] || mkdir -p $dst
+
+	rsync -aAXv \
+		--info=ALL \
+		--dirs \
+		$options \
+		$src $dst
+}
+
+
+local_share_backup()
+{
+	# synchronize .local/share/b	(backup)
+
+	printf "\n${BLUE}%s${NOC}\n" "synching backup..."
+
+	local src="$XDG_DATA_HOME/b"
 	local dst="$dest/.local/share/"
 
 	[[ -d $dst ]] || mkdir -p $dst
@@ -170,25 +189,6 @@ password_store()
 }
 
 
-local_share_backup()
-{
-	# synchronize .local/share/b	(backup)
-
-	printf "\n${BLUE}%s${NOC}\n" "synching backup..."
-
-	local src="$XDG_DATA_HOME/b"
-	local dst="$dest/.local/share/"
-
-	[[ -d $dst ]] || mkdir -p $dst
-
-	rsync -aAXv \
-		--info=ALL \
-		--dirs \
-		$options \
-		$src $dst
-}
-
-
 config_all()
 {
 	# synchronize .config			(config_all)
@@ -233,13 +233,13 @@ main()
 	logs
 
 	local_share_archive
+	local_share_backup
 	local_share_current
 
 	password_store
 
-	#backup
-	#config_all
-	#local_share_all
+	## ## config_all
+	## ## local_share_all
 }
 
 main

@@ -20,8 +20,11 @@
 ### usage:		passget
 ###				passget $object
 ###				passget $object $element
-###				passget status
+###
+###				passget login
 ###				passget logout
+###				passget status
+###				passget close
 ##
 #
 
@@ -29,17 +32,20 @@
 object=$1
 element=$2
 
-source $XDG_DATA_HOME/c/git/code/sources/functions/text_appearance
-source $XDG_DATA_HOME/c/git/code/sources/functions/get_sudo
-
 ## store_l is the symlink location (to the pass password store)
 ## recommended to mount an encrypted vault container
 ## then symlink .password-store to a container mountpoint
 ## default symlink:	$HOME/.password-store
 ## default target:	$HOME/dock/vlt/pass
 store_l="$HOME/.password-store"
+
 ## store is the genuine password store location
 store=$(readlink $store_l)
+
+crypto_source="$XDG_DATA_HOME/c/keys/pass/vlt_pass"
+
+source $XDG_DATA_HOME/c/git/code/sources/functions/text_appearance
+source $XDG_DATA_HOME/c/git/code/sources/functions/get_sudo
 
 ## objects can be searched for one or more elements
 ## regular elements are: url, userid, password
@@ -59,8 +65,6 @@ elements=(\
 	"92 obj_edit" \
 	"99 obj_name" \
 	" " \
-	"0  log_out" \
-	" " \
 	"ESC cancel")
 
 ## the pass help file refers to objects by naming them 'passwords'
@@ -72,20 +76,120 @@ elements=(\
 ## (filename without .gpg extension)
 
 
-check_mountpoint()
+get_object()
 {
-	mountpoint -q $store_l
-	[[ $? -ne 0 ]] && \
-		printf "${BLUE}mounting password-store${NOC}\n" && \
+	case $object in
 
-		pass_mount
+		login)
+			log_in
+			;;
+
+		logout)
+			log_out
+			;;
+
+		open)
+			vault_open
+			;;
+
+		close)
+			log_out
+			close
+			;;
+
+		status)
+			show_status
+			;;
+
+		'')
+			get_mountpoint_status
+			[[ $mp_status == 0 ]] && pass_mount
+
+			object=$(find -L $store_l -type f -iname '*.gpg' | \
+				# with sed we remove the leading path of $store_l
+				# internal field separator is '|'
+				# because the path itself contains '/'
+				sed "s|$store_l/||g" | \
+				# with sed we remove the trailing .gpg extension
+				sed "s/.gpg//g" | \
+				sort | \
+				fzf --prompt='select object ')
+
+	esac
+}
+
+
+vault_open()
+{
+	pass_mount
+}
+
+
+log_in()
+{
+	get_mountpoint_status
+
+	case $mp_status in
+
+		$store)
+			element='obj_show'
+			gpg_decrypt
+			;;
+
+		*)
+			printf "${MAGENTA}no_mp${NOC}\n"
+			exit 11
+			;;
+
+	esac
+
+}
+
+
+log_out()
+{
+	gpg-connect-agent -q reloadagent /bye >/dev/null
+	printf "${BLUE}log_out succes, bye!${NOC}\n"
+	[[ "$object" == 'close' ]] || exit 0
+}
+
+
+close()
+{
+	sh vault close $store
+	exit 0
+}
+
+
+show_status()
+{
+	get_mountpoint_status
+	get_cache_status
+	printf "$mp_status $cache_status\n"
+	exit 0
+}
+
+
+get_mountpoint_status()
+{
+	mountpoint -q $store_l && mp_status=$store || mp_status=0
+	#[[ $? -ne 0 ]] && \
+	#	printf "${MAGENTA}password-store not mounted${NOC}\n"
+}
+
+
+get_cache_status()
+{
+	# 1 | 0 (no cache)
+	cache_status=$(gpg-connect-agent 'keyinfo --list' /bye 2>/dev/null | \
+		awk 'BEGIN{CACHED=0} /^S/ {if($7==1){CACHED=1}} END\
+		{if($0!=""){print CACHED} else {print "none"}}')
 }
 
 
 pass_mount()
 {
 	# pass crypto source location
-	crypto_source="$XDG_DATA_HOME/c/keys/pass/vlt_pass"
 
 	# pass mount destination
 	## vlt_pass mounted => $HOME/.password-store becomes pale
@@ -114,14 +218,21 @@ pass_mount()
 
 	fi
 
-	gpg_decrypt
+	case $object in
+
+		open)
+			# only mount vault, no login
+			exit 0
+			;;
+
+	esac
 }
 
 
 gpg_decrypt()
 {
-	### ## always reset cached gpg password
-	### #gpg-connect-agent -q reloadagent /bye >/dev/null
+	# always reset cached gpg password
+	gpg-connect-agent -q reloadagent /bye >/dev/null
 
 	printf "\n${YELLOW}${BOLD} O--, ${NORMAL}${NOC}\n"
 	tput civis
@@ -129,46 +240,13 @@ gpg_decrypt()
 	tput cnorm
 	pwgn
 	echo
-	[[ -z $object ]] && object='pass_unlock'
-	get_object
+
+	#[[ -z $object ]] && object='login'
+	##[[ -z $object ]] && object='pass_unlock'
+	### INIF LOOP
+	#get_object
 }
 
-
-get_object()
-{
-	if [[ -z $object ]]; then
-
-		object=$(find -L $store_l -type f -iname '*.gpg' | \
-			# with sed we remove the leading path of $store_l
-			# internal field separator is '|'
-			# because the path itself contains '/'
-			sed "s|$store_l/||g" | \
-			# with sed we remove the trailing .gpg extension
-			sed "s/.gpg//g" | \
-			sort | \
-			fzf --prompt='select object ')
-
-	elif [[ "$object" == "logout" ]] || [[ "$object" == "log_out" ]]; then
-
-		log_out
-
-	elif [[ "$object" == "status" ]]; then
-
-		get_status
-
-	fi
-}
-
-
-get_status()
-{
-	cache=$(gpg-connect-agent 'keyinfo --list' /bye 2>/dev/null | \
-		awk 'BEGIN{CACHED=0} /^S/ {if($7==1){CACHED=1}} END\
-		{if($0!=""){print CACHED} else {print "none"}}')
-
-	printf "$store $cache\n"
-	exit 0
-}
 
 get_element()
 {
@@ -185,6 +263,13 @@ process_object()
 	# empty object selection
 	[[ -z $object ]] && exit 0
 
+	# existing object
+	if [[ check_obj_exist ]]; then
+		:
+	else
+		printf "${MAGENTA}no object${NOC}\n" && exit 70
+	fi
+
 	# otp object
 	if [[ -n $(printf "$object" | grep ^otp) ]]; then
 
@@ -193,6 +278,16 @@ process_object()
 		exit 0
 
 	fi
+
+	# TODO if only passget is entered when status is 0 0
+	get_cache_status
+	case $cache_status in
+
+		0)
+			log_in
+			;;
+
+	esac
 }
 
 
@@ -214,6 +309,12 @@ get_password()
 }
 
 
+check_obj_exist()
+{
+	[[ -f "$store/$object.gpg" ]]
+}
+
+
 get_otp()
 {
 	# redirection to the separate otp file
@@ -223,6 +324,8 @@ get_otp()
 
 	fi
 
+	#TODO
+	#check_obj_exist && pass otp $object | wl-copy -n -o
 	if [[ -f $store/$object.gpg ]]; then
 
 		pass otp $object | wl-copy -n -o
@@ -280,7 +383,14 @@ human_info()
 
 	if [[ -z $ae ]]; then
 
-		printf "$object $element ${MAGENTA}$error${NOC}\n"
+		if [[ "$object" == 'login' ]]; then
+			printf "$object ${MAGENTA}$error${NOC}\n"
+
+		else
+
+			printf "$object $element ${MAGENTA}$error${NOC}\n"
+
+		fi
 
 	elif [[ -n $ae ]]; then
 
@@ -348,14 +458,6 @@ auto_entry()
 }
 
 
-log_out()
-{
-	gpg-connect-agent -q reloadagent /bye >/dev/null
-	printf "${BLUE}log_out succes, bye!${NOC}\n"
-	exit 0
-}
-
-
 get_object_name()
 {
 	printf "$object" | wl-copy -n -o
@@ -376,17 +478,17 @@ process_element()
 			human_info
 			;;
 
-		auto_entry)
+		autoentry | auto_entry)
 			auto_entry
 			;;
 
 		obj_show)
-			element="show"
+			element='show'
 			pass_element
 			;;
 
 		obj_edit)
-			element="edit"
+			element='edit'
 			pass_element
 			;;
 
@@ -412,7 +514,6 @@ process_element()
 }
 
 
-check_mountpoint
 get_object
 process_object
 get_element

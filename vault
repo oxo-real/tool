@@ -1,21 +1,19 @@
-#!/bin/sh
+#!/usr/bin/env sh
 #
 ##
-###
 ###                   _ _
 ### __   ____ _ _   _| | |_
 ### \ \ / / _` | | | | | __|
 ###  \ V / (_| | |_| | | |_
 ###   \_/ \__,_|\__,_|_|\__|
-###
 ###  _ _|_ _ ._    _  _
 ### (_\/|_(_)|_)\/(_|(/_
 ###   /      |  /  _|
 ###
 ### vault
-### secure file containers
+### manage secure file containers
 ###
-### (c) 2019 - 2022 cytopyge
+### 2019 - 2022  |  cytopyge
 ###
 ##
 #
@@ -98,7 +96,6 @@ check_target_validity()
 
 		return
 
-	#elif [[ ! -f $target ]] && [[ ! -b $target ]]; then
 	elif [[ ! -f $target ]] && [[ ! -d $target ]] && [[ ! -b $target ]]; then
 
 			echo
@@ -741,7 +738,7 @@ check_no_confirm()
 		# no_confirm has no value; a confirmation dialogue comes up
 
 		echo
-		printf "unmount & close? (Y/n) "
+		printf "close vault? (Y/n) "
 
 		read reply_read_single
 
