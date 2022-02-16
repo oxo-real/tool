@@ -240,6 +240,9 @@ gpg_decrypt()
 	# always reset cached gpg password
 	gpg-connect-agent -q reloadagent /bye >/dev/null
 
+	## for aesthetic reasons: first sudo then O--,
+	get_sudo
+
 	printf "\n${YELLOW}${BOLD} O--, ${NORMAL}${NOC}\n"
 	tput civis
 	sleep 2

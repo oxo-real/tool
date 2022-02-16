@@ -57,46 +57,6 @@ sourcing()
 }
 
 
-terminal_lines()
-{
-	# at least 34 lines for proper blocks and qr-code
-	term_lines="$(tput lines)"
-
-	if [[ "$term_lines" -le "33" ]]; then
-
-		#clear
-		## save cursor position
-		#tput sc
-
-		# hide cursor
-		#tput civis
-
-		printf "${RED}insufficient terminal lines ($term_lines need 34)${NOC}\n\n"
-		printf "exiting, press ${YELLOW}o${NOC} to override "
-
-		reply_single_hidden_timer
-
-		echo
-		## clear screen and home cursor
-		#tput clear
-		## show cursor again
-		#tput cnorm
-
-		if printf "$reply" | grep -q "^o"; then
-
-			continue
-
-		else
-
-			exit 45
-
-		fi
-
-	fi
-
-}
-
-
 optical_input()
 {
 	input=$(zbarcam --oneshot --raw)
@@ -105,32 +65,30 @@ optical_input()
 
 keyboard_input()
 {
-	## give clear line for entry
-	## clear screen and home cursor
-	#tput clear
-
-	#read input
-	read input
-	printf "\033[2K\r"
-
 	##[TODO] press tab to hide keyboard entry
-
-	## clear screen and home cursor
-	## need this one for proper qr & blocks printing
-	tput clear
+	read input
 }
 
 
 choose_input()
 {
 	# choose optical or manual input
+	sudo -n printf '' >/dev/null 2>&1
+
+	[[ $? -ne 0 ]] && have_sudo_text=1
 
 	get_sudo
 
-	#clear
-	## save cursor position
-	#tput sc
+	# erase sudo text
+	case $have_sudo_text in
 
+		1)
+			tput cuu1
+			;;
+
+	esac
+
+	# print optical text
 	printf "${YELLOW}O${NOC}ptical scan and decode from video device "
 
 	# hide cursor
@@ -138,9 +96,10 @@ choose_input()
 
 	reply_single_hidden_timer
 
-	## clear screen and home cursor
-	#tput clear
-	## show cursor again
+	# erase optical text
+	tput cuu1
+	tput ed
+
 	echo
 	tput cnorm
 
@@ -165,7 +124,7 @@ input_validation()
 
 hashing()
 {
-## input, algorithm
+	## input, algorithm
 
 	## sed removes '(stdin)= ' of openssl dgst
 	printf $1 | openssl dgst -$2 | sed 's/^.*= //'
@@ -174,8 +133,8 @@ hashing()
 
 hmacing()
 {
-## sha3 hmac rfc2104
-## input, algorithm, hmac
+	## sha3 hmac rfc2104
+	## input, algorithm, hmac
 
 	printf $1 | openssl dgst -$2 -hmac $3 | sed 's/^.*= //'
 }
@@ -183,7 +142,7 @@ hmacing()
 
 hash_1_input()
 {
-## create sha1 hash from input
+	## create sha1 hash from input
 
 	local input=$input
 	local algo="sha1"
@@ -194,8 +153,8 @@ hash_1_input()
 
 hash_3_input()
 {
-## create sha3-512 hash from input
-## keccak sha3 standard fips pub 202
+	## create sha3-512 hash from input
+	## keccak sha3 standard fips pub 202
 
 	local input=$input
 	local algo="sha3-512"
@@ -208,19 +167,18 @@ hash_3_input()
 
 clear_input()
 {
-## overwrite input variable, then clear and unset it for security
+	## overwrite input variable, then clear and unset it for security
 
 	input=$(< /dev/random tr -d -c "[:xdigit:]" | head -c 128)
 	input=""
-	#[TODO] when using symlink pwgn it generates error not enough arguments
 	unset input
 }
 
 
 print_blocks()
 {
-## print four lines of eight; two space-separated, four-column,
-## zero-filled, two-byte quantities of hexadecimal inputdata
+	## print four lines of eight; two space-separated, four-column,
+	## zero-filled, two-byte quantities of hexadecimal inputdata
 
 	row1=$(printf $1 | cut -c 1-32 | sed 's/.\{4\}/&  /g')
 	row2=$(printf $1 | cut -c 33-64 | sed 's/.\{4\}/&  /g')
@@ -236,8 +194,8 @@ print_blocks()
 
 round_pool()
 {
-## dynamic truncate hash_sha3512
-## dividend is based on the sha3512 hash of the input
+	## dynamic truncate hash_sha3512
+	## dividend is based on the sha3512 hash of the input
 
 	local hs=$hash_sha3512
 	local dgts="10"
@@ -248,8 +206,8 @@ round_pool()
 
 round_space()
 {
-## dynamic truncate hash_sha1
-## divisor is based on the sha1 hash of the input
+	## dynamic truncate hash_sha1
+	## divisor is based on the sha1 hash of the input
 
 	local hs=$hash_sha1
 	local dgts="4"
@@ -260,7 +218,7 @@ round_space()
 
 rounds_number()
 {
-## input='s'; rounds=532
+	## input='s'; rounds=532
 
 	rounds=$(( $dividend % $divisor ))
 }
@@ -268,8 +226,8 @@ rounds_number()
 
 round_key()
 {
-## create hmac key for running_rounds
-## input='s'; round_key='bb40..d76f'
+	## create hmac key for running_rounds
+	## input='s'; round_key='bb40..d76f'
 
 	local input=$dividend
 	local algo="sha3-512"
@@ -279,15 +237,45 @@ round_key()
 }
 
 
+create_printing_space()
+{
+	## prevent printing errors when shifting lines down
+
+	shifts=29
+	for down in $(seq $shifts); do
+
+		tput cud1
+
+	done
+
+	for up in $(seq $shifts); do
+
+		tput cuu1
+
+	done
+}
+
+
 running_rounds()
 {
-	## keep hash_sha3512 untouched
+	## keep hash_sha3512 variable untouched
 	input_calc=$hash_sha3512
 
 	## hide cursor
 	tput civis
 
+	# erase input
+	shifts=1
+	for up in $(seq $shifts); do
+
+		tput cuu1
+
+	done
+
+	# print first blocks
 	print_blocks $hash_sha3512
+
+	create_printing_space
 
 	## save cursor position
 	tput sc
@@ -316,16 +304,7 @@ running_rounds()
 
 		print_qr_codeblock
 		print_blocks $output
-
-		bar_width=38
-		# progress percentage indicator
-		if [[ $round -lt $rounds ]]; then
-
-			prog_perc=$(awk "BEGIN {print ($round/$rounds*100)}" | cut -f 1 -d .)
-
-			bar $prog_perc $bar_width
-
-		fi
+		print_progress_bar $round $rounds
 
 	done
 
@@ -333,6 +312,23 @@ running_rounds()
 	tput cnorm
 
 	# for input='s' output='b68a..027a'
+}
+
+
+print_progress_bar()
+{
+	local round=$1
+	local rounds=$2
+
+	bar_width=38
+	# progress percentage indicator
+	if [[ $round -lt $rounds ]]; then
+
+		prog_perc=$(awk "BEGIN {print ($round/$rounds*100)}" | cut -f 1 -d .)
+
+		bar $prog_perc $bar_width
+
+	fi
 }
 
 
@@ -459,7 +455,6 @@ debugging()
 
 
 sourcing
-terminal_lines
 choose_input
 input_validation
 hash_1_input
