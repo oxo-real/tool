@@ -1,19 +1,17 @@
 #!/usr/bin/env sh
-##!/usr/bin/env bash
 #
 ##
-###                                     _
-###  _ __   __ _ ___ ___      __ _  ___| |_
-### | '_ \ / _` / __/ __|    / _` |/ _ \ __|
-### | |_) | (_| \__ \__ \   | (_| |  __/ |_
-### | .__/ \__,_|___/___/____\__, |\___|\__|
-### |_|                |_____|___/
-###
+###                                 _
+###  _ __   __ _ ___ ___  __ _  ___| |_
+### | '_ \ / _` / __/ __|/ _` |/ _ \ __|
+### | |_) | (_| \__ \__ \ (_| |  __/ |_
+### | .__/ \__,_|___/___/\__, |\___|\__|
+### |_|                  |___/
 ###  _ _|_ _   ._  _  _
 ### (_\/|_(_)\/|_)(_|(/_
 ###   /      / |   _|
 ###
-###	(c)	2020 - 2022 cytopyge
+###	2020 - 2022  |  cytopyge
 ###
 ### passget:	fzf cli wrapper for pass
 ###
@@ -21,9 +19,10 @@
 ###				passget $object
 ###				passget $object $element
 ###
+###				passget open
 ###				passget login
-###				passget logout
 ###				passget status
+###				passget logout
 ###				passget close
 ##
 #
@@ -59,11 +58,11 @@ elements=(\
 	"5 unlock" \
 	"6 peacto" \
 	" " \
-	"9  auto_entry" \
+	"A autoentry" \
 	" " \
-	"91 obj_show" \
-	"92 obj_edit" \
-	"99 obj_name" \
+	"E edit" \
+	"S show" \
+	"C copy" \
 	" " \
 	"ESC cancel")
 
@@ -71,8 +70,8 @@ elements=(\
 ## so insert a new password means making a new .gpg file
 ## pass expects the first line of the gpg file to be the password
 ## the gpg file can contain more than just the password though
-## this script make use of that
-## here an object is the way pass represent a gpg file
+## this script makes use of that
+## here an object is the way pass represents a gpg file
 ## (filename without .gpg extension)
 
 
@@ -103,18 +102,25 @@ get_object()
 
 		'')
 			get_mountpoint_status
-			[[ $mp_status == 0 ]] && pass_mount
+			case $mp_status in
 
-			object=$(find -L $store_l -type f -iname '*.gpg' | \
-				# with sed we remove the leading path of $store_l
-				# internal field separator is '|'
-				# because the path itself contains '/'
-				sed "s|$store_l/||g" | \
-				# with sed we remove the trailing .gpg extension
-				sed "s/.gpg//g" | \
-				sort | \
-				fzf --prompt='select object ')
+				0)
+					object='login'
+					pass_mount
+					;;
 
+				$store)
+					object=$(find -L $store_l -type f -iname '*.gpg' | \
+						# with sed we remove the leading path of $store_l
+						# internal field separator is '|'
+						# because the path itself contains '/'
+						sed "s|$store_l/||g" | \
+						# with sed we remove the trailing .gpg extension
+						sed "s/.gpg//g" | \
+						sort | \
+						fzf --prompt='select object ')
+					;;
+			esac
 	esac
 }
 
@@ -132,8 +138,9 @@ log_in()
 	case $mp_status in
 
 		$store)
-			element='obj_show'
+			element='show'
 			gpg_decrypt
+			pass_element
 			;;
 
 		*)
@@ -142,14 +149,13 @@ log_in()
 			;;
 
 	esac
-
 }
 
 
 log_out()
 {
 	gpg-connect-agent -q reloadagent /bye >/dev/null
-	printf "${BLUE}log_out succes, bye!${NOC}\n"
+	printf "${BLUE}logged out, bye!${NOC}\n"
 	[[ "$object" == 'close' ]] || exit 0
 }
 
@@ -240,11 +246,6 @@ gpg_decrypt()
 	tput cnorm
 	pwgn
 	echo
-
-	#[[ -z $object ]] && object='login'
-	##[[ -z $object ]] && object='pass_unlock'
-	### INIF LOOP
-	#get_object
 }
 
 
@@ -264,17 +265,21 @@ process_object()
 	[[ -z $object ]] && exit 0
 
 	# existing object
-	if [[ check_obj_exist ]]; then
+	check_obj_exist
+	if [[ $obj_exist == 1 ]]; then
+
 		:
+
 	else
+
 		printf "${MAGENTA}no object${NOC}\n" && exit 70
+
 	fi
 
 	# otp object
 	if [[ -n $(printf "$object" | grep ^otp) ]]; then
 
 		get_otp
-
 		exit 0
 
 	fi
@@ -311,7 +316,7 @@ get_password()
 
 check_obj_exist()
 {
-	[[ -f "$store/$object.gpg" ]]
+	[[ -f "$store/$object.gpg" ]] && obj_exist=1
 }
 
 
@@ -350,7 +355,7 @@ pass_element()
 
 check_element_value()
 {
-	## no auto_entry
+	## no autoentry
 	if [[ -z $ae ]]; then
 
 		if [[ -z $element ]]; then
@@ -367,7 +372,7 @@ check_element_value()
 
 	fi
 
-	## auto_entry
+	## autoentry
 	if [[ -n $ae ]]; then
 
 		# [TODO] [[ -z $element_value ]] && element_value="${MAGENTA}no element value${NOC}"
@@ -413,7 +418,7 @@ error_message()
 }
 
 
-auto_entry()
+autoentry()
 {
 	ae=1
 	## sleep time
@@ -478,21 +483,21 @@ process_element()
 			human_info
 			;;
 
-		autoentry | auto_entry)
-			auto_entry
+		autoentry)
+			autoentry
 			;;
 
-		obj_show)
+		show)
 			element='show'
 			pass_element
 			;;
 
-		obj_edit)
+		edit)
 			element='edit'
 			pass_element
 			;;
 
-		obj_name)
+		copy)
 			get_object_name
 			human_info
 			;;
