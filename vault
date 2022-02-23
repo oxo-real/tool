@@ -13,35 +13,66 @@
 ### vault
 ### manage secure file containers
 ###
-### 2019 - 2022  |  cytopyge
+### copyright (c) 2019 - 2022  |  cytopyge
+###
+### GNU GPLv3 GENERAL PUBLIC LICENSE
+### This program is free software: you can redistribute it and/or modify
+### it under the terms of the GNU General Public License as published by
+### the Free Software Foundation, either version 3 of the License, or
+### (at your option) any later version.
+###
+### This program is distributed in the hope that it will be useful,
+### but WITHOUT ANY WARRANTY; without even the implied warranty of
+### MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+### GNU General Public License for more details.
+###
+### You should have received a copy of the GNU General Public License
+### along with this program.  If not, see <https://www.gnu.org/licenses/>.
+### https://www.gnu.org/licenses/gpl-3.0.txt
+###
+### y3l0b3b5z2u=:matrix.org @cytopyge@mastodon.social
 ###
 ##
 #
 
+## dependencies
+#	$source_dir, cryptsetup, fzf
 
-# usage:
-# vault info	[target]
-# vault create	<target> [size]
-# vault open	[target] [mountpoint]
-# vault close	[target] [-y, --no-confirm]
-# vault close	all		 [-y, --no-confirm]
+## usage
+#	vault list
+#	vault status	[target]
+#	vault create	<target> [size(MB)]
+#	vault open		[target] [mountpoint]
+#	vault close		[target] [-y, --no-confirm]
+#	vault close		all		 [-y, --no-confirm]
 #
-# in which 'target' represents a location as:
-# vault_file	(create, open)
-# vlt_mapper	(info, close)
-# mountpoint	(info, close)
-#
-# dependencies: source_dir, fzf
-#
-# example:		vault open $XDG_DATA_HOME/media/vault/pass $HOME/dock/vlt/pass
+#	in which 'target' represents a location as:
+#	vault_file		(create, open)
+#	vlt_mapper		(status, close)
+#	mountpoint		(status, close)
+
+## example
+#	vault open $XDG_DATA_HOME/media/vault/pass $HOME/dock/vlt/pass
 
 
-# initialize hardcoded variables
+# initial definitions
 
-developer="cytopyge"
-script_name="vault"
-initial_release_year=2019
-source_dir="$XDG_DATA_HOME/c/git/code/sources/functions"
+## script
+script_name='vault'
+developer='cytopyge'
+license='gplv3'
+initial_release='2019'
+
+## hardcoded variables
+XDG_DATA_HOME="$HOME/.local/share"
+source_dir="$XDG_DATA_HOME/c/git/code/source/function"
+pwgn="$XDG_DATA_HOME/c/git/code/tool/pwgn"
+source "$source_dir/text_appearance"
+source "$source_dir/reply_functions"
+source "$source_dir/splash_screen"
+source "$source_dir/get_sudo"
+
+#--------------------------------
 
 
 # get_args
@@ -49,7 +80,7 @@ source_dir="$XDG_DATA_HOME/c/git/code/sources/functions"
 ## all
 args="$@"
 
-## action (open, close, create, info or empty)
+## action (open, close, create, status, list or empty)
 action="$1"
 
 ## target
@@ -60,49 +91,43 @@ target="$2"
 arg_3="$3"
 
 
-# general function definitions
-
-load_dependencies()
-{
-	## define colors
-	source $source_dir/text_appearance
-
-	## reply functions
-	source $source_dir/reply_functions
-
-	## initial_screen
-	source $source_dir/splash_screen
-
-	## user authentication
-	source $source_dir/get_sudo
-
-	## pwgn_location
-	pwgn="$XDG_DATA_HOME/c/git/code/tools/pwgn"
-}
-
-
 check_target_validity()
 {
-	#[TODO] make case
-	if [[ $action == "info" && -z $target ]]; then
+	case $action in
 
-		return
+		list)
+			[[ -z $target ]] &&	return
+			;;
 
-	elif [[ $action == "close" && -z $target ]]; then
+		close)
+			if [[ -z $target ]]; then
 
-		return
+				return
 
-	elif [[ $action == "close" && $target == "all" ]]; then
+			elif [[ $target == "all" ]]; then
 
-		return
+				return
 
-	elif [[ ! -f $target ]] && [[ ! -d $target ]] && [[ ! -b $target ]]; then
+			fi
+			;;
 
-			echo
-			printf "${MAGENTA}$target invalid target or permissions${NOC}\n"
-			exit 22
+		create)
+			[[ -f $target ]] && printf "target exists!\n"
+			;;
 
-	fi
+		*)
+			if [[ ! -f $target ]] && \
+				[[ ! -d $target ]] && \
+				[[ ! -b $target ]]; then
+
+				echo
+				printf "${MAGENTA}$target invalid target or permissions${NOC}\n"
+				exit 22
+
+			fi
+			;;
+
+	esac
 }
 
 
@@ -114,7 +139,7 @@ check_target_status()
 		# because target_type already used in action open)
 
 		# human info
-		lsblk -i --tree -o name,fstype,uuid,path,size,fsuse%,fsused,label,mountpoint
+		#lsblk -i --tree -o name,fstype,uuid,path,size,fsuse%,fsused,label,mountpoint
 
 		if [[ -b $target ]]; then
 
@@ -239,7 +264,7 @@ check_target_status()
 
 	#[TODO]
 	: '
-	if [[ $action == "info" ]]; then
+	if [[ $action == "list" ]]; then
 	fi
 	# '
 
@@ -257,9 +282,12 @@ check_target_status()
 
 check_container_size()
 {
+	## minimum size 18M
 	if [[ $target_c_type == "file" ]] && [ $size -lt 18 ]; then
 
 		# to prevent error: 'requested offset is beyond real size of device'
+		# same error?:
+		# WARNING: Data offset is outside of currently available data device.
 
 		printf "${MAGENTA}minimum vault size is 18 MB${NOC}\n" && exit 18
 
@@ -281,17 +309,19 @@ create_vlt_mapper_name()
 
 write_random_data()
 {
-	printf "writing random data to $target\n"
+	printf "writing zero data to $target\n"
 
 	case $target_c_type in
 
 		block_device)
 
 			# dd if target is a block device
+			#sudo dd \
+			#	if=/dev/zero \
 			sudo dd \
 				if=/dev/random \
 				of=$target \
-				bs=1M \
+				bs=1K \
 				iflag=fullblock \
 				status=progress
 			;;
@@ -304,7 +334,7 @@ write_random_data()
 			: '	sudo dd \
 				if=/dev/random \
 				of=$target \
-				bs=1M \
+				bs=1K \
 				iflag=fullblock \
 				status=progress
 			# '
@@ -312,14 +342,21 @@ write_random_data()
 
 		file)
 
-			# dd if target is a file
+			# if target is a file
+			# 18M as minimum size
+			head -c $size /dev/zero > $target
+			: '
+			# 10MB:bs=1024 count=10240
+			# 10MB:bs=1K count=10K
+			# 18MB:bs=1K count=18K
 			sudo dd \
 				if=/dev/random \
 				of=$target \
-				bs=1M \
+				bs=1K \
 				count=$size \
 				iflag=fullblock \
 				status=progress
+			# '
 			;;
 
 	esac
@@ -328,7 +365,7 @@ write_random_data()
 
 create_vault()
 {
-	#write_random_data
+	write_random_data
 
 	printf "setting up crypto on $target\n"
 
@@ -454,28 +491,17 @@ check_mp_dir()
 
 generate_pw()
 {
-	## save cursor position
-	tput sc
-
-	printf "starting pwgn...\npress 'n' to abort "
+	printf "starting pwgn... press 'n' to abort "
 
 	reply_single_hidden_timer
 
-	## remove lines above cursor
-	### restore cursor position
-	#tput rc
-	### cursor up one line
-	#tput cuu1
-	#tput cuu1
-	### clear to end of screen
-	#tput ed
+	# erase line
+	printf "\r"
+	tput el
 
 	if printf "$reply" | grep -iq "^n"; then
 
-		# exit from this loop and continue
-		#exit 99
-		#continue
-		return 0
+		continue
 
 	else
 
@@ -733,6 +759,7 @@ check_target_exists()
 
 check_no_confirm()
 {
+	# check if 'no-confirm' was entered in arg3
 	if [[ -z $no_confirm ]]; then
 
 		# no_confirm has no value; a confirmation dialogue comes up
@@ -772,17 +799,17 @@ fzf_select_target()
 	# check for non empty vlt list
 	if [[ -n $(vault_list | grep /dev/mapper/vlt_) ]]; then
 
-		info_headers=$(lsblk -lp | head -n 1)
-		info=$(lsblk -lp | grep vlt_ | sort -k 7)
+		list_headers=$(lsblk -lp | head -n 1)
+		list=$(lsblk -lp | grep vlt_ | sort -k 7)
 
-		target_list=$(printf "$info_headers\n$info" | \
+		target_list=$(printf "$list_headers\n$list" | \
 			fzf -m --header-lines=1 --prompt='select ' | \
 			awk '{print $1}')
 
 	else
 
 		#[TODO] umounted vault but still a dev_mapper_vlt
-		printf "${MAGENTA}empty list${NOC}\n"
+		printf "${BLUE}empty${NOC}\n"
 		exit
 
 	fi
@@ -896,16 +923,16 @@ vault_list()
 {
 	# show list of all mapper paths with their mountpoints
 
-	info=$(df -h | awk 'NR==1 || /\/vlt_/')
+	list=$(df -h | awk 'NR==1 || /\/vlt_/')
 
-	if [[ -z "$info" ]]; then
+	if [[ -z "$list" ]]; then
 
 		printf "${MAGENTA}no mapped vaults mounted${NOC}\n"
 
 	else
 
 		printf "${BLUE}mapped vaults mounted${NOC}\n"
-		printf '%s\n' "$info"
+		printf '%s\n' "$list"
 
 	fi
 }
@@ -1033,9 +1060,8 @@ main()
 {
 	case $action in
 
-		info)
+		list)
 
-			load_dependencies
 			#check_target_validity
 			check_target_status
 
@@ -1048,7 +1074,6 @@ main()
 
 			size=$arg_3
 
-			load_dependencies
 			get_sudo
 
 			check_target_validity
@@ -1068,7 +1093,6 @@ main()
 			mountpoint=$arg_3
 			fzf_target_mountpoint
 
-			load_dependencies
 			#get_sudo
 
 			check_target_validity
@@ -1091,7 +1115,6 @@ main()
 
 			no_confirm=$arg_3
 
-			load_dependencies
 			get_sudo
 
 			check_target_validity

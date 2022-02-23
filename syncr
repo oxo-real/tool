@@ -23,26 +23,27 @@
 ###
 ### ## backup
 ### syncr /home/cytopyge/dock/transfer/tux/home/cytopyge \
-###						--dry-run --delete dest_backup
+###						--dry-run --links --delete
 ###
 ### ## archive
 ### syncr /home/cytopyge/dock/transfer/tux/home/cytopyge \
-###						--dry-run dest_archive
+###						--dry-run --links
 ##
 #
 
 ## initialize
 args="$@"
+repo_mount="$HOME/dock/2/aur"
 
 ## sourcing
-source_dir="$XDG_DATA_HOME/c/git/code/sources/functions"
+source_dir="$XDG_DATA_HOME/c/git/code/source/function"
 source $source_dir/get_sudo
 source $source_dir/reply_functions
 source $source_dir/text_appearance
 
 ## user authentication
 #get_sudo
-set -e
+#set -e
 
 ## destination
 dest=$1; shift
@@ -52,15 +53,16 @@ dest=$1; shift
 options="$*"
 
 ## rsync options
-# -a	is equivalent to -rlptgoD
+# -a		is equivalent to -rlptgoD
 # --dirs	will create directories specified in the list on the destination
+# --links	prevent rsync error: 'skipping non-regular file'
 
 
 config_fpcl()
 {
 	# synchronize .config			(config_fpcl)
 
-	printf "\n${BLUE}%s${NOC}\n" "synching config_fpcl..."
+	printf "\n${BLUE}%s${NOC}\n" "synching config_fpcl"
 
 	## define file process list
 	fpcl_file="$XDG_CONFIG_HOME/.fpcl"
@@ -91,7 +93,7 @@ logs()
 {
 	# synchronize .logs				(logs)
 
-	printf "\n${BLUE}%s${NOC}\n" "synching logs..."
+	printf "\n${BLUE}%s${NOC}\n" "synching logs"
 
 	local src="$XDG_LOGS_HOME"
 	local dst="$dest"
@@ -109,17 +111,24 @@ local_share_archive()
 {
 	# synchronize .local/share/a	(archive)
 
-	printf "\n${BLUE}%s${NOC}\n" "synching archive..."
+	printf "\n${BLUE}%s${NOC}\n" "synching archive"
 
 	local src="$XDG_DATA_HOME/a"
 	local dst="$dest/.local/share/"
 
 	[[ -d $dst ]] || mkdir -p $dst
 
+	# do not automatically delete from archive
+	if [[ $(printf -- "$options" | grep -e '--delete') ]]; then
+
+		printf "disabling delete option for archive synchronization\n"
+		options_wo_delete=$(printf -- "$options" | sed 's/ --delete//')
+
+	fi
+
 	rsync -aAXv \
 		--info=ALL \
-		--dirs \
-		$options \
+		$options_wo_delete \
 		$src $dst
 }
 
@@ -128,7 +137,7 @@ local_share_backup()
 {
 	# synchronize .local/share/b	(backup)
 
-	printf "\n${BLUE}%s${NOC}\n" "synching backup..."
+	printf "\n${BLUE}%s${NOC}\n" "synching backup"
 
 	local src="$XDG_DATA_HOME/b"
 	local dst="$dest/.local/share/"
@@ -137,7 +146,6 @@ local_share_backup()
 
 	rsync -aAXv \
 		--info=ALL \
-		--dirs \
 		$options \
 		$src $dst
 }
@@ -147,7 +155,7 @@ local_share_current()
 {
 	# synchronize .local/share/c	(share_current)
 
-	printf "\n${BLUE}%s${NOC}\n" "synching current..."
+	printf "\n${BLUE}%s${NOC}\n" "synching current"
 
 	local src="$XDG_DATA_HOME/c"
 	local dst="$dest/.local/share/"
@@ -156,7 +164,6 @@ local_share_current()
 
 	rsync -aAXv \
 		--info=ALL \
-		--dirs \
 		$options \
 		$src $dst
 }
@@ -166,7 +173,7 @@ password_store()
 {
 	# synchronize password-store	(password_store)
 
-	printf "\n${BLUE}%s${NOC}\n" "synching password_store..."
+	printf "\n${BLUE}%s${NOC}\n" "synching password_store"
 
 	if [[ -d $HOME/dock/vlt/pass ]] && \
 		mountpoint -q $HOME/dock/vlt/pass; then
@@ -189,11 +196,41 @@ password_store()
 }
 
 
+repo()
+{
+	# synchronize offline repo		(repo)
+
+	[[ -d $repo_mount ]] && repo_mounted=1
+
+	case $repo_mounted in
+
+		1)
+			printf "\n${BLUE}%s${NOC}\n" "synching offline repo"
+
+			local src="$repo_mount"
+			local dst="$dest/repo/"
+
+			[[ -d $dst ]] || mkdir -p $dst
+
+			rsync -aAXv \
+				--info=ALL \
+				$options \
+				$src $dst
+			;;
+
+		*)
+			printf "\n${MAGENTA}error; no offline repo found${NOC}\n"
+			;;
+
+	esac
+}
+
+
 config_all()
 {
 	# synchronize .config			(config_all)
 
-	printf "\n${BLUE}%s${NOC}\n" "synching config_all..."
+	printf "\n${BLUE}%s${NOC}\n" "synching config_all"
 
 	local src="$XDG_CONFIG_HOME"
 	local dst="$dest/.config/"
@@ -211,7 +248,7 @@ local_share_all()
 {
 	# synchronize .local/share		(share_all)
 
-	printf "\n${BLUE}%s${NOC}\n" "synching local_share_all..."
+	printf "\n${BLUE}%s${NOC}\n" "synching local_share_all"
 
 	local src="$XDG_DATA_HOME"
 	local dst="$dest/.local/share/"
@@ -220,10 +257,10 @@ local_share_all()
 
 	rsync -aAXv \
 		--info=ALL \
-		--dirs \
 		$options \
 		$src $dst
 }
+
 
 
 main()
@@ -237,6 +274,7 @@ main()
 	local_share_current
 
 	password_store
+	repo
 
 	## ## config_all
 	## ## local_share_all

@@ -1,0 +1,160 @@
+#!/bin/env bash
+#
+##
+###      _       _           _
+###   __| | __ _| |_ __ _   | |_ ___
+###  / _` |/ _` | __/ _` |  | __/ _ \
+### | (_| | (_| | || (_| |  | || (_) |
+###  \__,_|\__,_|\__\__,_|___\__\___/
+###                     |_____|
+###  _ _|_ _ ._    _  _
+### (_\/|_(_)|_)\/(_|(/_
+###   /      |  /  _|
+###
+###	data_to
+###	2020 - 2022 cytopyge
+###
+### usage:
+###			first check the switches in main!
+###
+###			data_to <destination> [rsync_options]
+###
+### example:	data_to /home/cytopyge/dock/transfer/tux/home/cytopyge --dry-run
+##
+#
+
+## initialize
+args="$@"
+source_dir="$XDG_DATA_HOME/c/git/code/sources/functions"
+
+## sourcing
+source $source_dir/get_sudo
+source $source_dir/reply_functions
+source $source_dir/text_appearance
+
+## user authentication
+get_sudo
+set -e
+
+## destination
+dest=$1; shift
+[[ ! -d $dest ]] && printf "${MAGENTA}no DEST${NOC}\n" && exit 3
+
+## rsync options
+options="$*"
+
+
+config_fpcl()
+{
+	# synchronize .config			(config_fpcl)
+
+	## define file process list
+	fpcl_file="$XDG_CONFIG_HOME/.fpcl"
+	fpcl_rsync="$XDG_CONFIG_HOME/.fpcl_rsync"
+	## create temporary file fpcl_rsync,
+	## based on fpcl_file (latter is also used in dotbu)
+	sed 's/^c //' $fpcl_file > $fpcl_rsync
+	printf ".fpcl_rsync\n" >> $fpcl_rsync
+
+	rsync -aAXv \
+		--info=ALL \
+		--files-from="$fpcl_rsync" \
+		$options \
+		$XDG_CONFIG_HOME $dest/.config/
+
+	rm -rf $fpcl_rsync
+}
+
+
+config_all()
+{
+	# synchronize .config			(include all)
+	rsync -aAXv \
+		--info=ALL \
+		$options \
+		$XDG_CONFIG_HOME $dest/
+}
+
+
+logs()
+{
+	# synchronize .logs
+	rsync -aAXv \
+		--info=ALL \
+		$options \
+		$XDG_LOGS_HOME $dest/
+}
+
+
+local_share_archive()
+{
+	# synchronize .local/share/a	(archive)
+	rsync -aAXv \
+		--info=ALL \
+		$options \
+		$XDG_DATA_HOME/a $dest/.local/share/
+}
+
+
+local_share_backup()
+{
+	# synchronize .local/share/b	(backup)
+	rsync -aAXv \
+		--info=ALL \
+		$options \
+		$XDG_DATA_HOME/b $dest/.local/share/
+}
+
+
+local_share_current()
+{
+	# synchronize .local/share/c	(current)
+	rsync -aAXv \
+		--info=ALL \
+		$options \
+		$XDG_DATA_HOME/c $dest/.local/share/
+}
+
+
+local_share_all()
+{
+	# synchronize .local/share		(include all)
+	rsync -aAXv \
+		--info=ALL \
+		$options \
+		$XDG_DATA_HOME $dest/.local/share/
+}
+
+
+password_store()
+{
+	# synchronize password-store
+	#: '
+	[[ -d $HOME/dock/vlt/pass ]] && \
+		mountpoint -q $HOME/dock/vlt/pass && \
+		rsync -aAXv \
+			--info=ALL \
+			$options \
+		$HOME/dock/vlt $dest/ \
+		|| \
+		printf "${MAGENTA}pass vault skipped${NOC}\n"
+	# '
+}
+
+
+main()
+{
+	config_fpcl
+	#config_all
+
+	logs
+
+	local_share_archive
+	local_share_backup
+	local_share_current
+	#local_share_all
+
+	password_store
+}
+
+main

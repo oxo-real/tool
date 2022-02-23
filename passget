@@ -11,40 +11,82 @@
 ### (_\/|_(_)\/|_)(_|(/_
 ###   /      / |   _|
 ###
-###	2020 - 2022  |  cytopyge
+### passget
+### fzf cli wrapper for pass
+### copyright (c) 2020 - 2022  |  cytopyge
 ###
-### passget:	fzf cli wrapper for pass
+### GNU GPLv3 GENERAL PUBLIC LICENSE
+### This program is free software: you can redistribute it and/or modify
+### it under the terms of the GNU General Public License as published by
+### the Free Software Foundation, either version 3 of the License, or
+### (at your option) any later version.
 ###
-### usage:		passget
-###				passget $object
-###				passget $object $element
+### This program is distributed in the hope that it will be useful,
+### but WITHOUT ANY WARRANTY; without even the implied warranty of
+### MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+### GNU General Public License for more details.
 ###
-###				passget open
-###				passget login
-###				passget status
-###				passget logout
-###				passget close
+### You should have received a copy of the GNU General Public License
+### along with this program.  If not, see <https://www.gnu.org/licenses/>.
+### https://www.gnu.org/licenses/gpl-3.0.txt
+###
+### y3l0b3b5z2u=:matrix.org @cytopyge@mastodon.social
+###
 ##
 #
 
+## dependencies
+#	pass, cryptsetup, fzf
 
-object=$1
-element=$2
+## usage
+#	passget
+#	passget $object
+#	passget $object $element
+#
+#	passget open
+#	passget login
+#	passget status
+#	passget logout
+#	passget close
 
-## store_l is the symlink location (to the pass password store)
-## recommended to mount an encrypted vault container
+## examples
+#	passget
+#	passget codeberg_cytopyge
+#	passget codeberg_cytopyge password
+
+
+# initial definitions
+
+## script
+script_name='passget'
+developer='cytopyge'
+license='gplv3'
+initial_release='2020'
+
+## hardcoded variables
+
+## store_l is the symlink location to the pass password store
+## recommended is to mount an encrypted vault container
 ## then symlink .password-store to a container mountpoint
 ## default symlink:	$HOME/.password-store
 ## default target:	$HOME/dock/vlt/pass
 store_l="$HOME/.password-store"
 
+crypto_source="$XDG_DATA_HOME/c/keys/pass/vlt_pass"
+source_dir="$XDG_DATA_HOME/c/git/code/source/function"
+
+#--------------------------------
+
+
+object=$1
+element=$2
+
 ## store is the genuine password store location
 store=$(readlink $store_l)
 
-crypto_source="$XDG_DATA_HOME/c/keys/pass/vlt_pass"
-
-source $XDG_DATA_HOME/c/git/code/sources/functions/text_appearance
-source $XDG_DATA_HOME/c/git/code/sources/functions/get_sudo
+source $source_dir/text_appearance
+source $source_dir/reply_functions
+source $source_dir/get_sudo
 
 ## objects can be searched for one or more elements
 ## regular elements are: url, userid, password
@@ -98,6 +140,7 @@ get_object()
 
 		status)
 			show_status
+			exit 0
 			;;
 
 		'')
@@ -144,8 +187,10 @@ log_in()
 			;;
 
 		*)
-			printf "${MAGENTA}no_mp${NOC}\n"
-			exit 11
+			show_status
+			#printf "${MAGENTA}no_mp${NOC}\n"
+			vault_open
+			log_in
 			;;
 
 	esac
@@ -172,7 +217,6 @@ show_status()
 	get_mountpoint_status
 	get_cache_status
 	printf "$mp_status $cache_status\n"
-	exit 0
 }
 
 
@@ -243,12 +287,45 @@ gpg_decrypt()
 	## for aesthetic reasons: first sudo then O--,
 	get_sudo
 
-	printf "\n${YELLOW}${BOLD} O--, ${NORMAL}${NOC}\n"
+	tput cuu1
+	erase_line
+
+	printf "${YELLOW}${BOLD} O--, ${NORMAL}${NOC}"
 	tput civis
 	sleep 2
 	tput cnorm
-	pwgn
+	erase_line
+
 	echo
+	generate_pw
+	echo
+}
+
+
+erase_line()
+{
+	printf "\r"
+	tput el
+}
+
+
+generate_pw()
+{
+	printf "starting pwgn... press 'n' to abort "
+
+	reply_single_hidden_timer
+
+	erase_line
+
+	if printf "$reply" | grep -iq "^n"; then
+
+		continue
+
+	else
+
+		pwgn
+
+	fi
 }
 
 
@@ -350,7 +427,7 @@ get_otp()
 pass_element()
 {
 	# run pass natively with $element
-	clear
+	#clear
 	human_info
 	pass $element $object
 }
@@ -522,7 +599,12 @@ process_element()
 }
 
 
-get_object
-process_object
-get_element
-process_element
+main()
+{
+	get_object
+	process_object
+	get_element
+	process_element
+}
+
+main

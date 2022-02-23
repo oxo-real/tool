@@ -12,21 +12,47 @@
 ###
 ### pwgn
 ### generate unique hex strings
+### copyright (c) 2020 - 2022  |  cytopyge
 ###
-### 2020 - 2022  |  cytopyge
+### GNU GPLv3 GENERAL PUBLIC LICENSE
+### This program is free software: you can redistribute it and/or modify
+### it under the terms of the GNU General Public License as published by
+### the Free Software Foundation, either version 3 of the License, or
+### (at your option) any later version.
 ###
-### --------------------------------
-### usage: pwgn
+### This program is distributed in the hope that it will be useful,
+### but WITHOUT ANY WARRANTY; without even the implied warranty of
+### MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+### GNU General Public License for more details.
+###
+### You should have received a copy of the GNU General Public License
+### along with this program.  If not, see <https://www.gnu.org/licenses/>.
+### https://www.gnu.org/licenses/gpl-3.0.txt
+###
+### y3l0b3b5z2u=:matrix.org @cytopyge@mastodon.social
+###
 ##
 #
 
+## dependencies
+#	$source_dir, qrencode, zbarcam
+
+## usage
+#	pwgn
+
 
 # initial definitions
-## initialize hardcoded variables
-script_name="pwgn"
-initial_release_year="2020"
-developer="cytopyge"
-source_dir="$XDG_DATA_HOME/c/git/code/sources/functions"
+
+## script
+script_name='pwgn'
+developer='cytopyge'
+license='gplv3'
+initial_release='2020'
+
+## hardcoded variables
+source_dir="$XDG_DATA_HOME/c/git/code/source/function"
+
+#--------------------------------
 
 
 read_input()

@@ -45,9 +45,10 @@ dest=$3				# destination directory
 sourcing()
 {
 	# external code sources
-	source_dir="$XDG_DATA_HOME/c/git/code/sources/functions"
+	source_dir="$XDG_DATA_HOME/c/git/code/source/function"
 	source $source_dir/reply_functions
 	source $source_dir/text_appearance
+	pwgn="$XDG_DATA_HOME/c/git/code/tool/pwgn"
 }
 
 
@@ -146,7 +147,8 @@ validate_destination()
 					printf "		${YELLOW}$re_dest${NOC}\n\n"
 
 					printf "is this okay? (y/N) "
-					reply_single
+					reply_read_single
+					#reply_single
 					echo
 
 				else
@@ -175,14 +177,16 @@ validate_destination()
 
 		printf "destination ${MAGENTA}does not exist${NOC}\n\n"
 		printf "create? (y/N) "
-		reply_single
+		reply_read_single
+		#reply_single
 		echo
 
 		if printf "$reply" | grep -iq "^y"; then
 
 			printf "about to create ${YELLOW}$dest${NOC}\n\n"
 			printf "sure? (y/N) "
-			reply_single
+			reply_read_single
+			#reply_single
 			echo
 
 			if printf "$reply" | grep -iq "^y"; then
@@ -233,7 +237,8 @@ validate_destination()
 		printf "${YELLOW}destination${NOC} directory is ${BOLD}NOT${NORMAL} empty${NOC}\n\n"
 
 			printf "continue? (y/N) "
-			reply_single
+			reply_read_single
+			#reply_single
 			echo
 
 			if printf "$reply" | grep -iq "^y"; then
@@ -731,7 +736,7 @@ cleanup()
 enter_password()
 {
 	#pwgn(r5r6)
-	sh $XDG_DATA_HOME/c/git/code/tools/pwgn
+	sh $pwgn
 	pw=$(wl-paste -n)
 	echo
 }
