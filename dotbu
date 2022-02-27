@@ -735,6 +735,7 @@ cleanup()
 
 enter_password()
 {
+	echo
 	#pwgn(r5r6)
 	sh $pwgn
 	pw=$(wl-paste -n)
