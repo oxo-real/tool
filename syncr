@@ -121,8 +121,8 @@ local_share_archive()
 	# do not automatically delete from archive
 	if [[ $(printf -- "$options" | grep -e '--delete') ]]; then
 
-		printf "disabling delete option for archive synchronization\n"
-		options_wo_delete=$(printf -- "$options" | sed 's/ --delete//')
+		printf "${YELLOW}disabling delete option for archive synchronization${NOC}\n"
+		options_wo_delete=$(printf -- "$options" | sed 's/--delete//')
 
 	fi
 

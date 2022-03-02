@@ -751,7 +751,7 @@ clear_password()
 destroy()
 {
 	chmod -R 777 $1
-	find $1 -depth -type f -exec shred -n 3 --remove=wipesync {} \;
+	sudo find $1 -depth -type f -exec shred -n 3 --remove=wipesync {} \;
 	rm -rf $1
 }
 
