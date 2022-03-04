@@ -117,6 +117,9 @@ elements=(\
 ## (filename without .gpg extension)
 
 
+set -e
+
+
 get_object()
 {
 	case $object in
