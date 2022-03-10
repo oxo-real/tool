@@ -117,109 +117,109 @@ elements=(\
 ## (filename without .gpg extension)
 
 
-set -e
-
-
 get_object()
 {
-	case $object in
+    case $object in
 
-		login)
-			log_in
-			;;
+	login)
+	    log_in
+	    ;;
 
-		logout)
-			log_out
-			;;
+	logout)
+	    log_out
+	    ;;
 
-		open)
-			vault_open
-			;;
+	open)
+	    vault_open
+	    ;;
 
-		close)
-			log_out
-			close
-			;;
+	close)
+	    log_out
+	    close
+	    ;;
 
-		status)
-			show_status
-			exit 0
-			;;
+	status)
+	    show_status
+	    exit 0
+	    ;;
 
-		'')
-			get_mountpoint_status
-			case $mp_status in
+	'')
+	    get_mountpoint_status
+	    case $mp_status in
 
-				0)
-					object='login'
-					pass_mount
-					;;
+		0)
+		    object='login'
+		    pass_mount
+		    ;;
 
-				$store)
-					object=$(find -L $store_l -type f -iname '*.gpg' | \
-						# with sed we remove the leading path of $store_l
-						# internal field separator is '|'
-						# because the path itself contains '/'
-						sed "s|$store_l/||g" | \
-						# with sed we remove the trailing .gpg extension
-						sed "s/.gpg//g" | \
-						sort | \
-						fzf --prompt='select object ')
-					;;
-			esac
-	esac
+		$store)
+		    object=$(find -L $store_l -type f -iname '*.gpg' | \
+			# with sed we remove the leading path of $store_l
+			# internal field separator is '|'
+			# because the path itself contains '/'
+			sed "s|$store_l/||g" | \
+			# with sed we remove the trailing .gpg extension
+			sed "s/.gpg//g" | \
+			sort | \
+			fzf --prompt='select object ')
+		    ;;
+
+	    esac
+
+    esac
 }
 
 
 vault_open()
 {
-	pass_mount
+    pass_mount
 }
 
 
 log_in()
 {
-	get_mountpoint_status
+    get_mountpoint_status
 
-	case $mp_status in
+    case $mp_status in
 
-		$store)
-			element='show'
-			gpg_decrypt
-			pass_element
-			;;
+   	$store)
+	    element='show'
+	    gpg_decrypt
+	    pass_element
+	    ;;
 
-		*)
-			show_status
-			#printf "${MAGENTA}no_mp${NOC}\n"
-			vault_open
-			log_in
-			;;
+   	*)
+	    show_status
+	    #printf "${MAGENTA}no_mp${NOC}\n"
+	    vault_open
+	    log_in
+	    ;;
 
-	esac
+   esac
 }
 
 
 log_out()
 {
-	gpg-connect-agent -q reloadagent /bye >/dev/null
-	printf "${BLUE}logged out, bye!${NOC}\n"
-	[[ "$object" == 'close' ]] || exit 0
+    gpg-connect-agent -q reloadagent /bye >/dev/null
+    printf "${BLUE}logged out, bye!${NOC}\n"
+
+    [[ "$object" == 'close' ]] || exit 0
 }
 
 
 close()
 {
-	sh vault close $store
-	exit 0
+    sh vault close $store
+    exit 0
 }
 
 
 show_status()
 {
-	get_mountpoint_status
-	get_cache_status
-	printf "$mp_status $cache_status\n"
+    get_mountpoint_status
+    get_cache_status
+    printf "$mp_status $cache_status\n"
 }
 
 
@@ -233,381 +233,382 @@ get_mountpoint_status()
 
 get_cache_status()
 {
-	# 1 | 0 (no cache)
-	cache_status=$(gpg-connect-agent 'keyinfo --list' /bye 2>/dev/null | \
-		awk 'BEGIN{CACHED=0} /^S/ {if($7==1){CACHED=1}} END\
-		{if($0!=""){print CACHED} else {print "none"}}')
+    # 1 | 0 (no cache)
+    cache_status=$(gpg-connect-agent 'keyinfo --list' /bye 2>/dev/null | \
+	awk 'BEGIN{CACHED=0} /^S/ {if($7==1){CACHED=1}} END\
+	{if($0!=""){print CACHED} else {print "none"}}')
 }
 
 
 pass_mount()
 {
-	# pass crypto source location
+    # pass crypto source location
 
-	# pass mount destination
-	## vlt_pass mounted => $HOME/.password-store becomes pale
-	pass_mount="$HOME/dock/vlt/pass"
-	[[ -d $pass_mount ]] || mkdir -p $pass_mount
+    # pass mount destination
+    ## vlt_pass mounted => $HOME/.password-store becomes pale
+    pass_mount="$HOME/dock/vlt/pass"
+    [[ -d $pass_mount ]] || mkdir -p $pass_mount
 
-	get_sudo
+    get_sudo
 
-	# pass luksuuid
-	luksuuid=$(sudo cryptsetup luksUUID $crypto_source)
-	printf "$luksuuid" | wl-copy -n -o
+    # pass luksuuid
+    luksuuid=$(sudo cryptsetup luksUUID $crypto_source)
+    printf "$luksuuid" | wl-copy -n -o
 
-	## check for mountpoint
-	lsblk_rpaf=$(lsblk -rpaf --noheadings)
-	loopdevice=$(printf $lsblk_rpaf | grep $luksuuid | awk '{print $1}')
-	mapper_data=$(lsblk -rpaf --noheadings $loopdevice)
-	mountpoint=$(printf $mapper_data | awk '{print $8}')
+    ## check for mountpoint
+    lsblk_rpaf=$(lsblk -rpaf --noheadings)
+    loopdevice=$(printf $lsblk_rpaf | grep $luksuuid | awk '{print $1}')
+    mapper_data=$(lsblk -rpaf --noheadings $loopdevice)
+    mountpoint=$(printf $mapper_data | awk '{print $8}')
 
-	if [[ -z "$mountpoint" ]]; then
+    if [[ -z "$mountpoint" ]]; then
 
-		vault open $crypto_source $pass_mount
+	vault open $crypto_source $pass_mount
 
-	elif [[ -n "$mountpoint" ]]; then
+    elif [[ -n "$mountpoint" ]]; then
 
-		wl-copy --clear
+	wl-copy --clear
 
-	fi
+    fi
 
-	case $object in
+    case $object in
 
-		open)
-			# only mount vault, no login
-			exit 0
-			;;
+	open)
+	    # only mount vault, no login
+	    exit 0
+	    ;;
 
-	esac
+    esac
 }
 
 
 gpg_decrypt()
 {
-	# always reset cached gpg password
-	gpg-connect-agent -q reloadagent /bye >/dev/null
+    # always reset cached gpg password
+    gpg-connect-agent -q reloadagent /bye >/dev/null
 
-	## for aesthetic reasons: first sudo then O--,
-	get_sudo
+    ## for aesthetic reasons: first sudo then O--,
+    get_sudo
 
-	tput cuu1
-	erase_line
+    tput cuu1
+    erase_line
 
-	printf "${YELLOW}${BOLD} O--, ${NORMAL}${NOC}"
-	tput civis
-	sleep 2
-	tput cnorm
-	erase_line
+    printf "${YELLOW}${BOLD} O--, ${NORMAL}${NOC}"
+    tput civis
+    sleep 2
+    tput cnorm
+    erase_line
 
-	echo
-	generate_pw
-	echo
+    echo
+    generate_pw
+    echo
 }
 
 
 erase_line()
 {
-	printf "\r"
-	tput el
+    printf "\r"
+    tput el
 }
 
 
 generate_pw()
 {
-	printf "starting pwgn... press 'n' to abort "
+    printf "starting pwgn... press 'n' to abort "
 
-	reply_single_hidden_timer
+    reply_read_single_hidden_timer
 
-	erase_line
+    erase_line
 
-	if printf "$reply" | grep -iq "^n"; then
+    if printf "$reply" | grep -iq "^n"; then
 
-		continue
+    	continue
 
-	else
+    else
 
-		pwgn
+    	pwgn
 
-	fi
+    fi
 }
 
 
 get_element()
 {
-	if [[ -z $element ]]; then
+    if [[ -z $element ]]; then
 
-		element=$(printf '%s\n' "${elements[@]}" | fzf --prompt='select element ' | awk '{print $2}')
+    	element=$(printf '%s\n' "${elements[@]}" | \
+	    fzf --prompt='select element ' | \
+	    awk '{print $2}')
 
-	fi
+    fi
 }
 
 
 process_object()
 {
-	# empty object selection
-	[[ -z $object ]] && exit 0
+    # empty object selection
+    [[ -z $object ]] && exit 0
 
-	# existing object
-	check_obj_exist
-	if [[ $obj_exist == 1 ]]; then
+    # existing object
+    check_obj_exist
+    if [[ $obj_exist == 1 ]]; then
 
-		:
+    	:
 
-	else
+    else
 
-		printf "${MAGENTA}no object${NOC}\n" && exit 70
+    	printf "${MAGENTA}no object${NOC}\n" && exit 70
 
-	fi
+    fi
 
-	# otp object
-	if [[ -n $(printf "$object" | grep ^otp) ]]; then
+    # otp object
+    if [[ -n $(printf "$object" | grep ^otp) ]]; then
 
-		get_otp
-		exit 0
+    	get_otp
+    	exit 0
 
-	fi
+    fi
 
-	# TODO if only passget is entered when status is 0 0
-	get_cache_status
-	case $cache_status in
+    # TODO if only passget is entered when status is 0 0
+    get_cache_status
+    case $cache_status in
 
-		0)
-			log_in
-			;;
+    	0)
+	    log_in
+	    ;;
 
-	esac
+    esac
 }
 
 
 get_element_value()
 {
-	element_value=$(pass show $object | grep ^$element: | awk '{print $2}')
+    element_value=$(pass show $object | grep ^$element: | awk '{print $2}')
 
-	check_element_value
+    check_element_value
 
-	## '%s' prevents 'invalid format character' error
-	printf '%s' "$element_value" | wl-copy -n -o
+    ## '%s' prevents 'invalid format character' error
+    printf '%s' "$element_value" | wl-copy -n -o
 }
 
 
 
 get_password()
 {
-	pass $object | head -n 1 | wl-copy -n -o
+    pass $object | head -n 1 | wl-copy -n -o
 }
 
 
 check_obj_exist()
 {
-	[[ -f "$store/$object.gpg" ]] && obj_exist=1
+    [[ -f "$store/$object.gpg" ]] && obj_exist=1
 }
 
 
 get_otp()
 {
-	# redirection to the separate otp file
-	if [[ "$(printf $object | head -c 4)" != "otp_" ]]; then
+    # redirection to the separate otp file
+    if [[ "$(printf $object | head -c 4)" != "otp_" ]]; then
 
-		object="otp_$object"
+    	object="otp_$object"
 
-	fi
+    fi
 
-	#TODO
-	#check_obj_exist && pass otp $object | wl-copy -n -o
-	if [[ -f $store/$object.gpg ]]; then
+    #TODO
+    #check_obj_exist && pass otp $object | wl-copy -n -o
+    if [[ -f $store/$object.gpg ]]; then
 
-		pass otp $object | wl-copy -n -o
+    	pass otp $object | wl-copy -n -o
 
-	fi
+    fi
 
-	# reset object value for human info
-	object=$(printf $object | cut -c 5-)
+    # reset object value for human info
+    object=$(printf $object | cut -c 5-)
 
-	#[[ -z $element_value ]] && element="$element ${MAGENTA}no element value${NOC}"
+    #[[ -z $element_value ]] && element="$element ${MAGENTA}no element value${NOC}"
 }
 
 
 pass_element()
 {
-	# run pass natively with $element
-	#clear
-	human_info
-	pass $element $object
+    # run pass natively with $element
+    #clear
+    human_info
+    pass $element $object
 }
 
 
 check_element_value()
 {
-	## no autoentry
-	if [[ -z $ae ]]; then
+    ## no autoentry
+    if [[ -z $ae ]]; then
 
-		if [[ -z $element ]]; then
+    	if [[ -z $element ]]; then
 
-			element="${MAGENTA}no element selected${NOC}"
+    	    element="${MAGENTA}no element selected${NOC}"
 
-		elif [[ -z $element_value ]]; then
+    	elif [[ -z $element_value ]]; then
 
-			element="$element ${MAGENTA}no value${NOC}"
+    	    element="$element ${MAGENTA}no value${NOC}"
 
-		fi
-		#[[ -z $element ]] && printf "${MAGENTA}no element selected${NOC}\n" && exit 10
-		#[[ -z $element_value ]] && printf "${MAGENTA}no element value${NOC}\n" && exit 10
+    	fi
 
-	fi
+    fi
 
-	## autoentry
-	if [[ -n $ae ]]; then
+    ## autoentry
+    if [[ -n $ae ]]; then
 
-		# [TODO] [[ -z $element_value ]] && element_value="${MAGENTA}no element value${NOC}"
-		[[ -z $element_value ]] && notify-send "no element value" && exit
+    	# [TODO] [[ -z $element_value ]] && element_value="${MAGENTA}no element value${NOC}"
+    	[[ -z $element_value ]] && notify-send "no element value" && exit
 
-	fi
+    fi
 }
 
 
 human_info()
 {
-	error_message
+    error_message
 
-	if [[ -z $ae ]]; then
+    if [[ -z $ae ]]; then
 
-		if [[ "$object" == 'login' ]]; then
-			printf "$object ${MAGENTA}$error${NOC}\n"
+    	if [[ "$object" == 'login' ]]; then
 
-		else
+	   printf "$object ${MAGENTA}$error${NOC}\n"
 
-			printf "$object $element ${MAGENTA}$error${NOC}\n"
+    	else
 
-		fi
+	   printf "$object $element ${MAGENTA}$error${NOC}\n"
 
-	elif [[ -n $ae ]]; then
+    	fi
 
-		notify-send "$element"
-		sleep $t
+    elif [[ -n $ae ]]; then
 
-	fi
+    	notify-send "$element"
+    	sleep $t
+
+    fi
 
 }
 
 
 error_message()
 {
-	## selected empty line in element menu
-	if [[ $element == " " ]]; then
+    ## selected empty line in element menu
+    if [[ $element == " " ]]; then
 
-		error="no valid selection"
+    	error="no valid selection"
 
-	fi
+    fi
 }
 
 
 autoentry()
 {
-	ae=1
-	## sleep time
-	t=5
+    ae=1
+    ## sleep time
+    t=5
 
-	element="url"
-	get_element_value
-	qutebrowser --target tab $element_value &
-	t=$((t * 2))
-	human_info
-	#notify-send "$element"
-	#sleep $((t * 2))
+    element="url"
+    get_element_value
+    qutebrowser --target tab $element_value &
+    t=$((t * 2))
+    human_info
+    #notify-send "$element"
+    #sleep $((t * 2))
 
-	element="userid"
-	get_element_value
-	t=$t
-	human_info
-	#notify-send "$element"
-	#sleep $t
+    element="userid"
+    get_element_value
+    t=$t
+    human_info
+    #notify-send "$element"
+    #sleep $t
 
-	element="password"
-	get_password 1> /dev/null #no stdout
-	human_info
-	#notify-send "$element"
-	#sleep $t
+    element="password"
+    get_password 1> /dev/null #no stdout
+    human_info
+    #notify-send "$element"
+    #sleep $t
 
-	element="otp"
-	get_otp
-	if [[ -z $otp ]]; then
-		human_info
-		#notify-send "$element"
-		#sleep $t
-	fi
+    element="otp"
+    get_otp
+    if [[ -z $otp ]]; then
+    	human_info
+    	#notify-send "$element"
+    	#sleep $t
+    fi
 
-	element="unlock"
-	get_element_value
-	if [[ -z $otp ]]; then
-		human_info
-		#notify-send "$element"
-		#sleep $t
-	fi
+    element="unlock"
+    get_element_value
+    if [[ -z $otp ]]; then
+    	human_info
+    	#notify-send "$element"
+    	#sleep $t
+    fi
 }
 
 
 get_object_name()
 {
-	printf "$object" | wl-copy -n -o
+    printf "$object" | wl-copy -n -o
 }
 
 
 process_element()
 {
-	case $element in
+    case $element in
 
-		password)
-			get_password
-			human_info
-			;;
+    	password)
+	    get_password
+	    human_info
+	    ;;
 
-		otp)
-			get_otp
-			human_info
-			;;
+    	otp)
+	    get_otp
+	    human_info
+	    ;;
 
-		autoentry)
-			autoentry
-			;;
+    	autoentry)
+	    autoentry
+	    ;;
 
-		show)
-			element='show'
-			pass_element
-			;;
+    	show)
+	    element='show'
+	    pass_element
+	    ;;
 
-		edit)
-			element='edit'
-			pass_element
-			;;
+    	edit)
+	    element='edit'
+	    pass_element
+	    ;;
 
-		copy)
-			get_object_name
-			human_info
-			;;
+    	copy)
+	    get_object_name
+	    human_info
+	    ;;
 
-		log_out)
-			log_out
-			;;
+    	log_out)
+	    log_out
+	    ;;
 
-		"")
-			human_info
-			;;
+    	"")
+	    human_info
+	    ;;
 
-		*)
-			get_element_value
-			human_info
-			;;
+    	*)
+	    get_element_value
+	    human_info
+	    ;;
 
-	esac
+    esac
 }
 
 
 main()
 {
-	get_object
-	process_object
-	get_element
-	process_element
+    get_object
+    process_object
+    get_element
+    process_element
 }
 
 main

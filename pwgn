@@ -91,8 +91,22 @@ optical_input()
 
 keyboard_input()
 {
-	##[TODO] press tab to hide keyboard entry
 	read input
+}
+
+
+clear_line()
+{
+    # TODO entry can be multiple lines long
+    # after read cursor went one line down, therefore cuu1
+    # see man terminfo
+    #tput cuu1
+
+    # does not work on multiple line entry
+    #tput cuu1
+    tput ed
+    #tput dl1
+
 }
 
 
@@ -120,7 +134,7 @@ choose_input()
 	# hide cursor
 	tput civis
 
-	reply_single_hidden_timer
+	reply_read_single_hidden_timer
 
 	# erase optical text
 	tput cuu1
@@ -136,7 +150,9 @@ choose_input()
 
 	else
 
-		keyboard_input
+	    keyboard_input
+
+	    clear_line
 
 	fi
 }
@@ -435,11 +451,11 @@ dynamic_truncate()
 
 	## this is an altered version of dynamic truncate compared to the rfc4226
 
-	##										values for
-	##				hex_str		digits		input='s'
+	##				values for
+	##		hex_str	digits	input='s'
 	##
-	##	dividend	sha3512			10		1402058969
-	##  divisor		sha1			 4			  2593
+	##  dividend	sha3512	10	1402058969
+	##  divisor	sha1	 4	2593
 
 	local hex_str="$1"
 	local digits="$2"
@@ -448,9 +464,9 @@ dynamic_truncate()
 	## so this value is between 0 (0) and 30 (F)
 	## i.e. if last char is 'c' then decimal value is 12
 	### $((2 * 0x${hex_str: -1})) explained:
-	### ${hex_str: -1}	= get the last hex character from $hex_str	(c)
-	### echo ((0xc))	= convert hex value to decimal value		(12)
-	### 2 * 12			= two times decimal value					(24)
+	### ${hex_str: -1}	= get the last hex character from $hex_str  (c)
+	### echo ((0xc))	= convert hex value to decimal value	    (12)
+	### 2 * 12		= two times decimal value		    (24)
 
 	local offset=$((2 * 0x${hex_str: -1}))
 
@@ -470,13 +486,13 @@ dynamic_truncate()
 
 debugging()
 {
-	printf "input:			$input\n"
-	printf "hash_sha1:		$hash_sha1\n"
+	printf "input:		$input\n"
+	printf "hash_sha1:	$hash_sha1\n"
 	printf "hash_sha3512:	$hash_sha3512\n"
-	printf "dividend:		$dividend\n"
-	printf "divisor:		$divisor\n"
-	printf "rounds:			$rounds\n"
-	printf "round_key:		$round_key\n"
+	printf "dividend:	$dividend\n"
+	printf "divisor:	$divisor\n"
+	printf "rounds:		$rounds\n"
+	printf "round_key:	$round_key\n"
 }
 
 

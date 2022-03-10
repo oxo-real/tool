@@ -493,7 +493,7 @@ generate_pw()
 {
 	printf "starting pwgn... press 'n' to abort "
 
-	reply_single_hidden_timer
+	reply_read_single_hidden_timer
 
 	# erase line
 	printf "\r"
@@ -767,7 +767,8 @@ check_no_confirm()
 		echo
 		printf "close vault? (Y/n) "
 
-		read reply_read_single
+		read reply_single
+		#read reply_read_single
 
 		if printf "$reply" | grep -iq "^n"; then
 
@@ -1062,6 +1063,7 @@ main()
 
 		list)
 
+			check_target_validity
 			#check_target_validity
 			check_target_status
 
@@ -1093,7 +1095,7 @@ main()
 			mountpoint=$arg_3
 			fzf_target_mountpoint
 
-			#get_sudo
+			get_sudo
 
 			check_target_validity
 			check_target_status
