@@ -1,4 +1,4 @@
-#!/bin/zsh
+#!usr/bin/env zsh
 
 source_dir="$XDG_DATA_HOME/c/git/code/source/function"
 
