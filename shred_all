@@ -12,7 +12,7 @@
 ###   /      |  /  _|
 ###
 ### shred_all
-### 2017 - 2021 (c) cytopyge
+### 2017 - 2022 (c) cytopyge
 ###
 ### destroy files and directories
 ###
@@ -34,7 +34,7 @@ passes=10
 script_name="shred_all"
 initial_release_year="2017"
 developer="cytopyge"
-source_dir="$XDG_DATA_HOME/c/git/code/sources/functions"
+source_dir="$XDG_DATA_HOME/c/git/code/source/function"
 
 
 main()
@@ -72,7 +72,7 @@ destroying()
 
 		printf "about to shred:	${YELLOW}$file_count${NOC} files, ${YELLOW}$link_count${NOC} links and ${YELLOW}$directory_count${NOC} directories in $target\n\n${RED}THIS IS DEFINITE${NOC} continue? (y/N) "
 
-		reply_single_hidden_timed
+		reply_read_single_hidden_timer
 
 		echo
 		if printf "$reply" | grep -iq "^y"; then

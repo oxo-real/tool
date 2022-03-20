@@ -1,17 +1,16 @@
 #!/usr/bin/env sh
 #
 ##
-###                                 _
-###  _ __   __ _ ___ ___  __ _  ___| |_
-### | '_ \ / _` / __/ __|/ _` |/ _ \ __|
-### | |_) | (_| \__ \__ \ (_| |  __/ |_
-### | .__/ \__,_|___/___/\__, |\___|\__|
-### |_|                  |___/
+###  _ __   __ _ ___ ___ _ __
+### | '_ \ / _` / __/ __| '__|
+### | |_) | (_| \__ \__ \ |
+### | .__/ \__,_|___/___/_|
+### |_|
 ###  _ _|_ _   ._  _  _
 ### (_\/|_(_)\/|_)(_|(/_
 ###   /      / |   _|
 ###
-### passget
+### passr
 ### fzf cli wrapper for pass
 ### copyright (c) 2020 - 2022  |  cytopyge
 ###
@@ -39,26 +38,26 @@
 #	pass, cryptsetup, fzf
 
 ## usage
-#	passget
-#	passget $object
-#	passget $object $element
+#	passr
+#	passr $object
+#	passr $object $element
 #
-#	passget open
-#	passget login
-#	passget status
-#	passget logout
-#	passget close
+#	passr open
+#	passr login
+#	passr status
+#	passr logout
+#	passr close
 
 ## examples
-#	passget
-#	passget codeberg_cytopyge
-#	passget codeberg_cytopyge password
+#	passr
+#	passr codeberg_cytopyge
+#	passr codeberg_cytopyge password
 
 
 # initial definitions
 
 ## script
-script_name='passget'
+script_name='passr'
 developer='cytopyge'
 license='gplv3'
 initial_release='2020'
@@ -90,7 +89,7 @@ source $source_dir/get_sudo
 
 ## objects can be searched for one or more elements
 ## regular elements are: url, userid, password
-## elements that can be retrieved with passget are:
+## elements that can be retrieved with passr are:
 elements=(\
 	"1 url" \
 	"2 userid" \
@@ -369,7 +368,7 @@ process_object()
 
     fi
 
-    # TODO if only passget is entered when status is 0 0
+    # TODO if only passr is entered when status is 0 0
     get_cache_status
     case $cache_status in
 

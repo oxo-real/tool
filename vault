@@ -121,7 +121,7 @@ check_target_validity()
 				[[ ! -b $target ]]; then
 
 				echo
-				printf "${MAGENTA}$target invalid target or permissions${NOC}\n"
+				printf "$target ${MAGENTA}invalid target or permissions${NOC}\n"
 				exit 22
 
 			fi

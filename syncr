@@ -10,24 +10,24 @@
 ### (_\/|_(_)|_)\/(_|(/_
 ###   /      |  /  _|
 ###
-###	syncr
+### syncr
 ### synchronize data
-###	2020 - 2022  |  cytopyge
+### 2020 - 2022  |  cytopyge
 ###
 ### usage:
-###			check the switches in main!
+### check the switches in main!
 ###
-###			syncr <destination> [rsync_options]
+### syncr <destination> [rsync_options]
 ###
 ### # examples
 ###
 ### ## backup
 ### syncr /home/cytopyge/dock/transfer/tux/home/cytopyge \
-###						--dry-run --links --delete
+###	    --dry-run --links --delete
 ###
 ### ## archive
 ### syncr /home/cytopyge/dock/transfer/tux/home/cytopyge \
-###						--dry-run --links
+###	    --dry-run --links
 ##
 #
 
