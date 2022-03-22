@@ -568,11 +568,11 @@ crypt()
 
 	    # decrypt locations (lines) in crypt_list
 
-	    while IFS= read -r file_2_crypt; do
+	    while IFS= read -r file_2_decrypt; do
 
 
 		# don 't process ###' commented lines
-		if [[ "$(printf "$file_2_crypt" | head -c 1)" == "#" ]]; then
+		if [[ "$(printf "$file_2_decrypt" | head -c 1)" == "#" ]]; then
 
 		    continue
 
@@ -580,7 +580,7 @@ crypt()
 
 
 		# skip empty lines
-		if [[ -z "$file_2_crypt" ]]; then
+		if [[ -z "$file_2_decrypt" ]]; then
 
 		    continue
 
@@ -590,7 +590,7 @@ crypt()
 		# make relative location in fpcl_file absolute to destination
 		# (re_dest), because files are already copied at this point
 		# and decryption has to be done in destination, not source!
-		crypt_loc="$re_dest/$(printf "$file_2_crypt" | awk '{print $2}')"
+		crypt_loc="$re_dest/$(printf "$file_2_decrypt" | awk '{print $2}')"
 
 		tput sc
 
@@ -629,7 +629,7 @@ crypt()
 		    [[ -d $crypt_loc ]] || mkdir -p $crypt_loc
 
 		    ## extract contents from tar archive
-		    tar -xzf $tar_name -C $re_dest/ $file_2_crypt 1>&2 2>/dev/null
+		    tar -xzf $tar_name -C $re_dest/ $file_2_decrypt 1>&2 2>/dev/null
 		    #tar -xzf $tar_name $crypt_loc 1>&2 2>/dev/null
 
 		    tput rc
@@ -729,9 +729,15 @@ verify()
 
 cleanup()
 {
-    destroy $plain_list
-    destroy $crypt_list
-    destroy $all_files_list
+    case $mode in
+
+	backup)
+	    destroy $plain_list
+	    destroy $crypt_list
+	    destroy $all_files_list
+	    ;;
+
+    esac
 }
 
 
