@@ -15,7 +15,7 @@ p_src='/var/cache/pacman/pkg'
 db_name='offline'
 
 ## destination root
-p_dst=$@
+p_dst=$1
 
 timestamp=$(date +%s)
 
@@ -26,49 +26,49 @@ timestamp=$(date +%s)
 
 rsync_all_packages()
 {
-	rsync -aAXv \
-		--delete \
-		--filter='protect aur' \
-		$p_src/ $p_dst
+    rsync -aAXv \
+	--filter='protect aur' \
+	--delete \
+	$p_src/ $p_dst
 }
 
 
 build_custom_pkg_db()
 {
-	# build custom package database
-	## .zst and older .xz packages
-	repo-add -n -R $p_dst/$db_name.db.tar.zst $p_dst/*.pkg.tar.{zst,xz}
+    # build custom package database
+    ## .zst and older .xz packages
+    repo-add -n -R $p_dst/$db_name.db.tar.zst $p_dst/*.pkg.tar.{zst,xz}
 }
 
 
 aur_packages()
 {
-	# compile source code from aur packages
-	## source for hajime/4apps.sh#aur_install
+    # compile source code from aur packages
+    ## source for hajime/4apps.sh#aur_install
 
-	aur_pkgs=( $(yay -Qqm) )
-	dst_aur="$p_dst/aur"
+    aur_pkgs=( $(yay -Qqm) )
+    dst_aur="$p_dst/aur"
 
-	[[ -d $dst_aur ]] || mkdir -p $dst_aur
+    [[ -d $dst_aur ]] || mkdir -p $dst_aur
 
-	cd $dst_aur
-	yay -Gd $(yay -Qqm)
+    cd $dst_aur
+    yay -Gd $(yay -Qqm)
 
-	for package in "${aur_pkgs[@]}"; do
+    for package in "${aur_pkgs[@]}"; do
 
-		printf "$package\n"
-		cd "$dst_aur/$package"
-		makepkg -sc --needed
+    printf "$package\n"
+    cd "$dst_aur/$package"
+    makepkg -sc --needed
 
-	done
+    done
 }
 
 
 main()
 {
-	rsync_all_packages
-	build_custom_pkg_db
-	aur_packages
+    rsync_all_packages
+    build_custom_pkg_db
+    aur_packages
 }
 
 main

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 ##
 ###      _       _   _
@@ -10,13 +10,13 @@
 ### (_\/|_(_)|_)\/(_|(/_
 ###   /      |  /  _|
 ###
-### (c) 2020 - 2022 cytopyge
+### (c) 2020 - 2022  |  cytopyge
 ###
 ###	usage:	dotbu backup  [<bu_src> <bu_dest>]
-###			dotbu restore [<rs_src> <rs_dest>]
+###		dotbu restore [<rs_src> <rs_dest>]
 ###
-### i.e.:	dotbu backup $XDG_CONFIG_HOME $HOME/.dot/files
-###			dotbu restore $HOME/.dot/files $XDG_CONFIG_HOME
+###	i.e.:	dotbu backup $XDG_CONFIG_HOME $HOME/.dot/files
+###		dotbu restore $HOME/.dot/files $XDG_CONFIG_HOME
 ##
 #
 
@@ -37,656 +37,660 @@
 ##	2.	decrypt files or directories
 
 
-mode=$1				# 'backup' or 'restore'
-src=$2				# source directory
-dest=$3				# destination directory
+mode=$1		# 'backup' or 'restore'
+src=$2		# source directory
+dest=$3		# destination directory
 
 
 sourcing()
 {
-	# external code sources
-	source_dir="$XDG_DATA_HOME/c/git/code/source/function"
-	source $source_dir/reply_functions
-	source $source_dir/text_appearance
-	pwgn="$XDG_DATA_HOME/c/git/code/tool/pwgn"
+    # external code sources
+    source_dir="$XDG_DATA_HOME/c/git/code/source/function"
+    source $source_dir/reply_functions
+    source $source_dir/text_appearance
+    pwgn="$XDG_DATA_HOME/c/git/code/tool/pwgn"
 }
 
 
 initialize()
 {
-	# initializing variables
+    # initializing variables
 
-	## not all of .config has to be uploaded to the public repository;
-	## only the customized files
-	## files that are not to be published
-	## are mentioned in the file process list (fpcl)
-	## their lines start with '# '
+    ## not all of .config has to be uploaded to the public repository;
+    ## only the customized files
+    ## files that are not to be published
+    ## are mentioned in the file process list (fpcl)
+    ## their lines start with '# '
 
-	## files / directories to en-/decrypt
-	## their lines start with 'c '
+    ## files / directories to en-/decrypt
+    ## their lines start with 'c '
 
-	fpcl_file="$src/.fpcl"
+    fpcl_file="$src/.fpcl"
 
-	case $mode in
+    case $mode in
 
-		backup)
-			# backup_definitions
-				## location_definitions
-				bu_src=$src
-				bu_dest=$dest
-			;;
+	backup)
+	    # backup_definitions
+	    ## location_definitions
+	    bu_src=$src
+	    bu_dest=$dest
+	    ;;
 
-		restore)
-			# restore_definitions
-				## location definitions
-				re_src=$src
-				re_dest=$dest
-			;;
+	restore)
+	    # restore_definitions
+	    ## location definitions
+	    re_src=$src
+	    re_dest=$dest
+	    ;;
 
-		*)
-			# no mode entry
-			printf "enter mode as backup or restore\n"
-			exit 4
+	*)
+	    # no mode entry
+	    printf "enter mode as backup or restore\n"
+	    exit 4
+	    ;;
 
-	esac
+    esac
 
-	printf "\nmode:   ${INV}${BOLD} $mode ${NOC}\n"
-
+    printf "\nmode:   ${INV}${BOLD} $mode ${NOC}\n"
 }
 
 
 validate_source()
 {
-	# directory validity check
+    # directory validity check
+    if [[ -z $src ]]; then
 
-	if [[ -z $src ]]; then
+        # both no src and dest are given
+        printf "please enter a source argument, exiting, bye!"
+        exit 9
 
-		# both no src and dest are given
-		printf "please enter a source argument, exiting, bye!"
-		exit 9
-
-	fi
+    fi
 
 
-	if [[ ! -d $src ]]; then
+    if [[ ! -d $src ]]; then
 
-		printf "source:		${MAGENTA}$src${NOC}\n\n"
+    	printf "source:		${MAGENTA}$src${NOC}\n\n"
 
-		printf "source ${MAGENTA}does not exist${NOC}\n"
-		printf "exiting, bye!\n"
-		exit 11
+	printf "source ${MAGENTA}does not exist${NOC}\n"
+	printf "exiting, bye!\n"
+	exit 11
 
-	else
+    else
 
-		printf "source:		$src\n"
+	printf "source:		$src\n"
 
-	fi
+    fi
 }
 
 
 validate_destination()
 {
-	if [[ -z $dest ]]; then
+    if [[ -z $dest ]]; then
 
-		# source is given, destination is empty
-		case $mode in
+	# source is given, destination is empty
+	case $mode in
 
-			backup)
+	    backup)
 
-				printf "${MAGENTA}no destination argument${NOC}, exiting, bye!\n"
-				exit 11
-				;;
+		printf "${MAGENTA}no destination argument${NOC}, exiting, bye!\n"
+		exit 11
+		;;
 
-			restore)
+	    restore)
 
-				re_dest=$(head -n 1 $src/.sync_info)
-				printf "destination:	${MAGENTA}no argument${NOC}\n"
+		re_dest=$(head -n 1 $src/.sync_info)
+		printf "destination:	${MAGENTA}no argument${NOC}\n"
 
-				if [[ ! -z $re_dest ]]; then
+		if [[ ! -z $re_dest ]]; then
 
-					printf "		${YELLOW}$re_dest${NOC}\n\n"
-
-					printf "is this okay? (y/N) "
-					reply_read_single
-					#reply_single
-					echo
-
-				else
-
-					printf "exiting, bye!\n"
-
-				fi
-
-				if printf "$reply" | grep -iq "^y"; then
-
-					echo
-
-				else
-
-					printf "\nno valid destination argument, exiting, bye!\n"
-					exit 12
-
-				fi
-				;;
-
-		esac
-
-	elif [[ ! -d $dest ]]; then
-
-		printf "destination:	${MAGENTA}$dest${NOC}\n\n"
-
-		printf "destination ${MAGENTA}does not exist${NOC}\n\n"
-		printf "create? (y/N) "
-		reply_read_single
-		#reply_single
-		echo
-
-		if printf "$reply" | grep -iq "^y"; then
-
-			printf "about to create ${YELLOW}$dest${NOC}\n\n"
-			printf "sure? (y/N) "
-			reply_read_single
-			#reply_single
-			echo
-
-			if printf "$reply" | grep -iq "^y"; then
-
-				printf "creating	${GREEN}$dest${NOC}\n"
-				mkdir -p $dest
-
-			else
-
-				printf "\nno valid destination, exiting, bye!\n"
-				exit 12
-
-			fi
+		    printf "		${YELLOW}$re_dest${NOC}\n\n"
+		    printf "is this okay? (y/N) "
+		    reply_read_single
+		    #reply_single
+		    echo
 
 		else
 
-			printf "no valid destination, exiting, bye!\n"
-			exit 13
+		    printf "exiting, bye!\n"
 
 		fi
 
-		echo
+		if printf "$reply" | grep -iq "^y"; then
 
-	else
+		    echo
 
-		printf "destination:	$dest\n\n"
+		else
 
-	fi
+		    printf "\nno valid destination argument, exiting, bye!\n"
+		    exit 12
 
-	case $mode in
-
-		backup)
-			# req: .fpcl_file in source
-			[[ ! -f $src/.fpcl ]] && printf "${MAGENTA}no .fpcl file found in $bu_src${NOC}\n" && exit 21
-			;;
-
-		restore)
-			# req: .sync_info file in source
-			[[ ! -f $src/.sync_info ]] && printf "${MAGENTA}no .sync_info file found in $re_src${NOC}\n" && exit 22
-			# req: .fpcl_file in source
-			[[ ! -f $src/.fpcl ]] && printf "${MAGENTA}no .fpcl file found in $bu_src${NOC}\n" && exit 22
-			;;
+		fi
+		;;
 
 	esac
 
-	# empty $dest
-	if [[ ! -z $(ls -A $dest 2>/dev/null) ]]; then
-		printf "${YELLOW}destination${NOC} directory is ${BOLD}NOT${NORMAL} empty${NOC}\n\n"
+    elif [[ ! -d $dest ]]; then
 
-			printf "continue? (y/N) "
-			reply_read_single
-			#reply_single
-			echo
+	printf "destination:	${MAGENTA}$dest${NOC}\n\n"
 
-			if printf "$reply" | grep -iq "^y"; then
+	printf "destination ${MAGENTA}does not exist${NOC}\n\n"
+	printf "create? (y/N) "
+	reply_read_single
+	#reply_single
+	echo
 
-				echo
-				printf "starting $mode operation\n"
+	if printf "$reply" | grep -iq "^y"; then
 
-			else
+	    printf "about to create ${YELLOW}$dest${NOC}\n\n"
+	    printf "sure? (y/N) "
+	    reply_read_single
+	    #reply_single
+	    echo
 
-				printf "operation ${MAGENTA}aborted${NOC}, exiting, bye!\n"
-				exit 23
+	    if printf "$reply" | grep -iq "^y"; then
 
-			fi
+		printf "creating	${GREEN}$dest${NOC}\n"
+		mkdir -p $dest
+
+	    else
+
+		printf "\nno valid destination, exiting, bye!\n"
+		exit 12
+
+	    fi
+
+	else
+
+	    printf "no valid destination, exiting, bye!\n"
+	    exit 13
 
 	fi
+
+	echo
+
+    else
+
+	printf "destination:	$dest\n\n"
+
+    fi
+
+    case $mode in
+
+	backup)
+
+	    ## req: .fpcl_file in source
+	    [[ ! -f $src/.fpcl ]] && \
+		printf "${MAGENTA}no .fpcl file found in $bu_src${NOC}\n" && exit 21
+	    ;;
+
+	restore)
+
+	    ## req: .sync_info file in source
+	    [[ ! -f $src/.sync_info ]] && \
+		printf "${MAGENTA}no .sync_info file found in $re_src${NOC}\n" && exit 22
+
+	    ## req: .fpcl_file in source
+	    [[ ! -f $src/.fpcl ]] && \
+		printf "${MAGENTA}no .fpcl file found in $bu_src${NOC}\n" && exit 22
+	    ;;
+
+    esac
+
+    # empty $dest
+    if [[ ! -z $(ls -A $dest 2>/dev/null) ]]; then
+	printf "${YELLOW}destination${NOC} directory is ${BOLD}NOT${NORMAL} empty${NOC}\n\n"
+
+	printf "continue? (y/N) "
+	reply_read_single
+	#reply_single
+	echo
+
+	if printf "$reply" | grep -iq "^y"; then
+
+	    echo
+	    printf "starting $mode operation\n"
+
+	else
+
+	    printf "operation ${MAGENTA}aborted${NOC}, exiting, bye!\n"
+	    exit 23
+
+	fi
+
+    fi
 }
 
 
 create_lists()
 {
-	case $mode in
+    case $mode in
 
-		backup)
+	# only backup
+	backup)
 
-			# generate file, crypt and plain list from fpcl_file
+	    # generate file, crypt and plain list from fpcl_file
 
-			all_files_list="$src/.alll"
-			crypt_list="$src/.crpl"
-			plain_list="$src/.plnl"
+	    all_files_list="$src/.alll"
+	    crypt_list="$src/.crpl"
+	    plain_list="$src/.plnl"
 
-			# remove existing lists
-			## these shouln't be there because of cleanup, ... but just in case
-			## because we are going to append, not overwrite
-			[[ -f $all_files_list ]] && rm $all_files_list
-			[[ -f $crypt_list ]] && rm $crypt_list
-			[[ -f $plain_list ]] && rm $plain_list
+	    # remove existing lists
+	    ## these shouln't be there because of cleanup, ... but just in case
+	    ## because we are going to append, not overwrite
+	    [[ -f $all_files_list ]] && rm $all_files_list
+	    [[ -f $crypt_list ]] && rm $crypt_list
+	    [[ -f $plain_list ]] && rm $plain_list
 
-			## fpcl contains only files to be copied
-			## those also to be crypted are prepended with a c
-			while IFS= read -r fpcl_location; do
+	    ## fpcl contains only files to be copied
+	    ## those also to be crypted are prepended with a c
+	    while IFS= read -r fpcl_location; do
 
-				## empty lines; skip
-				if [[ -z "$fpcl_location" ]]; then
+		## empty lines; skip
+		if [[ -z "$fpcl_location" ]]; then
 
-					continue
+		    continue
 
-				## outcommented lines; skip
-				elif [[ "$(printf "$fpcl_location" | head -c 1)" == "#" ]]; then
+		## outcommented lines; skip
+		elif [[ "$(printf "$fpcl_location" | head -c 1)" == "#" ]]; then
 
-					continue
+		    continue
 
-				## lines starting with c; to all and crypt_list
-				elif [[ "$(printf "$fpcl_location" | head -c 2)" == "c " ]]; then
+		## lines starting with c; to all and crypt_list
+		elif [[ "$(printf "$fpcl_location" | head -c 2)" == "c " ]]; then
 
-					printf "$fpcl_location\n" | cut -c 3- | tee -a $all_files_list $crypt_list
+		    printf "$fpcl_location\n" | cut -c 3- | tee -a $all_files_list $crypt_list
 
-				## all other lines; to all and plain_list
-				else
+		## all other lines; to all and plain_list
+		else
 
-					printf "$fpcl_location\n" | tee -a $all_files_list $plain_list
+		    printf "$fpcl_location\n" | tee -a $all_files_list $plain_list
 
-				fi
+		fi
 
-			done < $fpcl_file
+	    done < $fpcl_file
+	    ;;
 
+    esac
 
-				# generate exclude list
+    : '
+    now we have 3 temporary lists in $src:
 
-				#[DEV] not nececarry anymore because we now only copy selected files
-				#exclude_list="$src/.rexl"
+    all_files_list	.alll	with all files to be copied
+    crypt_list		.crpl	with files to be encrypted
+    plain_list		.plnl	with files that can stay as they are
 
-				### keep files with .aes and .hash extensions
-				#printf "*.aes\n" >> "$exclude_list"
-				#printf "*.hash\n" >> "$rsync_exclude_list"
-			;;
-
-		esac
-
-		: '
-		now we have 3 temporary lists in $src:
-
-		all_files_list	.alll	with all files to be copied
-		crypt_list		.crpl	with files to be encrypted
-		plain_list		.plnl	with files that can stay as they are
-
-		# '
+    # '
 }
 
 
 copy()
 {
-	case $mode in
+    case $mode in
 
-		backup)
-			# copy all files to destination
-			rsync -aAXv \
-				--delete \
-				--files-from=$all_files_list \
-				--recursive \
-				$bu_src/ $bu_dest
+	backup)
 
-			# write .sync_info file to destination
-			printf "$bu_src\n" > "$bu_dest/.sync_info"
-			date +%Y%m%d_%H%M%S_%N_%z_%Z_%V >> "$bu_dest/.sync_info"
-			;;
+	    # copy all files to destination
+	    rsync -aAXv \
+		--delete \
+		--files-from=$all_files_list \
+		--recursive \
+		$bu_src/ $bu_dest
 
-		restore)
-			rsync -aAXv $re_src/ $re_dest
-			;;
+	    # write .sync_info file to destination
+	    printf "$bu_src\n" > "$bu_dest/.sync_info"
+	    date +%Y%m%d_%H%M%S_%N_%z_%Z_%V >> "$bu_dest/.sync_info"
+	    ;;
 
-	esac
+	restore)
+
+	    rsync -aAXv $re_src/ $re_dest
+	    ;;
+
+    esac
 }
 
 report_plain()
 {
-	## report not to be drypted copied files
-	while IFS= read -r file_2_copy; do
+    case $mode in
 
-		## location does exist
-		if [[ ! -d "$src/$file_2_copy" ]] && \
-			[[ ! -f "$src/$file_2_copy" ]]; then
+	backup)
 
-			printf "$src/$file_2_copy ${MAGENTA}source not found${NOC}\n"
-			continue
+            ## report not to be TODO(en?)decrypted copied files
+            while IFS= read -r file_2_copy; do
 
-		else
+            	## location does exist
+            	if [[ ! -d "$src/$file_2_copy" ]] && \
+            		[[ ! -f "$src/$file_2_copy" ]]; then
 
-			printf "$dest/$file_2_copy\n"
+        	   printf "$src/$file_2_copy ${MAGENTA}source not found${NOC}\n"
+        	   continue
 
-		fi
+            	else
 
-	done < $plain_list
+        	   printf "$dest/$file_2_copy\n"
+
+            	fi
+
+            done < $plain_list
+	    ;;
+
+    esac
 }
 
 
 modify()
 {
-	case $mode in
+    case $mode in
 
-		backup)
+	backup)
 
-			# remove all (nested) git databases
-			printf "removing .git directories\n"
-			find $bu_dest -type d -name '*.git' -exec rm -rf {} \;
-			;;
+	    # remove all (nested) git databases
+	    printf "removing .git directories\n"
+	    find $bu_dest -type d -name '*.git' -exec rm -rf {} \;
+	    ;;
 
-	esac
+    esac
 }
 
 
 crypt()
 {
-	case $mode in
+    case $mode in
 
 
-		backup)
+	backup)
 
 
-			# encrypt locations (lines) in crypt_list
+	    # encrypt locations (lines) in crypt_list
 
-			while IFS= read -r file_2_crypt; do
+	    while IFS= read -r file_2_crypt; do
 
-				## empty lines; skip
-				if [[ -z "$file_2_crypt" ]]; then
+		## empty lines; skip
+	        if [[ -z "$file_2_crypt" ]]; then
 
-					continue
+		    continue
 
-				## outcommented lines; skip
-				elif [[ "$(printf "$file_2_crypt" | head -c 1)" == "#" ]]; then
+		## outcommented lines; skip
+		elif [[ "$(printf "$file_2_crypt" | head -c 1)" == "#" ]]; then
 
-					continue
+		    continue
 
-				## location does exist
-				elif [[ ! -d "$src/$file_2_crypt" ]] && \
-					[[ ! -f "$src/$file_2_crypt" ]]; then
+		## location does exist
+		elif [[ ! -d "$src/$file_2_crypt" ]] && \
+		    [[ ! -f "$src/$file_2_crypt" ]]; then
 
-					printf "$src/$file_2_crypt ${MAGENTA}location not found${NOC}\n"
-					continue
+		    printf "$src/$file_2_crypt ${MAGENTA}location not found${NOC}\n"
 
-				## then; crypt
-				else
+		    continue
 
-					# make relative location in fpcl_file absolute to destination
-					# (bu_dest), because files are already copied at this point
-					# and encryption has to be done in destination, not source!
+		## then; crypt
+		else
 
-					# crypt_loc is the location (file/dir) that has to be encrypted
-					crypt_loc="$bu_dest/$file_2_crypt"
+		    # make relative location in fpcl_file absolute to destination
+		    # (bu_dest), because files are already copied at this point
+		    # and encryption has to be done in destination, not source!
+
+		    # crypt_loc is the location (file/dir) that has to be encrypted
+		    crypt_loc="$bu_dest/$file_2_crypt"
 
 
-					# crypt_loc is a directory
-					if [[ -d $crypt_loc ]]; then
+		    # crypt_loc is a directory
+		    if [[ -d $crypt_loc ]]; then
 
-						printf "$crypt_loc"
+			printf "$crypt_loc"
 
-						## create a tar archive name (variable)
-						tar_name="$crypt_loc.tar"
+			## create a tar archive name (variable)
+			tar_name="$crypt_loc.tar"
 
-						## create directory if non-existent
-						tar_name_dir=$(dirname $tar_name)
-						[[ -d $tar_name_dir ]] || mkdir -p $tar_name_dir
+			## create directory if non-existent
+			tar_name_dir=$(dirname $tar_name)
+			[[ -d $tar_name_dir ]] || mkdir -p $tar_name_dir
 
-						## create a tar archive with directory contents
-						tar -czf $tar_name -C $bu_src $file_2_crypt  1>&2 2>/dev/null
-						printf ".tar"
+			## create a tar archive with directory contents
+			tar -czf $tar_name -C $bu_src $file_2_crypt  1>&2 2>/dev/null
+			printf ".tar"
 
-						## remove crypt_loc directory
-						destroy $crypt_loc
+			## remove crypt_loc directory
+			destroy $crypt_loc
 
-						## calculate new $tar_name hash
-						tar_name_hash_new=$(openssl sha3-512 $tar_name | awk '{print $2}')
+			## calculate new $tar_name hash
+			tar_name_hash_new=$(openssl sha3-512 $tar_name | awk '{print $2}')
 
-						## get existing $tar_name hash
-						[[ -f "$tar_name.hash" ]] && \
-							tar_name_hash_exist=$(cat "$tar_name.hash") || \
-							tar_name_hash_exist=0
+			## get existing $tar_name hash
+			[[ -f "$tar_name.hash" ]] && \
+			    tar_name_hash_exist=$(cat "$tar_name.hash") || \
+			    tar_name_hash_exist=0
 
-						## compare hash_new with hash_exist
-						if [[ "$tar_name_hash_new" != "$tar_name_hash_exist" ]]; then
+			## compare hash_new with hash_exist
+			if [[ "$tar_name_hash_new" != "$tar_name_hash_exist" ]]; then
 
-							printf "$tar_name_hash_new" > "$tar_name.hash"
+			    printf "$tar_name_hash_new" > "$tar_name.hash"
 
-							## encrypt the tar archive
-							#[TODO] gpg encrypt
-							tar_crypt_name="$tar_name.aes"
-							openssl enc \
-								-e \
-								-aes-256-cbc \
-								-base64 \
-								-pbkdf2 \
-								-salt \
-								-pass pass:$pw \
-								-in $tar_name \
-								-out $tar_crypt_name
+			    ## encrypt the tar archive
+			    #[TODO] gpg encrypt
+			    tar_crypt_name="$tar_name.aes"
+			    openssl enc \
+				-e \
+				-aes-256-cbc \
+				-base64 \
+				-pbkdf2 \
+				-salt \
+				-pass pass:$pw \
+				-in $tar_name \
+				-out $tar_crypt_name
 
-							printf ".aes\n"
+			    printf ".aes\n"
 
-						elif [[ "$tar_name_hash_new" == "$tar_name_hash_exist" ]]; then
+			elif [[ "$tar_name_hash_new" == "$tar_name_hash_exist" ]]; then
 
-							## remove the unencrypted tar archive
-							destroy $tar_name
+			    ## remove the unencrypted tar archive
+			    destroy $tar_name
 
-							printf " ${YELLOW}unchanged hash${NOC}\n"
+			    printf " ${YELLOW}unchanged hash${NOC}\n"
 
-							continue
+			    continue
 
-						fi
+			fi
 
-						## remove the unencrypted tar archive
-						destroy $tar_name
+			## remove the unencrypted tar archive
+			destroy $tar_name
 
-					# crypt_loc is a file
+		    # crypt_loc is a file
 
-					elif [[ -f $crypt_loc ]]; then
+		    elif [[ -f $crypt_loc ]]; then
 
-						printf "$crypt_loc"
+	    		printf "$crypt_loc"
 
-						## create encrypted file name
-						file_name="$crypt_loc"
-						file_crypt_name="$file_name.aes"
+			## create encrypted file name
+			file_name="$crypt_loc"
+			file_crypt_name="$file_name.aes"
 
-						## create directory if non-existent
-						file_name_dir=$(dirname $file_name)
-						[[ -d $file_name_dir ]] || mkdir -p $file_name_dir
+			## create directory if non-existent
+			file_name_dir=$(dirname $file_name)
+			[[ -d $file_name_dir ]] || mkdir -p $file_name_dir
 
-						## calculate new $file_name hash
-						file_name_hash_new=$(openssl sha3-512 $file_name | awk '{print $2}')
+			## calculate new $file_name hash
+			file_name_hash_new=$(openssl sha3-512 $file_name | awk '{print $2}')
 
-						## get existing $file_name hash
-						[[ -f $file_name.hash ]] && \
-							file_name_hash_exist=$(< $file_name.hash) || \
-							file_name_hash_exist=0
+			## get existing $file_name hash
+			[[ -f $file_name.hash ]] && \
+			    file_name_hash_exist=$(< $file_name.hash) || \
+			    file_name_hash_exist=0
 
-						## compare hash_new with hash_exist
-						## they differ; write hash and encrypted file
-						if [[ "$file_name_hash_new" != "$file_name_hash_exist" ]]; then
+			## compare hash_new with hash_exist
+			## they differ; write hash and encrypted file
+			if [[ "$file_name_hash_new" != "$file_name_hash_exist" ]]; then
 
-							printf "$file_name_hash_new" > "$file_name.hash"
+			    printf "$file_name_hash_new" > "$file_name.hash"
 
-							## encrypt the file
-							openssl enc \
-								-e \
-								-aes-256-cbc \
-								-base64 \
-								-pbkdf2 \
-								-salt \
-								-pass pass:$pw \
-								-in $file_name \
-								-out $file_crypt_name
+			    ## encrypt the file
+			    openssl enc \
+				-e \
+				-aes-256-cbc \
+				-base64 \
+				-pbkdf2 \
+				-salt \
+				-pass pass:$pw \
+			    	-in $file_name \
+				-out $file_crypt_name
 
-							printf ".aes\n"
+			    printf ".aes\n"
 
-						elif [[ "$file_name_hash_new" == "$file_name_hash_exist" ]]; then
+			elif [[ "$file_name_hash_new" == "$file_name_hash_exist" ]]; then
 
-							## remove the unencrypted tar archive
-							destroy $file_name
+			    ## remove the unencrypted tar archive
+			    destroy $file_name
 
-							printf " ${YELLOW}unchanged hash${NOC}\n"
+			    printf " ${YELLOW}unchanged hash${NOC}\n"
 
-							continue
+			    continue
 
-						fi
+			fi
 
 						## remove the unencrypted file
 						destroy $file_name
 
-					else
+		    else
 
-						printf "${MAGENTA}$crypt_loc is not a file or directory${NOC}\n"
+			printf "${MAGENTA}$crypt_loc is not a file or directory${NOC}\n"
 
-						continue
+			continue
+		    fi
 
-					fi
+		fi
 
-				fi
-
-			done < $crypt_list
-			;;
-
-
-		restore)
+	    done < $crypt_list
+	    ;;
 
 
-			# decrypt locations (lines) in crypt_list
-
-			while IFS= read -r file_2_crypt; do
+	restore)
 
 
-				# don 't process ###' commented lines
-				if [[ "$(printf "$file_2_crypt" | head -c 1)" == "#" ]]; then
+	    # decrypt locations (lines) in crypt_list
 
-					continue
-
-				fi
+	    while IFS= read -r file_2_crypt; do
 
 
-				# skip empty lines
-				if [[ -z "$file_2_crypt" ]]; then
+		# don 't process ###' commented lines
+		if [[ "$(printf "$file_2_crypt" | head -c 1)" == "#" ]]; then
 
-					continue
+		    continue
 
-				fi
+		fi
 
 
-				# make relative location in fpcl_file absolute to destination
-				# (re_dest), because files are already copied at this point
-				# and decryption has to be done in destination, not source!
-				crypt_loc="$re_dest/$(printf "$file_2_crypt" | awk '{print $2}')"
+		# skip empty lines
+		if [[ -z "$file_2_crypt" ]]; then
 
-				tput sc
+		    continue
 
-				# crypt_loc is a tar.aes file
+		fi
 
-				if [[ -f "$crypt_loc.tar.aes" ]]; then
 
-					# encrypted file has .tar.aes extention
-					# therefore original is a directory (no file)
+		# make relative location in fpcl_file absolute to destination
+		# (re_dest), because files are already copied at this point
+		# and decryption has to be done in destination, not source!
+		crypt_loc="$re_dest/$(printf "$file_2_crypt" | awk '{print $2}')"
 
-					printf "$crypt_loc.tar.aes"
+		tput sc
 
-					## create a tar archive name
-					tar_name="$crypt_loc.tar"
+		# crypt_loc is a tar.aes file
 
-					## decrypt the aes file
-					tar_crypt_name="$crypt_loc.tar.aes"
-					openssl enc \
-						-d \
-						-aes-256-cbc \
-						-base64 \
-						-pbkdf2 \
-						-salt \
-						-pass pass:$pw \
-						-in $tar_crypt_name \
-						-out $tar_name
+		if [[ -f "$crypt_loc.tar.aes" ]]; then
 
-					tput rc
-					tput ed
-					printf "$crypt_loc.tar"
+		    # encrypted file has .tar.aes extention
+		    # therefore original is a directory (no file)
 
-					## remove the aes file
-					destroy $tar_crypt_name
+		    printf "$crypt_loc.tar.aes"
 
-					## create directory if non-existent
-					[[ -d $crypt_loc ]] || mkdir -p $crypt_loc
+		    ## create a tar archive name
+		    tar_name="$crypt_loc.tar"
 
-					## extract contents from tar archive
-					tar -xzf $tar_name -C $re_dest/ $file_2_crypt 1>&2 2>/dev/null
-					#tar -xzf $tar_name $crypt_loc 1>&2 2>/dev/null
+		    ## decrypt the aes file
+		    tar_crypt_name="$crypt_loc.tar.aes"
+		    openssl enc \
+			-d \
+			-aes-256-cbc \
+			-base64 \
+			-pbkdf2 \
+			-salt \
+			-pass pass:$pw \
+			-in $tar_crypt_name \
+			-out $tar_name
 
-					tput rc
-					tput ed
-					printf "$crypt_loc"
+		    tput rc
+		    tput ed
+		    printf "$crypt_loc.tar"
 
-					## remove crypt_loc.tar
-					destroy $crypt_loc.tar
+		    ## remove the aes file
+		    destroy $tar_crypt_name
 
-					tput cud1
+		    ## create directory if non-existent
+		    [[ -d $crypt_loc ]] || mkdir -p $crypt_loc
 
-				# crypt_loc is a file
+		    ## extract contents from tar archive
+		    tar -xzf $tar_name -C $re_dest/ $file_2_crypt 1>&2 2>/dev/null
+		    #tar -xzf $tar_name $crypt_loc 1>&2 2>/dev/null
 
-				elif [[ -f "$crypt_loc.aes" ]]; then
+		    tput rc
+		    tput ed
+		    printf "$crypt_loc"
 
-					# encrypted file has .aes extention
-					# therefore original is a file (no dir)
+		    ## remove crypt_loc.tar
+		    destroy $crypt_loc.tar
 
-					## create encrypted file name
-					file_name="$crypt_loc"
-					file_crypt_name="$file_name.aes"
+		    tput cud1
 
-					tput rc
-					tput ed
-					printf "$file_crypt_name"
+		    # crypt_loc is a file
 
-					## create directory if non-existent
-					#file_name_dir=$(dirname $file_name)
-					#[[ -d $file_name_dir ]] || mkdir -p $file_name_dir
+		elif [[ -f "$crypt_loc.aes" ]]; then
 
-					## decrypt the aes file
-					openssl enc \
-						-d \
-						-aes-256-cbc \
-						-pbkdf2 \
-						-salt \
-						-base64 \
-						-pass pass:$pw \
-						-in $file_crypt_name \
-						-out $file_name
+		    # encrypted file has .aes extention
+		    # therefore original is a file (no dir)
 
-					## remove the encrypted file
-					destroy $file_name.aes
+		    ## create encrypted file name
+		    file_name="$crypt_loc"
+		    file_crypt_name="$file_name.aes"
 
-					tput rc
-					tput ed
-					printf "$file_name"
+		    tput rc
+		    tput ed
+		    printf "$file_crypt_name"
 
-					tput cud1
+		    ## create directory if non-existent
+		    #file_name_dir=$(dirname $file_name)
+		    #[[ -d $file_name_dir ]] || mkdir -p $file_name_dir
 
-				else
+		    ## decrypt the aes file
+		    openssl enc \
+		    	-d \
+			-aes-256-cbc \
+			-pbkdf2 \
+			-salt \
+			-base64 \
+			-pass pass:$pw \
+			-in $file_crypt_name \
+			-out $file_name
 
-					printf "${MAGENTA}$crypt_loc is not a file or directory${NOC}\n"
+		    ## remove the encrypted file
+		    destroy $file_name.aes
 
-					continue
+		    tput rc
+		    tput ed
+		    printf "$file_name"
 
-				fi
+		    tput cud1
 
-			done < $crypt_list
-			#done < $fpcl_file
-			;;
+		else
+
+		    printf "${MAGENTA}$crypt_loc is not a file or directory${NOC}\n"
+
+		    continue
+
+		fi
+
+	    done < $crypt_list
+	    #done < $fpcl_file
+	    ;;
 
 	esac
 
@@ -697,37 +701,37 @@ crypt()
 
 verify()
 {
-	case $mode in
+    case $mode in
 
-		backup)
-			# all 'c' marked locations are indeed encrypted
-			no_aes_files_created=$(find $bu_dest -name '*.aes' | wc -l)
-			no_c_lines_fpcl=$(grep '^c ' $fpcl_file | wc -l)
+	backup)
+	   # all 'c' marked locations are indeed encrypted
+	    no_aes_files_created=$(find $bu_dest -name '*.aes' | wc -l)
+	    no_c_lines_fpcl=$(grep '^c ' $fpcl_file | wc -l)
 
-			if [[ "$no_aes_files_created" == "$no_c_lines_fpcl" ]]; then
+	    if [[ "$no_aes_files_created" == "$no_c_lines_fpcl" ]]; then
 
-				printf "encrypted:$no_aes_files_created=$no_c_lines_fpcl"
-				#exit 0
+		printf "encrypted:$no_aes_files_created=$no_c_lines_fpcl"
+		#exit 0
 
-			else
+	    else
 
-				echo
-				printf "$no_aes_files_created locations (files/directories) encrypted in $bu_dest\n"
-				printf "$no_c_lines_fpcl locations designated to be encrypted in $fpcl_file\n"
-				#exit 81
+		echo
+		printf "$no_aes_files_created locations (files/directories) encrypted in $bu_dest\n"
+		printf "$no_c_lines_fpcl locations designated to be encrypted in $fpcl_file\n"
+		#exit 81
 
-			fi
-			;;
+	    fi
+	    ;;
 
-	esac
+    esac
 }
 
 
 cleanup()
 {
-	destroy $plain_list
-	destroy $crypt_list
-	destroy $all_files_list
+    destroy $plain_list
+    destroy $crypt_list
+    destroy $all_files_list
 }
 
 
@@ -735,24 +739,24 @@ cleanup()
 
 enter_password()
 {
-	echo
-	#pwgn(r5r6)
-	sh $pwgn
-	pw=$(wl-paste -n)
-	echo
+    echo
+    #pwgn(r5r6)
+    sh $pwgn
+    pw=$(wl-paste -n)
+    echo
 }
 
 clear_password()
 {
-	pw=$(< /dev/random tr -d -c "[:xdigit:]" | head -c 64)
-	unset pw
+    pw=$(< /dev/random tr -d -c "[:xdigit:]" | head -c 64)
+    unset pw
 }
 
 destroy()
 {
-	chmod -R 777 $1
-	sudo find $1 -depth -type f -exec shred -n 3 --remove=wipesync {} \;
-	rm -rf $1
+    chmod -R 777 $1
+    sudo find $1 -depth -type f -exec shred -n 3 --remove=wipesync {} \;
+    rm -rf $1
 }
 
 

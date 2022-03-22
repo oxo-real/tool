@@ -1,4 +1,4 @@
-#!usr/bin/env zsh
+#!/usr/bin/env zsh
 
 source_dir="$XDG_DATA_HOME/c/git/code/source/function"
 
@@ -7,13 +7,8 @@ source $source_dir/reply_functions
 source $source_dir/text_appearance
 
 
-: ' #[DEV]
-hist_file='/home/cytopyge/.cache/temp/DELhistBU'
-#first remove last line from history, then recall last line
-# '
-#: ' #[OPS]
+# first remove last line from history, then recall last line
 hist_file='/home/cytopyge/.logs/history/history'
-# '
 
 # remove last line from history
 # when script is called via cli
