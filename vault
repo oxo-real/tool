@@ -95,8 +95,12 @@ check_target_validity()
 {
 	case $action in
 
-		list)
-			[[ -z $target ]] &&	return
+		#list)
+		#	[[ -z $target ]] && return
+		#	;;
+
+		status)
+			[[ -z $target ]] && return
 			;;
 
 		close)
@@ -922,20 +926,21 @@ get_all_vlt_mappers()
 
 vault_list()
 {
-	# show list of all mapper paths with their mountpoints
+    # show list of all vlt mapped devices with their mountpoints
 
-	list=$(df -h | awk 'NR==1 || /\/vlt_/')
+    ## this awk contains headers (instead of grep vlt_)
+    list=$(df -h | awk 'NR==1 || /\/vlt_/')
 
-	if [[ -z "$list" ]]; then
+    if [[ -z "$list" ]]; then
 
-		printf "${MAGENTA}no mapped vaults mounted${NOC}\n"
+	printf "${MAGENTA}no mapped vaults mounted${NOC}\n"
 
-	else
+    else
 
-		printf "${BLUE}mapped vaults mounted${NOC}\n"
-		printf '%s\n' "$list"
+	printf "${BLUE}mapped vaults mounted${NOC}\n"
+	printf '%s\n\n' "$list"
 
-	fi
+    fi
 }
 
 
@@ -1062,9 +1067,11 @@ main()
 	case $action in
 
 		list)
+			vault_list
+			;;
 
+		status)
 			check_target_validity
-			#check_target_validity
 			check_target_status
 
 			fzf_select_target
@@ -1073,7 +1080,6 @@ main()
 			;;
 
 		create)
-
 			size=$arg_3
 
 			get_sudo
@@ -1091,7 +1097,6 @@ main()
 			;;
 
 		open)
-
 			mountpoint=$arg_3
 			fzf_target_mountpoint
 
@@ -1114,7 +1119,6 @@ main()
 			;;
 
 		close)
-
 			no_confirm=$arg_3
 
 			get_sudo

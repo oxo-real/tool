@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 ##
 ###                              _
@@ -6,7 +6,6 @@
 ### | '_ ` _ \ / _ \| | | | '_ \| __| '__|
 ### | | | | | | (_) | |_| | | | | |_| |
 ### |_| |_| |_|\___/ \__,_|_| |_|\__|_|
-###
 ###  _ _|_ _ ._    _  _
 ### (_\/|_(_)|_)\/(_|(/_
 ###   /      |  /  _|
@@ -14,7 +13,7 @@
 ### mountr
 ### (un)mount blockdevice to mountpoint with fzf
 ###
-### (c) 2020 - 2021 cytopyge
+### (c) 2020 - 2022  |  cytopyge
 ###
 ##
 #
@@ -28,7 +27,7 @@
 ## initialize hardcoded variables
 script_name="mountr"
 initial_release_year="2020"
-source_dir="$XDG_DATA_HOME/c/git/code/sources/functions"
+source_dir="$XDG_DATA_HOME/c/git/code/source/function"
 
 
 # functions
@@ -45,14 +44,6 @@ get_sudo() {
 
 	source $source_dir/get_sudo
 	get_sudo
-}
-
-
-# call bemenu_inject
-bemenu_inject() {
-
-	source $source_dir/bemenu_inject
-
 }
 
 
@@ -101,102 +92,82 @@ validity_check() {
 # get mountable source (block) devices
 
 get_source_devs() {
+    source_devs_avail=$(\
 
-	source_devs_avail=$(\
+	lsblk -nrpo "name,type,size,label,mountpoint" | \
+	## exclude non-volatile storage media on
+	## peripheral component interconnect express bus
+	grep -v nvme | \
+	## only disks or partitions
+	grep -e disk -e part | \
+	## not already mounted
+	awk 'length($5)==0' \
 
-		lsblk -nrpo "name,type,size,label,mountpoint" | \
-		## exclude non-volatile storage media on
-		## peripheral component interconnect express bus
-		grep -v nvme | \
-		## only disks or partitions
-		grep -e disk -e part | \
-		## not already mounted
-		awk 'length($5)==0' \
+	)
 
-		)
+    if [[ -z $source_devs_avail ]]; then
 
-	if [[ -z $source_devs_avail ]]; then
-		printf "${MAGENTA}no mountable source devices detected${NOC}\n"
-		printf "exiting\n"
-		exit
-	fi
+	printf "${MAGENTA}no mountable source devices detected${NOC}\n"
+	printf "exiting\n"
+	exit
 
+    fi
 }
 
 
 sel_source_dev()
 {
-	## prepare variables
-	fzf_input="$source_devs_avail"
-	prompt="mount source_device"
+    ## prepare variables
+    fzf_input="$source_devs_avail"
+    prompt="mount source_device"
 
-	## call fzf inject
-	fzf_inject
-	source_dev=$(echo $fzf_sel | awk '{print $1}')
+    ## call fzf inject
+    fzf_inject
+    source_dev=$(echo $fzf_sel | awk '{print $1}')
 }
 
 
 get_mps_mount()
 {
-	#mps_dock=( $HOME/dock/ )
-	#mp_boot=( /boot )
-	#mp_other=( other )
-	#mps_avail=( ${mps_dock} ${mp_boot} $mp_other )
-	#printf "mpsdock: ${mps_dock}\n"
-	#printf "mpboot: $mp_boot\n"
-	#printf "mpsavail: $mps_avail\n"
-	#sleep 5
-	#mps_avail=("${mps_dock[@]}"+"${mp_boot[@]}"+"${mp_other[@]}")
-	mps_avail=$(printf "/boot\n$HOME/dock/1\n$HOME/dock/2\n$HOME/dock/3\n$HOME/dock/4\nother")
+    mps_avail=$(printf "/boot\n$HOME/dock/1\n$HOME/dock/2\n$HOME/dock/3\n$HOME/dock/4\nother")
 }
 
 
 sel_mp_mount() {
+    ## prepare variables
+    fzf_input="$mps_avail"
+    prompt="select mountpoint for $source_dev "
 
-	## prepare variables
-	fzf_input="$mps_avail"
-	prompt="select mountpoint for $source_dev "
-
-	## call fzf inject
-	fzf_inject
-	mp_mount=$(printf "$fzf_sel" | awk '{print $1}')
-	#mp_mount=$(echo $fzf_sel | awk '{print $1}')
-
+    ## call fzf inject
+    fzf_inject
+    mp_mount=$(printf "$fzf_sel" | awk '{print $1}')
 }
 
 
 mount() {
-
-	sudo mount $source_dev $mp_mount
-
+    sudo mount $source_dev $mp_mount
 }
 
 
 remount_options() {
+    ## prepare variables
+    fzf_input=$(printf "ro\nrw")
+    prompt="REmount options:"
 
-	## prepare variables
-	fzf_input=$(printf "ro\nrw")
-	prompt="REmount options:"
-
-	## fzf inject; gives $fzf_sel back
-	fzf_inject
-	## extract option from $fzf_sel
-	rorw=$fzf_sel
-
+    ## fzf inject; gives $fzf_sel back
+    fzf_inject
+    ## extract option from $fzf_sel
+    rorw=$fzf_sel
 }
 
 
 remount() {
-
-	sudo mount -o remount,$rorw  $mp_umount
-
+    sudo mount -o remount,$rorw  $mp_umount
 }
 
 
 mount_info() {
-
-	printf "${BLUE}$source_dev mounted to $mp_mount${NOC}\n"
-
+    printf "${BLUE}$source_dev mounted to $mp_mount${NOC}\n"
 }
 
 #################
@@ -207,65 +178,32 @@ mount_info() {
 # get mountpoints that can be unmounted
 
 get_mps_umount() {
-
-	## for umount
-	mps_umount=$(findmnt --list -o TARGET,SIZE,SOURCE | grep '/dev/sd')
-
+    ## for umount
+    mps_umount=$(findmnt --list -o TARGET,SIZE,SOURCE | grep '/dev/sd')
 }
 
 
 sel_mp_umount() {
+    ## prepare variables
+    fzf_input="$mps_umount"
+    prompt="UMOUNT"
 
-	## prepare variables
-	fzf_input="$mps_umount"
-	prompt="UMOUNT"
-
-	## fzf inject; gives $fzf_sel back
-	fzf_inject
-	## extract mountpoint from $fzf_sel
-	mp_umount=$(echo $fzf_sel | awk '{print $1}')
-	source_dev=$(echo $fzf_sel | awk '{print $3}')
-
+    ## fzf inject; gives $fzf_sel back
+    fzf_inject
+    ## extract mountpoint from $fzf_sel
+    mp_umount=$(echo $fzf_sel | awk '{print $1}')
+    source_dev=$(echo $fzf_sel | awk '{print $3}')
 }
 
 
 umount() {
-
-	sudo umount $mp_umount
-
+    sudo umount $mp_umount
 }
 
 
 umount_info() {
-
-	printf "${BLUE}$source_dev unmounted from $mp_umount${NOC}\n"
-	exit 0
-
-}
-
-
-##################
-#	V A U L T	 #
-##################
-
-
-# vault open
-
-vault_open()
-{
-	echo
-	sudo cryptsetup luksUUID $fzf_sel | wl-copy -n -o
-	$source_dev $mp_mount
-
-}
-
-
-# veracrypt umount
-
-vc_umount() {
-
-	veracrypt -t -d $mp_umount
-
+    printf "${BLUE}$source_dev unmounted from $mp_umount${NOC}\n"
+    exit 0
 }
 
 
@@ -273,67 +211,50 @@ vc_umount() {
 
 action() {
 
-	text_appearance
-	get_sudo
+    text_appearance
+    get_sudo
 
-	## prepare variables
-	fzf_input="mount\nvcmount\nREmount\nvcUMOUNT\nUMOUNT"
-	prompt=""
+    ## prepare variables
+    fzf_input="mount\nREmount\nUMOUNT"
+    prompt=""
 
-	## call fzf inject
-	fzf_inject
-	action=$fzf_sel
+    ## call fzf inject
+    fzf_inject
+    action=$fzf_sel
 
-	case $action in
+    case $action in
 
-		mount)
-			get_source_devs
-			sel_source_dev
-			get_mps_mount
-			sel_mp_mount
-			validity_check
-			mount
-			mount_info
-			exit 0
-			;;
+    mount)
+	get_source_devs
+    	sel_source_dev
+    	get_mps_mount
+    	sel_mp_mount
+    	validity_check
+    	mount
+    	mount_info
+    	exit 0
+    	;;
 
-		UMOUNT)
-			get_mps_umount
-			sel_mp_umount
-			umount
-			umount_info
-			exit 0
-			;;
+    UMOUNT)
+    	get_mps_umount
+    	sel_mp_umount
+    	umount
+    	umount_info
+    	exit 0
+    	;;
 
-		REmount)
-			#get_source_devs
-			#sel_source_dev
-			get_mps_umount
-			sel_mp_umount
-			remount_options
-			remount
-			#mount_info
-			exit 0
-			;;
+    REmount)
+    	#get_source_devs
+    	#sel_source_dev
+	get_mps_umount
+        sel_mp_umount
+	remount_options
+        remount
+	#mount_info
+	exit 0
+	;;
 
-		vcmount)
-			get_source_devs
-			sel_source_dev
-			$HOME/_git/private/code/security/hmac
-			vc_mount
-			mount_info
-			exit 0
-			;;
-
-		vcUMOUNT)
-			get_mps_umount
-			sel_mp_umount
-			vc_umount
-			umount_info
-			exit 0
-			;;
-
-	esac
+    esac
 
 }
 

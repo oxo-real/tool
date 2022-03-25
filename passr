@@ -41,16 +41,23 @@
 #	passr
 #	passr $object
 #	passr $object $element
-#
+
 #	passr open
 #	passr login
-#	passr status
+#	passr status	(s)
 #	passr logout
 #	passr close
 
 ## examples
 #	passr
+
+#	passr obj_name
+#	passr codeberg
+
+#	passr obj_name_user_name
 #	passr codeberg_cytopyge
+
+#	passr obj_name[_user] $element
 #	passr codeberg_cytopyge password
 
 
@@ -137,7 +144,7 @@ get_object()
 	    close
 	    ;;
 
-	status)
+	status|s)
 	    show_status
 	    exit 0
 	    ;;
@@ -244,6 +251,8 @@ pass_mount()
     # pass crypto source location
 
     # pass mount destination
+    ## via $LS_COLORS symlink color:
+    ## vlt_pass not mounted => $HOME/.password-store is red
     ## vlt_pass mounted => $HOME/.password-store becomes pale
     pass_mount="$HOME/dock/vlt/pass"
     [[ -d $pass_mount ]] || mkdir -p $pass_mount
