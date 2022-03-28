@@ -39,17 +39,17 @@
 #	$source_dir, cryptsetup, fzf
 
 ## usage
-#	vault list
-#	vault status	[target]
-#	vault create	<target> [size(MB)]
-#	vault open		[target] [mountpoint]
-#	vault close		[target] [-y, --no-confirm]
-#	vault close		all		 [-y, --no-confirm]
+#	vault list	(l)
+#	vault status	(s) [target]
+#	vault create	(c) <target> [size(MB)]
+#	vault open	(o) [target] [mountpoint]
+#	vault close	(x) [target] [-y, --no-confirm]
+#	vault close	(xa) all     [-y, --no-confirm]
 #
 #	in which 'target' represents a location as:
-#	vault_file		(create, open)
-#	vlt_mapper		(status, close)
-#	mountpoint		(status, close)
+#	vault_file		 (create, open)
+#	vlt_mapper		 (status, close)
+#	mountpoint		 (status, close)
 
 ## example
 #	vault open $XDG_DATA_HOME/media/vault/pass $HOME/dock/vlt/pass
@@ -77,10 +77,11 @@ source "$source_dir/get_sudo"
 
 # get_args
 
-## all
+## all args
 args="$@"
 
 ## action (open, close, create, status, list or empty)
+## action (o, x, c, s, l or empty)
 action="$1"
 
 ## target
@@ -412,6 +413,8 @@ open_luks()
 {
 	echo
 	sudo cryptsetup open --type luks2 $target $mapping_name
+	# [DEV] #
+	#sudo cryptsetup open --type luks2 $target $mapping_name --debug
 
 	printf "decrypting $target\n"
 
@@ -1066,11 +1069,11 @@ main()
 {
 	case $action in
 
-		list)
+		list|l)
 			vault_list
 			;;
 
-		status)
+		status|s)
 			check_target_validity
 			check_target_status
 
@@ -1079,7 +1082,7 @@ main()
 			vault_spec_info
 			;;
 
-		create)
+		create|c)
 			size=$arg_3
 
 			get_sudo
@@ -1096,7 +1099,7 @@ main()
 			clean_up
 			;;
 
-		open)
+		open|o)
 			mountpoint=$arg_3
 			fzf_target_mountpoint
 
@@ -1118,7 +1121,7 @@ main()
 			show_spec_info
 			;;
 
-		close)
+		close|x|xa)
 			no_confirm=$arg_3
 
 			get_sudo
