@@ -17,39 +17,83 @@ get_nm_info()
     echo
 }
 
-## get info before
-nm_info_before=$(get_nm_info)
 
-## select device
-device_fzf_height=$(nmcli device | wc -l)
-device_sel=$(nmcli -t device | fzf --height=$device_fzf_height | awk -F : '{print $1}')
-device_type=$(nmcli -t device | grep "$device_sel" | awk -F : '{print $2}')
+device_identify()
+{
+    ## select device
+    device_fzf_height=$(nmcli device | wc -l)
+    device_sel=$(nmcli -t device | \
+        fzf --height=$device_fzf_height | \
+        awk -F : '{print $1}')
+    device_type=$(nmcli -t device | \
+        grep "$device_sel" | \
+        awk -F : '{print $2}')
+    device_conn=$(nmcli -t device | \
+	grep "$device_sel" | \
+	awk -F : '{print $4}')
+}
 
-[[ -z $device_sel ]] && exit 12
 
-## select connection
-connection_fzf_height=$(nmcli device | wc -l)
-connection_sel=$(nmcli -t connection | grep "$device_type" | fzf --height=$connection_fzf_height | awk -F : '{print $1}')
-connection_device=$(nmcli -t connection | grep "$connection_sel" | awk -F : '{print $4}')
+device_process()
+{
+    #[[ -z $device_sel ]] && exit 12
+    if [[ -z $device_sel ]]; then
 
-[[ -z $connection_sel ]] && exit 13
+        exit 12
+
+    else
+
+	# if selected device has connection then disconnect
+	if [[ -n $device_conn ]]; then
+
+	    nmcli device disconnect $device_sel
+
+	    exit 0
+
+	fi
+
+    fi
+}
 
 
-## set up or down
-case $connection_device in
+connection_identify()
+{
+    ## select connection
+    connection_fzf_height=$(nmcli device | wc -l)
+    connection_sel=$(nmcli -t connection | \
+	grep "$device_type" | \
+	fzf --height=$connection_fzf_height | \
+	awk -F : '{print $1}')
+    connection_device=$(nmcli -t connection | \
+	grep "$connection_sel" | \
+	awk -F : '{print $4}')
+}
 
-    "")
+
+connection_process()
+{
+    #[[ -z $connection_sel ]] && exit 13
+    if [[ -z $connection_sel ]]; then
+
+        exit 13
+
+    else
+
+	nmcli device connect "$device_sel"
 	nmcli connection up "$connection_sel"
-	;;
 
-    *)
-	nmcli connection down "$connection_sel"
-	;;
+	exit 0
 
-esac
+    fi
+}
 
-## get info after
-nm_info_after=$(get_nm_info)
 
-## show info diff
-diff <(echo "$nm_info_before") <(echo "$nm_info_after") | grep -e $device_sel -e $connection_sel
+main()
+{
+    device_identify
+    device_process
+    connection_identify
+    connection_process
+}
+
+main

@@ -104,7 +104,7 @@ check_target_validity()
 			[[ -z $target ]] && return
 			;;
 
-		close)
+		close|x|xa)
 			if [[ -z $target ]]; then
 
 				return
@@ -828,7 +828,7 @@ close_target()
 {
 	# all (vault close 'all')
 
-	if [[ $target == "all" ]]; then
+	if [[ $target == "all" ]] || [[ $action == "xa" ]]; then
 
 		close_all
 		exit
@@ -1018,38 +1018,41 @@ close_all()
 
 check_no_confirm_flag()
 {
-	if [[ $action == 'close' ]]; then
+    case $action in
 
-		if [[ -n $no_confirm ]]; then
+	close|x|xa)
 
-			case $no_confirm in
+	    #if [[ $action == 'close' ]]; then
 
-				-y)
+            if [[ -n $no_confirm ]]; then
 
-					no_confirm=1
-					# no_confirm has a value; no confirmation dialogue
-					;;
+                case $no_confirm in
 
-				--no-confirm)
+                    -y)
+                	no_confirm=1
+                	# no_confirm has a value; no confirmation dialogue
+                	;;
 
-					no_confirm=1
-					# no_confirm has a value; no confirmation dialogue
-					;;
+                    --no-confirm)
+                	no_confirm=1
+                	# no_confirm has a value; no confirmation dialogue
+                	;;
 
-				*)
+                    *)
+                	printf "${MAGENTA}no valid option:${NOC} '$no_confirm'\n"
+                	no_confirm=""
+                	# no_confirm has no value; a confirmation dialogue comes up
+                	printf "exiting\n"
+                	exit 72
+                	;;
 
-					printf "${MAGENTA}no valid option:${NOC} '$no_confirm'\n"
-					no_confirm=""
-					# no_confirm has no value; a confirmation dialogue comes up
-					printf "exiting\n"
-					exit 72
-					;;
+                esac
 
-			esac
+            fi
+            ;;
 
-		fi
-
-	fi
+	    #fi
+    esac
 }
 
 
