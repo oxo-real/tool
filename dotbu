@@ -566,7 +566,7 @@ crypt()
 	restore)
 
 
-	    # decrypt locations (lines) in crypt_list
+	    # decrypt locations (lines) in fpcl_file
 
 	    while IFS= read -r file_2_decrypt; do
 
@@ -581,6 +581,14 @@ crypt()
 
 		# skip empty lines
 		if [[ -z "$file_2_decrypt" ]]; then
+
+		    continue
+
+		fi
+
+
+		# skip lines that do not start with 'c '
+		if [[ $(printf "$file_2_decrypt" | head -c 2) != "c " ]]; then
 
 		    continue
 
@@ -688,8 +696,7 @@ crypt()
 
 		fi
 
-	    done < $crypt_list
-	    #done < $fpcl_file
+	    done < $fpcl_file
 	    ;;
 
 	esac

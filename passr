@@ -512,6 +512,9 @@ error_message()
 
 autoentry()
 {
+    #TODO autoentry when not logged in
+    ## now results in show being executed
+
     ae=1
     ## sleep time
     t=5
