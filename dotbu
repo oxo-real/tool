@@ -547,8 +547,8 @@ crypt()
 
 			fi
 
-						## remove the unencrypted file
-						destroy $file_name
+			## remove the unencrypted file
+			destroy $file_name
 
 		    else
 
@@ -748,16 +748,39 @@ cleanup()
 }
 
 
-# internal calls
-
-enter_password()
+generate_pw()
 {
     echo
-    #pwgn(r5r6)
-    sh $pwgn
-    pw=$(wl-paste -n)
-    echo
+
+    printf "starting pwgn... ${YELLOW}A${NOC}bort "
+
+    reply_read_single_hidden_timer
+
+    # erase line
+    printf "\r"
+    tput el
+
+    if printf "$reply" | grep -iq "^a"; then
+
+	#pwgn(r5r6)
+        read pw
+
+        # erase entry line
+	tput cuu1
+	printf "\r"
+        tput el
+
+    else
+
+        sh $pwgn
+	pw=$(wl-paste -n)
+	echo
+
+    fi
 }
+
+
+# internal calls
 
 clear_password()
 {
@@ -780,7 +803,7 @@ validate_destination
 create_lists
 copy
 modify
-enter_password
+generate_pw
 report_plain
 crypt
 verify

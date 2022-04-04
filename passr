@@ -322,13 +322,13 @@ erase_line()
 
 generate_pw()
 {
-    printf "starting pwgn... press 'n' to abort "
+    printf "starting pwgn... ${YELLOW}A${NOC}bort "
 
     reply_read_single_hidden_timer
 
     erase_line
 
-    if printf "$reply" | grep -iq "^n"; then
+    if printf "$reply" | grep -iq "^a"; then
 
     	continue
 
