@@ -176,6 +176,14 @@ get_object()
 }
 
 
+# TODO
+: '
+when status is logged out and i.e. 'passr object password' then
+prompt for login comes up as expected, but
+after pw entry 'show' is being ran, this is not expected
+expexcted is that 'password' is being runned
+'
+
 vault_open()
 {
     pass_mount
