@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
 #
 ##
+###
 ### make_offl_repo
 ###
 ### copies pacman package cache to destination
 ###
-### usage: make_offl_repo <destination>
+### (c) 2021 - 2022  |  cytopyge
+###
+### usage:
+### make_offl_repo <destination>
+###
 ##
 #
 
@@ -16,6 +21,10 @@ db_name='offline'
 
 ## destination root
 p_dst=$1
+
+## rsync options (if any
+shift
+options=$@
 
 timestamp=$(date +%s)
 
@@ -29,6 +38,7 @@ rsync_all_packages()
     rsync -aAXv \
 	--filter='protect aur' \
 	--delete \
+	$options \
 	$p_src/ $p_dst
 }
 

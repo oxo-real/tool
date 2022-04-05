@@ -21,15 +21,21 @@ get_nm_info()
 device_identify()
 {
     ## select device
+
     device_fzf_height=$(nmcli device | wc -l)
+
     device_sel=$(nmcli -t device | \
         fzf --height=$device_fzf_height | \
         awk -F : '{print $1}')
+
+    ## caret in grep regex to prevent (i.c. of wifi)
+    ## also selection of p2p-dev-wlp1s0
     device_type=$(nmcli -t device | \
-        grep "$device_sel" | \
+        grep "^$device_sel" | \
         awk -F : '{print $2}')
+
     device_conn=$(nmcli -t device | \
-	grep "$device_sel" | \
+	grep "^$device_sel" | \
 	awk -F : '{print $4}')
 }
 
@@ -59,11 +65,20 @@ device_process()
 connection_identify()
 {
     ## select connection
-    connection_fzf_height=$(nmcli device | wc -l)
+
+    ## nmcli -t device type = wifi
+    ## nmcli -t device type = wifi
+    [[ $device_type == 'wifi' ]] && device_type='wireless'
+
+    connection_fzf_height=$(nmcli connection | wc -l)
+
     connection_sel=$(nmcli -t connection | \
 	grep "$device_type" | \
 	fzf --height=$connection_fzf_height | \
 	awk -F : '{print $1}')
+
+    # TODO check if connection exist
+
     connection_device=$(nmcli -t connection | \
 	grep "$connection_sel" | \
 	awk -F : '{print $4}')
