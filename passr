@@ -69,31 +69,36 @@ developer='cytopyge'
 license='gplv3'
 initial_release='2020'
 
-## hardcoded variables
+## arguments
+args=$@
+object=$1
+element=$2
+object_org="$object"
+element_org="$element"
 
-## store_l is the symlink location to the pass password store
+## .password-store
+
+## $crypto-source is the vault in which $store is saved
+crypto_source="$XDG_DATA_HOME/c/keys/pass/vlt_pass"
+
+## $store_l is the symlink location to the pass password store
 ## recommended is to mount an encrypted vault container
 ## then symlink .password-store to a container mountpoint
 ## default symlink:	$HOME/.password-store
 ## default target:	$HOME/dock/vlt/pass
 store_l="$HOME/.password-store"
 
-crypto_source="$XDG_DATA_HOME/c/keys/pass/vlt_pass"
-source_dir="$XDG_DATA_HOME/c/git/code/source/function"
-
-#--------------------------------
-
-
-object=$1
-element=$2
-
-## store is the genuine password store location
+## $store is the pass password store location
+## the symlinks target
 store=$(readlink $store_l)
 
+## sourcing
+source_dir="$XDG_DATA_HOME/c/git/code/source/function"
 source $source_dir/text_appearance
 source $source_dir/reply_functions
 source $source_dir/get_sudo
 
+## $elements definition
 ## objects can be searched for one or more elements
 ## regular elements are: url, userid, password
 ## elements that can be retrieved with passr are:
@@ -114,17 +119,32 @@ elements=(\
 	" " \
 	"ESC cancel")
 
-## the pass help file refers to objects by naming them 'passwords'
+## notice
+##
+## the pass man page refers to objects by naming them 'passwords'
 ## so insert a new password means making a new .gpg file
+## however; the gpg file can contain anything, also passwords
+##
 ## pass expects the first line of the gpg file to be the password
-## the gpg file can contain more than just the password though
-## this script makes use of that
-## here an object is the way pass represents a gpg file
-## (filename without .gpg extension)
+## this script makes extensive use of that
+##
+## pass names gpg files from the password_store_root without extension
+## example:
+## $password_store_root/subdir/object.gpg <=> subdir/object
+##
+## $object contains in this script the value: 'subdir/object'
+## $element contains the value of an element in the $object
+## i.e. this can be a password, url or userid (among more)
+
+
+#--------------------------------
 
 
 get_object()
 {
+    object=$object_org
+    element=$element_org
+
     case $object in
 
 	login)
@@ -149,8 +169,9 @@ get_object()
 	    exit 0
 	    ;;
 
-	'')
+	*)
 	    get_mountpoint_status
+
 	    case $mp_status in
 
 		0)
@@ -159,30 +180,43 @@ get_object()
 		    ;;
 
 		$store)
-		    object=$(find -L $store_l -type f -iname '*.gpg' | \
-			# with sed we remove the leading path of $store_l
-			# internal field separator is '|'
-			# because the path itself contains '/'
-			sed "s|$store_l/||g" | \
-			# with sed we remove the trailing .gpg extension
-			sed "s/.gpg//g" | \
-			sort | \
-			fzf --prompt='select object ')
+		    get_cache_status
+
+		    case $cache_status in
+
+			0)
+			    log_in
+			    get_object
+			    ;;
+
+			1)
+
+			    case $object in
+
+				'')
+				    object=$(find -L $store_l -type f -iname '*.gpg' | \
+			   	         # with sed we remove the leading path of $store_l
+			   	         # internal field separator is '|'
+			   	         # because the path itself contains '/'
+			   	         sed "s|$store_l/||g" | \
+			   	         # with sed we remove the trailing .gpg extension
+			   	         sed "s/.gpg//g" | \
+			   	         sort | \
+			   	         fzf --prompt='select object ')
+				    ;;
+
+			    esac
+		   	    ;;
+
+	    	    esac
 		    ;;
 
 	    esac
+	    ;;
 
     esac
 }
 
-
-# TODO
-: '
-when status is logged out and i.e. 'passr object password' then
-prompt for login comes up as expected, but
-after pw entry 'show' is being ran, this is not expected
-expexcted is that 'password' is being runned
-'
 
 vault_open()
 {
@@ -197,13 +231,14 @@ log_in()
     case $mp_status in
 
    	$store)
-	    element='show'
+	    from_log_in=1
+	    element='login'
 	    gpg_decrypt
 	    pass_element
 	    ;;
 
    	*)
-	    show_status
+	    #show_status
 	    #printf "${MAGENTA}no_mp${NOC}\n"
 	    vault_open
 	    log_in
@@ -314,10 +349,18 @@ gpg_decrypt()
     sleep 2
     tput cnorm
     erase_line
+    # TODO show 'enter pwgn input string'
+    # after key pressed get character (via reply function),
+    # erase line shift cursor one pos to the right (optical reasons)
+    ## erase_line && tput cu
+    # continue with read input
+    # cat character with input
+    # end of TODO
 
     echo
     generate_pw
     echo
+    ## pwgn has at this point generated its hex string
 }
 
 
@@ -448,9 +491,23 @@ get_otp()
 pass_element()
 {
     # run pass natively with $element
-    #clear
-    human_info
-    pass $element $object
+    case $from_log_in in
+
+	1)
+	    # silent (when logging in)
+	    ## this triggers the gpg passphrase question
+	    ## to unlock the openpgp secret key
+	    pass $element
+	    #pass $element $object /dev/null 2>&1
+	    ;;
+
+	*)
+	    # normal (not silent)
+	    human_info
+	    pass $element $object
+	    ;;
+
+    esac
 }
 
 
