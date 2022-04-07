@@ -386,7 +386,8 @@ modify()
 
 	    # remove all (nested) git databases
 	    printf "removing .git directories\n"
-	    find $bu_dest -type d -name '*.git' -exec rm -rf {} \;
+	    ## -mindepth 2 protects main dotfile repo .git
+	    find $bu_dest -mindepth 2 -type d -name '*.git' -exec rm -rf {} \;
 	    ;;
 
     esac

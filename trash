@@ -7,7 +7,7 @@
 ### | |_| | | (_| \__ \ | | |
 ###  \__|_|  \__,_|___/_| |_|
 ###
-### 2020 - 2022 (c) cytopyge
+### copyright (c) 2020 - 2022  |  cytopyge
 ###
 ### remove files to an intermediate location
 ###
@@ -144,18 +144,18 @@ process_arguments()
 }
 
 
-trash_weight()
+trash_size()
 {
-	weight=$(sudo du -sh $XDG_CACHE_HOME/trash | awk '{print $1}')
+	size=$(sudo du -sh $XDG_CACHE_HOME/trash | awk '{print $1}')
 }
 
 
 trash_empty()
 {
 	## empty trashcan
-	trash_weight
+	trash_size
 	rm -rf $trash && \
-		printf "$weight trash cleared\n" && \
+		printf "$size trash cleared\n" && \
 		exit 0
 }
 

@@ -43,6 +43,12 @@
 
 # initial definitions
 
+unset input
+input=
+
+## input from stdin
+#input="$(</dev/stdin)"
+
 ## script
 script_name='pwgn'
 developer='cytopyge'
@@ -53,18 +59,6 @@ initial_release='2020'
 source_dir="$XDG_DATA_HOME/c/git/code/source/function"
 
 #--------------------------------
-
-
-read_input()
-{
-	: '
-	read input;
-	printf '%s' "$input" | \
-		base64 | \
-		wl-copy -n -o;
-	unset input
-	# '
-}
 
 
 sourcing()
@@ -91,42 +85,21 @@ optical_input()
 
 keyboard_input()
 {
-	read input
+	#read input
+	input=$(askpass)
 }
 
 
 clear_line()
 {
     # TODO entry can be multiple lines long
-    # after read cursor went one line down, therefore cuu1
-    # see man terminfo
-    #tput cuu1
-
-    # does not work on multiple line entry
-    #tput cuu1
     tput ed
-    #tput dl1
-
 }
 
 
 choose_input()
 {
 	# choose optical or manual input
-	sudo -n printf '' >/dev/null 2>&1
-
-	[[ $? -ne 0 ]] && have_sudo_text=1
-
-	get_sudo
-
-	# erase sudo text
-	case $have_sudo_text in
-
-		1)
-			tput cuu1
-			;;
-
-	esac
 
 	# print optical text
 	printf "${YELLOW}O${NOC}ptical scan and decode from video device "
@@ -497,6 +470,7 @@ debugging()
 
 
 sourcing
+get_sudo
 choose_input
 input_validation
 hash_1_input

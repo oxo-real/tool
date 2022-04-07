@@ -1,0 +1,169 @@
+#!/usr/bin/env bash
+
+# antofthy thanks
+
+# usage:
+# askpass [-f] [prompt]
+# -f forces non systemd version
+
+
+unset PWORD
+PWORD=
+
+
+# hardcoded variables
+prompt='pwd '
+sd_bin='/bin/systemd-ask-password'
+sd_prompt=''
+fd='5'
+
+
+check_tty()
+{
+    if ! tty >/dev/null;  then
+	read -r -s PWORD
+        echo "$PWORD"
+	exit 0
+    fi
+}
+
+
+sd_ask()
+{
+    if [ "X$1" = "X-f" ]; then
+
+	# execute non systemd version
+	shift
+	ask $1
+
+    elif [ -x $sd_bin ]; then
+
+	# execute systemd-ask-password
+	stty_0=`stty -g`
+	trap 'stty "$stty_0"' EXIT
+	$sd_bin --timeout=0 "${1:-$sd_prompt}"
+
+	# erase line
+        #tput cuu1; printf "\r"; tput el
+        #tput cuu1; printf "\r"; tput el
+
+	#exit $?
+	#break
+    fi
+}
+
+
+ask()
+{
+    prpt="${*:-$prompt}"
+    star='#'  ## hashtag designates non systemd (which shows *) version
+
+    # grab the current TTY settings
+    # save stdout (for password result) to descriptor 3
+    # otherwise read and write to the users TTY
+    # gnu and Linux "stty" uses stdin for the terminal to adjust
+    # BUT:  Solaris /usr/ucb/stty command uses stdout and NOT stdin!
+    ## #exec $fd>&1 </dev/tty >/dev/tty
+    stty_0=`stty -g`
+
+    # resume stty_0 state on exit
+    trap 'stty "$stty_0"' EXIT
+    trap 'exit 10' HUP INT QUIT ABRT TERM
+    #trap 'echo "===INTERUPT==="; exit 10' HUP INT QUIT ABRT TERM
+
+    # turn off echo and control character handling...
+    # this stops BASH constantly switching terminal modes
+    # when reading each character, and allow a fast typing
+    # user still have characters echoed between reads
+    # -icanon	enable special characters: erase, kill, werase, rprnt
+    stty -icanon -echo
+    #stty -echo
+
+    # prompt and read password one character at a time
+    echo -n "$prpt"
+    while IFS= read -r -n 1 char; do
+
+	# convert users key press to hexadecimal character code
+	# note a 'return' or EOL, will return a empty string
+	#code=$( echo -n "$char" | od -An -tx1 | tr -d ' \011' )
+	code=${char:+$(printf '%02x' "'$char'")}
+
+	# [DEBUG]
+	#echo -n "'$code'"
+
+	case "$code" in
+
+	    ''|0a|0d)
+		# finish on EOF, linefeed, or return
+		break
+		;;
+
+	    03)
+		# ^C Interrupt
+		error_exit=true
+		break
+		;;
+
+	    08|7f)
+		# Backspace or Delete
+		if [ -n "$PWORD" ]; then
+
+		    PWORD="$( echo "$PWORD" | sed 's/.$//' )"
+		    echo -n $'\b \b'
+
+		fi
+		;;
+
+	    15)
+		# ^U or kill line
+		echo -n "$PWORD" | tr -c '\010' '\010'  # backspace
+		echo -n "$PWORD" | tr -c ' '    ' '     # clear stars
+		echo -n "$PWORD" | tr -c '\010' '\010'  # backspace
+		#echo -n "$PWORD" | sed 's/./\cH \cH/g' # using gnu-sed
+		PWORD=''
+		;;
+
+	    [01]?)
+		# ignore all other control characters
+		;;
+
+	    *)
+		# Normal char - record it
+		PWORD="$PWORD$char"
+		echo -n "$star"
+		;;
+
+	esac
+
+    done
+
+
+    # return tty to normal, cancel exit trap
+    stty "$stty_0"
+    trap - EXIT HUP INT QUIT TERM
+
+    # remove all the stars now that the input is finished (same as '15' above)
+    #echo -n "$PWORD" | tr -c '\010' '\010'  # backspace
+    #echo -n "$PWORD" | tr -c ' '    ' '     # clear stars
+    #echo -n "$PWORD" | tr -c '\010' '\010'  # backspace
+    #echo -n "$PWORD" | sed 's//\cH \cH/g'
+    #echo ""  # "===password accepted===" ;;
+
+    # erase line
+    printf "\r"; tput el
+
+    # output the resulting password to the original stdout
+    echo -n "$PWORD"
+    ## #echo -n "$PWORD" >&$fd
+
+    exit 0
+}
+
+
+main()
+{
+    check_tty
+    sd_ask $@
+}
+
+main $@
