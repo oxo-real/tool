@@ -73,8 +73,8 @@ initial_release='2020'
 args=$@
 object=$1
 element=$2
-object_org="$object"
-element_org="$element"
+arg_object="$object"
+arg_element="$element"
 
 ## .password-store
 
@@ -142,32 +142,44 @@ elements=(\
 
 get_object()
 {
-    object=$object_org
-    element=$element_org
+    object=$arg_object
+    element=$arg_element
 
     case $object in
 
-	login)
-	    log_in
-	    ;;
-
-	logout)
-	    log_out
-	    ;;
-
-	open)
+	open | o)
+	    object='open'
 	    vault_open
 	    ;;
 
-	close)
+	login | i)
+	    object='login'
+	    log_in
+	    ;;
+
+	status | s)
+	    object='status'
+	    show_status
+	    exit 0
+	    ;;
+
+	logout | u)
+	    object='logout'
+	    log_out
+	    ;;
+
+	close | c)
+	    object='close'
 	    log_out
 	    close
 	    ;;
 
-	status|s)
-	    show_status
-	    exit 0
-	    ;;
+	#'')
+	#    [[ $(show_status >/dev/null 2>&1 ) == '0 0' ]]
+	#    printf "${MAGENTA}no valid action${NOC} ... assume login\n"
+	#    object='login'
+	#    log_in
+	#    ;;
 
 	*)
 	    get_mountpoint_status

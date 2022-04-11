@@ -109,10 +109,10 @@ choose_input()
 
 	reply_read_single_hidden_timer
 
-	# erase optical text
+	# erase reply text
 	tput cuu1
 	tput ed
-
+	# and reset cursur style
 	echo
 	tput cnorm
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 #
 ##
 ###                   _ _
@@ -41,18 +41,29 @@
 ## usage
 #	vault list	(l)
 #	vault status	(s) [target]
-#	vault create	(c) <target> [size(MB)]
+#	vault create	(a) <target> [size]
 #	vault open	(o) [target] [mountpoint]
-#	vault close	(x) [target] [-y, --no-confirm]
-#	vault close	(xa) all     [-y, --no-confirm]
+#	vault close	(c) [target] [-y, --no-confirm]
+#	vault close	(ca) all     [-y, --no-confirm]
 #
 #	in which 'target' represents a location as:
-#	vault_file		 (create, open)
-#	vlt_mapper		 (status, close)
-#	mountpoint		 (status, close)
+#	vault_file	(create, open)
+#	vlt_mapper	(status, close)
+#	mountpoint	(status, close)
 
-## example
-#	vault open $XDG_DATA_HOME/media/vault/pass $HOME/dock/vlt/pass
+## examples
+#   vault create vaultX 18M
+#   vault open $XDG_DATA_HOME/c/keys/pass/vlt_pass $HOME/dock/vlt/pass
+#   vault ca -y
+
+## notice
+#   size is required is target is a new file
+#   size is an integer with an optional unit
+#	units can be
+#	    powers of 1024 bits (K,M,G,T,P,E,Z,Y), or
+#	    powers of 1000 bits (KB,MB,GB,TB,PB,...), or
+#	    binary prefixes	(KiB=K, MiB=M,...)
+#   18M is size minumum when action is create and target is file
 
 
 # initial definitions
@@ -80,59 +91,86 @@ source "$source_dir/get_sudo"
 ## all args
 args="$@"
 
-## action (open, close, create, status, list or empty)
-## action (o, x, c, s, l or empty)
-action="$1"
+## action   (create, open, close, close all, status, list)
+## action   (n,	      o,   c,	    ca,		s,      l)
+arg_action="$1"
 
 ## target
-## target (<vault_file>, <mountpoint>, <vlt_mapper>, 'all' or empty)
-target="$2"
+## target   (<vault_file>, <mountpoint>, <vlt_mapper>, 'all' or empty)
+arg_target="$2"
 
-## location, size, option_no-confirm or empty
+## arg_3    (location, size, option_no-confirm (-y) or empty)
 arg_3="$3"
 
 
 check_target_validity()
 {
-	case $action in
+    [[ $action != 'close' ]] && target=$arg_target
 
-		#list)
-		#	[[ -z $target ]] && return
-		#	;;
+    case $action in
 
-		status)
-			[[ -z $target ]] && return
-			;;
+	create)
+	    if [[ ! -f $target ]]; then
 
-		close|x|xa)
-			if [[ -z $target ]]; then
+		printf "$target does not exist, create? (y/N) "
 
-				return
+		reply_read_single_hidden_timer
 
-			elif [[ $target == "all" ]]; then
+		echo
 
-				return
+		if printf "$reply" | grep -iq "^y"; then
 
-			fi
-			;;
+		    create_new_vault
 
-		create)
-			[[ -f $target ]] && printf "target exists!\n"
-			;;
+		else
 
-		*)
-			if [[ ! -f $target ]] && \
-				[[ ! -d $target ]] && \
-				[[ ! -b $target ]]; then
+		    exit 21
 
-				echo
-				printf "$target ${MAGENTA}invalid target or permissions${NOC}\n"
-				exit 22
+		fi
 
-			fi
-			;;
+	    fi
+	    ;;
+
+	open)
+	    [[ -z $target ]] && fzf_target_mountpoint
+	    ;;
+
+	close)
+	    if [[ -z $target ]]; then
+
+	    	return
+
+	    elif [[ $target == "all" ]]; then
+
+		return
+
+	    fi
+	    ;;
+
+	status)
+	    [[ -z $target ]] && return
+	    ;;
+
+	*)
+	    if [[ ! -f $target ]] && \
+		[[ ! -d $target ]] && \
+		[[ ! -b $target ]]; then
+
+		echo
+		printf "$target ${MAGENTA}no target or permissions${NOC}\n"
+		exit 22
+
+	    fi
+	    ;;
 
 	esac
+}
+
+
+create_new_vault()
+{
+    truncate -s $size $target
+    target_just_created=1
 }
 
 
@@ -222,11 +260,10 @@ check_target_status()
 				printf "target creation aborted\n"
 				exit 12
 
-
 			fi
 
 
-		elif [[ -f $target ]]; then
+		elif [[ -f $target ]] && [[ "$target_just_created" != '1' ]]; then
 
 			target_c_type="file"
 
@@ -237,27 +274,11 @@ check_target_status()
 
 			if printf "$reply" | grep -iq "^y"; then
 
-				printf "${MAGENTA}about to overwrite $target${NOC}\n"
-				printf "really sure? (y/N) "
-				reply_single
-				echo
-
-				if printf "$reply" | grep -iq "^y"; then
-
-					return
-
-				else
-
-					printf "target creation aborted\n"
-					printf "$target already exists\n"
-					exit 13
-
-				fi
+			    return
 
 			else
 
 				printf "target creation aborted\n"
-				printf "$target already exists\n"
 				exit 13
 
 			fi
@@ -314,7 +335,7 @@ create_vlt_mapper_name()
 
 write_random_data()
 {
-	printf "writing zero data to $target\n"
+	printf "$target writing zero data\n"
 
 	case $target_c_type in
 
@@ -350,6 +371,7 @@ write_random_data()
 			# if target is a file
 			# 18M as minimum size
 			head -c $size /dev/zero > $target
+			#head -c $size /dev/random > $target
 			: '
 			# 10MB:bs=1024 count=10240
 			# 10MB:bs=1K count=10K
@@ -372,7 +394,7 @@ create_vault()
 {
 	write_random_data
 
-	printf "setting up crypto on $target\n"
+	printf "$target setting up crypto\n"
 
 	## aes-cbc-essiv:sha256 (plain)
 
@@ -394,7 +416,8 @@ create_vault()
 	#		--verify-passphrase \
 	#		$target
 	#	#'
-	### ... OR
+
+	#  OR
 
 	## aes-xts-plain64 (luks2)
 
@@ -413,14 +436,11 @@ open_luks()
 {
 	echo
 	sudo cryptsetup open --type luks2 $target $mapping_name
-	# [DEV] #
+	#DEBUG
 	#sudo cryptsetup open --type luks2 $target $mapping_name --debug
 
 	printf "decrypting $target\n"
-
-	echo
 	printf "mapping $target to $vlt_mapper\n"
-	echo
 }
 
 
@@ -498,23 +518,29 @@ check_mp_dir()
 
 generate_pw()
 {
-	printf "starting pwgn... ${YELLOW}A${NOC}bort "
+    printf "starting pwgn... ${YELLOW}A${NOC}bort "
 
-	reply_read_single_hidden_timer
+    # hide cursor
+    tput civis
 
-	# erase line
-	printf "\r"
-	tput el
+    reply_read_single_hidden_timer
 
-	if printf "$reply" | grep -iq "^a"; then
+    # erase reply text
+    tput cuu1
+    tput ed
+    # and reset cursur style
+    echo
+    tput cnorm
 
-		continue
+    if printf "$reply" | grep -iq "^a"; then
 
-	else
+	:
 
-		sh $pwgn
+    else
 
-	fi
+	sh $pwgn
+
+    fi
 }
 
 
@@ -561,7 +587,7 @@ get_vault_data()
 			if [[ -z $loop_device ]]; then
 
 				## luks_container is not mapped
-				luks_uuid=$(cryptsetup luksUUID $target)
+				luks_uuid=$(sudo cryptsetup luksUUID $target)
 
 				loop_device="n/a"
 				loop_ctime="n/a"
@@ -608,14 +634,14 @@ get_vault_data()
 
 	if [[ -n $loop_active ]]; then
 
-		# we are in a while loop from close_all
+		# we are in a while loop from close_luks_all
 		target_type=""
 
 	fi
 
 	if [[ -z $target_type ]]; then
 
-		vlt_target=$(lsblk -parf | grep vlt_ | awk '{print $1}' | grep $target)
+		vlt_target=$(lsblk -parf | grep 'vlt_' | awk '{print $1}' | grep $target)
 
 		if [[ -n $vlt_target ]]; then
 			## $2 user entry ($target) is a loop device (vlt_mapper)
@@ -638,7 +664,7 @@ get_vault_data()
 
 		mountpoint="n/a"
 		## assuming we have a vlt_mapper
-		vlt_mapper=$(lsblk -parf --noheadings | grep vlt_ | grep -v % | awk '{print $1}')
+		vlt_mapper=$(lsblk -parf --noheadings | grep 'vlt_' | grep -v % | awk '{print $1}')
 
 	else
 
@@ -714,14 +740,14 @@ show_spec_info()
 	if [[ -z $target_type ]]; then
 
 		## get_vault_data could not assign a target_type
-		printf "no specific info available\n"
+		printf "\n%s" "no specific info available\n"
 		printf "${MAGENTA}no valid target_type $target${NOC}\n"
 
 		exit 77
 
 	else
 
-		printf "%22s${BLUE} %s${NOC}\n" "specific info for:" "$target_type $target"
+		printf "\n%22s${BLUE} %s${NOC}\n" "specific info for:" "$target_type $target"
 
 		echo
 		printf "%22s %s\n" "crypto source:" $luks_container
@@ -766,39 +792,38 @@ check_target_exists()
 
 check_no_confirm()
 {
-	# check if 'no-confirm' was entered in arg3
-	if [[ -z $no_confirm ]]; then
+    if [[ -z $no_confirm ]]; then
 
-		# no_confirm has no value; a confirmation dialogue comes up
+	# no_confirm has no value; a confirmation dialogue comes up
 
-		echo
-		printf "close vault? (Y/n) "
+	echo
+	printf "close vault? (Y/n) "
 
-		read reply_single
-		#read reply_read_single
+	read reply_single
+	#read reply_read_single
 
-		if printf "$reply" | grep -iq "^n"; then
+	if printf "$reply" | grep -iq "^n"; then
 
-			echo
-			confirmation="negative"
-			printf "${MAGENTA}$action $target aborted by user${NOC}\n"
+	    echo
+	    confirmation="negative"
+	    printf "${MAGENTA}$action $target aborted by user${NOC}\n"
 
-			if [[ -z $loop_active ]]; then
+	    if [[ -z $loop_active ]]; then
 
-				# we are in a while loop and have multiple targets
-				exit
+		# we are in a while loop and have multiple targets
+		exit
 
-			fi
+	    fi
 
-		else
+	else
 
-			confirmation="positive"
-			echo
-			return
-
-		fi
+	    confirmation="positive"
+	    echo
+	    return
 
 	fi
+
+    fi
 }
 
 
@@ -808,7 +833,7 @@ fzf_select_target()
 	if [[ -n $(vault_list | grep /dev/mapper/vlt_) ]]; then
 
 		list_headers=$(lsblk -lp | head -n 1)
-		list=$(lsblk -lp | grep vlt_ | sort -k 7)
+		list=$(lsblk -lp | grep 'vlt_' | sort -k 7)
 
 		target_list=$(printf "$list_headers\n$list" | \
 			fzf -m --header-lines=1 --prompt='select ' | \
@@ -826,11 +851,11 @@ fzf_select_target()
 
 close_target()
 {
-	# all (vault close 'all')
+	# all (vault close all)
 
-	if [[ $target == "all" ]] || [[ $action == "xa" ]]; then
+	if [[ $target == "all" ]]; then
 
-		close_all
+		close_luks_all
 		exit
 
 	# no target specified in command;
@@ -916,7 +941,7 @@ clear_cache()
 
 get_all_vlt_mappers()
 {
-	vlt_mappers=$(lsblk -rp | grep vlt_ | sort -k 7 | awk '{print $1}')
+	vlt_mappers=$(\lsblk -rp | grep 'vlt_' | sort -k 7 | awk '{print $1}')
 
 	if [[ -z "$vlt_mappers" ]]; then
 
@@ -931,17 +956,17 @@ vault_list()
 {
     # show list of all vlt mapped devices with their mountpoints
 
-    ## this awk contains headers (instead of grep vlt_)
-    list=$(df -h | awk 'NR==1 || /\/vlt_/')
-
-    if [[ -z "$list" ]]; then
+    if [[ -z $(df -h | grep 'vlt_') ]]; then
 
 	printf "${MAGENTA}no mapped vaults mounted${NOC}\n"
 
     else
 
 	printf "${BLUE}mapped vaults mounted${NOC}\n"
-	printf '%s\n\n' "$list"
+
+	## this awk contains headers (instead of grep vlt_)
+	list=$(df -h | awk 'NR==1 || /\/vlt_/')
+	printf '%s\n' "$list"
 
     fi
 }
@@ -974,7 +999,7 @@ vault_spec_info()
 }
 
 
-close_all()
+close_luks_all()
 {
 	get_all_vlt_mappers
 	vault_list
@@ -1020,126 +1045,167 @@ check_no_confirm_flag()
 {
     case $action in
 
-	close|x|xa)
+	close)
 
-	    #if [[ $action == 'close' ]]; then
+	    # check if no_confirm argument entered
+            if [[ -n $arg_3 ]]; then
 
-            if [[ -n $no_confirm ]]; then
+                case $arg_3 in
 
-                case $no_confirm in
-
-                    -y)
+                    -y | --no-confirm)
                 	no_confirm=1
-                	# no_confirm has a value; no confirmation dialogue
-                	;;
-
-                    --no-confirm)
-                	no_confirm=1
-                	# no_confirm has a value; no confirmation dialogue
+                	# no confirmation dialogue
                 	;;
 
                     *)
                 	printf "${MAGENTA}no valid option:${NOC} '$no_confirm'\n"
-                	no_confirm=""
-                	# no_confirm has no value; a confirmation dialogue comes up
                 	printf "exiting\n"
                 	exit 72
                 	;;
 
                 esac
 
+	    else
+
+		# no_confirm argument not entered
+	        # confirmation dialog (default)
+	        no_confirm=''
+
             fi
             ;;
 
-	    #fi
     esac
 }
 
 
 fzf_target_mountpoint()
 {
-	if [[ -z $target ]]; then
+    if [[ -z $target ]]; then
 
-		target=$(fd -uu . \/ | fzf --prompt='target ')
+	target=$(fd -uu . \/ | fzf --prompt='target ')
 
-		mountpoint=$(fd -uu . \/ | fzf --prompt='mountpoint ')
+	mountpoint=$(fd -uu . \/ | fzf --prompt='mountpoint ')
 
-	fi
+    fi
+}
+
+
+get_target_luks_uuid()
+{
+    luks_uuid=$(sudo cryptsetup luksUUID $target)
+    printf "$luks_uuid" | wl-copy -n -o
+}
+
+
+set_close_args()
+{
+    # getting the right arguments for all scenarios
+
+    case $arg_action in
+
+	ca)
+	    action='close'
+	    target='all'
+	    arg_3=$arg_target
+	    ;;
+
+	close | c)
+	    action='close'
+
+	    case $arg_target in
+
+		-y | --no-confirm)
+		    arg_3=$arg_target
+		    ;;
+
+		*)
+		    target=$arg_target
+		    ;;
+
+	    esac
+	    ;;
+
+    esac
 }
 
 
 main()
 {
-	case $action in
+	case $arg_action in
 
-		list|l)
-			vault_list
-			;;
+		list | l)
+		    action='list'
+		    vault_list
+		    ;;
 
-		status|s)
-			check_target_validity
-			check_target_status
+		status | s)
+		    action='status'
+		    check_target_validity
+		    check_target_status
 
-			fzf_select_target
-			vault_list
-			vault_spec_info
-			;;
+		    fzf_select_target
+		    vault_list
+		    vault_spec_info
+		    ;;
 
-		create|c)
-			size=$arg_3
+		create | new | n)
+		    action='create'
+		    size=$arg_3
 
-			get_sudo
+		    get_sudo
 
-			check_target_validity
-			check_target_status
+		    check_target_validity
+		    check_target_status
 
-			check_container_size
-			create_vlt_mapper_name
-			create_vault
-			open_luks
-			make_fs
-			close_luks
-			clean_up
-			;;
+		    #check_container_size
+		    create_vlt_mapper_name
+		    create_vault
+		    open_luks
+		    make_fs
+		    close_luks
+		    clean_up
+		    ;;
 
-		open|o)
-			mountpoint=$arg_3
-			fzf_target_mountpoint
+		open | o)
+		    action='open'
+		    mountpoint=$arg_3
 
-			get_sudo
+		    get_sudo
 
-			check_target_validity
-			check_target_status
+		    check_target_validity
+		    check_target_status
 
-			check_mp_dir
-			generate_pw
-			create_vlt_mapper_name
-			open_luks
-			mounting
-			permissions
+		    get_target_luks_uuid
 
-			target=$mountpoint
+		    check_mp_dir
+		    generate_pw
+		    create_vlt_mapper_name
+		    open_luks
+		    mounting
+		    permissions
 
-			get_vault_data
-			show_spec_info
-			;;
+		    target=$mountpoint
 
-		close|x|xa)
-			no_confirm=$arg_3
+		    get_vault_data
+		    show_spec_info
+		    ;;
 
-			get_sudo
+		close | ca | c)
+		    set_close_args
 
-			check_target_validity
-			check_target_status
-			check_no_confirm_flag
+		    get_sudo
 
-			close_target
-			;;
+		    check_target_validity
+		    check_target_status
+		    check_no_confirm_flag
+
+		    close_target
+		    ;;
 
 		*)
-			printf "${MAGENTA}no valid action${NOC}\n"
-			exit 40
-			;;
+		    printf "${MAGENTA}no valid action${NOC}\n"
+		    exit 40
+		    ;;
 
 	esac
 }
