@@ -92,7 +92,6 @@ keyboard_input()
 
 clear_line()
 {
-    # TODO entry can be multiple lines long
     tput ed
 }
 
@@ -111,6 +110,7 @@ choose_input()
 
 	# erase reply text
 	tput cuu1
+	printf "\r"
 	tput ed
 	# and reset cursur style
 	echo

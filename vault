@@ -740,8 +740,8 @@ show_spec_info()
 	if [[ -z $target_type ]]; then
 
 		## get_vault_data could not assign a target_type
-		printf "\n%s" "no specific info available\n"
-		printf "${MAGENTA}no valid target_type $target${NOC}\n"
+		printf "\n%s\n" "no specific info available"
+		printf "no valid target_type ${MAGENTA}$target${NOC}\n"
 
 		exit 77
 
@@ -794,13 +794,13 @@ check_no_confirm()
 {
     if [[ -z $no_confirm ]]; then
 
-	# no_confirm has no value; a confirmation dialogue comes up
+	# no_confirm is empty;
+	# confirmation dialogue comes up
 
 	echo
 	printf "close vault? (Y/n) "
 
-	read reply_single
-	#read reply_read_single
+	reply_read_single
 
 	if printf "$reply" | grep -iq "^n"; then
 
@@ -870,6 +870,8 @@ close_target()
 
 			get_vault_data
 			show_spec_info
+
+			check_no_confirm
 
 			unmount
 			close_luks

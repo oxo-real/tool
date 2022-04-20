@@ -42,8 +42,7 @@ src=$2		# source directory
 dest=$3		# destination directory
 
 
-sourcing()
-{
+sourcing() {
     # external code sources
     source_dir="$XDG_DATA_HOME/c/git/code/source/function"
     source $source_dir/reply_functions
@@ -52,8 +51,7 @@ sourcing()
 }
 
 
-initialize()
-{
+initialize() {
     # initializing variables
 
     ## not all of .config has to be uploaded to the public repository;
@@ -95,8 +93,7 @@ initialize()
 }
 
 
-validate_source()
-{
+validate_source() {
     # directory validity check
     if [[ -z $src ]]; then
 
@@ -123,8 +120,7 @@ validate_source()
 }
 
 
-validate_destination()
-{
+validate_destination() {
     if [[ -z $dest ]]; then
 
 	# source is given, destination is empty
@@ -261,8 +257,7 @@ validate_destination()
 }
 
 
-create_lists()
-{
+create_lists() {
     case $mode in
 
 	# only backup
@@ -312,19 +307,17 @@ create_lists()
 
     esac
 
-    : '
+    :'
     now we have 3 temporary lists in $src:
 
     all_files_list	.alll	with all files to be copied
     crypt_list		.crpl	with files to be encrypted
     plain_list		.plnl	with files that can stay as they are
-
-    # '
+    #'
 }
 
 
-copy()
-{
+copy() {
     case $mode in
 
 	backup)
@@ -349,8 +342,7 @@ copy()
     esac
 }
 
-report_plain()
-{
+report_plain() {
     case $mode in
 
 	backup)
@@ -378,13 +370,12 @@ report_plain()
 }
 
 
-modify()
-{
+modify() {
     case $mode in
 
 	backup)
 
-	    # remove all (nested) git databases
+	    # remove all nested git databases
 	    printf "removing .git directories\n"
 	    ## -mindepth 2 protects main dotfile repo .git
 	    find $bu_dest -mindepth 2 -type d -name '*.git' -exec rm -rf {} \;
@@ -406,8 +397,7 @@ modify()
 }
 
 
-crypt()
-{
+crypt() {
     case $mode in
 
 
@@ -719,8 +709,7 @@ crypt()
 }
 
 
-verify()
-{
+verify() {
     case $mode in
 
 	backup)
@@ -747,8 +736,7 @@ verify()
 }
 
 
-cleanup()
-{
+cleanup() {
     case $mode in
 
 	backup)
@@ -761,8 +749,7 @@ cleanup()
 }
 
 
-generate_pw()
-{
+generate_pw() {
     echo
 
     printf "starting pwgn... ${YELLOW}A${NOC}bort "
@@ -795,29 +782,31 @@ generate_pw()
 
 # internal calls
 
-clear_password()
-{
+clear_password() {
     pw=$(< /dev/random tr -d -c "[:xdigit:]" | head -c 64)
     unset pw
 }
 
-destroy()
-{
+destroy() {
     chmod -R 777 $1
     sudo find $1 -depth -type f -exec shred -n 3 --remove=wipesync {} \;
     rm -rf $1
 }
 
 
-sourcing
-initialize
-validate_source
-validate_destination
-create_lists
-copy
-modify
-generate_pw
-report_plain
-crypt
-verify
-cleanup
+main() {
+    sourcing
+    initialize
+    validate_source
+    validate_destination
+    create_lists
+    copy
+    modify
+    generate_pw
+    report_plain
+    crypt
+    verify
+    cleanup
+}
+
+main

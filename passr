@@ -34,32 +34,43 @@
 ##
 #
 
+: '
 ## dependencies
-#	pass, cryptsetup, fzf
+	pass, gpg, cryptsetup, fzf
+	pwgn, vault, source functions
 
 ## usage
-#	passr
-#	passr $object
-#	passr $object $element
 
-#	passr open
-#	passr login
-#	passr status	(s)
-#	passr logout
-#	passr close
+### status management
 
-## examples
-#	passr
+% passr open
+% passr o
 
-#	passr obj_name
-#	passr codeberg
+% passr login
+% passr i
 
-#	passr obj_name_user_name
-#	passr codeberg_cytopyge
+% passr status
+% passr s
 
-#	passr obj_name[_user] $element
-#	passr codeberg_cytopyge password
+% passr logout
+% passr u
 
+% passr close
+% passr c
+
+### operational modes
+
+#### object
+% passr
+
+#### element
+# passr $object
+% passr email_john
+
+#### direct
+# passr $object $element
+% passr email_john password
+# '
 
 # initial definitions
 
@@ -92,56 +103,77 @@ store_l="$HOME/.password-store"
 ## the symlinks target
 store=$(readlink $store_l)
 
-## sourcing
+## source functions
 source_dir="$XDG_DATA_HOME/c/git/code/source/function"
 source $source_dir/text_appearance
 source $source_dir/reply_functions
 source $source_dir/get_sudo
 
-## $elements definition
-## objects can be searched for one or more elements
-## regular elements are: url, userid, password
-## elements that can be retrieved with passr are:
 elements=(\
 	"1 url" \
 	"2 userid" \
-	" " \
+	"" \
 	"3 password" \
 	"4 otp" \
 	"5 unlock" \
 	"6 peacto" \
-	" " \
+	"" \
 	"A autoentry" \
-	" " \
+	"" \
 	"E edit" \
 	"S show" \
 	"C copy" \
-	" " \
+	"" \
 	"ESC cancel")
 
-## notice
-##
-## the pass man page refers to objects by naming them 'passwords'
-## so insert a new password means making a new .gpg file
-## however; the gpg file can contain anything, also passwords
-##
-## pass expects the first line of the gpg file to be the password
-## this script makes extensive use of that
-##
-## pass names gpg files from the password_store_root without extension
-## example:
-## $password_store_root/subdir/object.gpg <=> subdir/object
-##
-## $object contains in this script the value: 'subdir/object'
-## $element contains the value of an element in the $object
-## i.e. this can be a password, url or userid (among more)
+: '
+$object definition
+^^^^^^^^^^^^^^^^^^
+an object refers to a gpg encrypted file (*.gpg)
+
+the pass man page refers to objects by naming them 'passwords'
+so insert a new password means actually making a new .gpg file
+a gpg file can contain anything, also passwords
+
+pass expects the first line of the gpg file to be the password
+this script makes extensive use of that
+
+pass names gpg files from the password_store_root without extension
+example:
+$password_store_root/subdir/object.gpg <=> subdir/object
+
+$object contains in this script the value: 'subdir/object'
+$element contains the value of an element in the $object
+i.e. this can be a password, url or userid (among more)
+
+$element definition
+^^^^^^^^^^^^^^^^^^^
+1. an element can be retrieved from an object
+	regular elements are i.e.: url, userid, password
+
+2. an element can be an action applied to an object
+
+retrievals are numbered and actions are lettered in the elements menu
+
+gpg file contents
+^^^^^^^^^^^^^^^^^
+example gpg file (mail_john.gpg) for passr to work properly:
+
+123456
+userid: john
+url: https://login.mail.com
+unlock: password
+peacto: iloveyou
+comments: important
+
+otp-strings can be stored into otp_mail_john.gpg
+'
 
 
 #--------------------------------
 
 
-get_object()
-{
+get_object() {
     object=$arg_object
     element=$arg_element
 
@@ -173,13 +205,6 @@ get_object()
 	    log_out
 	    close
 	    ;;
-
-	#'')
-	#    [[ $(show_status >/dev/null 2>&1 ) == '0 0' ]]
-	#    printf "${MAGENTA}no valid action${NOC} ... assume login\n"
-	#    object='login'
-	#    log_in
-	#    ;;
 
 	*)
 	    get_mountpoint_status
@@ -230,14 +255,12 @@ get_object()
 }
 
 
-vault_open()
-{
+vault_open() {
     pass_mount
 }
 
 
-log_in()
-{
+log_in() {
     get_mountpoint_status
 
     case $mp_status in
@@ -250,8 +273,6 @@ log_in()
 	    ;;
 
    	*)
-	    #show_status
-	    #printf "${MAGENTA}no_mp${NOC}\n"
 	    vault_open
 	    log_in
 	    ;;
@@ -260,8 +281,7 @@ log_in()
 }
 
 
-log_out()
-{
+log_out() {
     gpg-connect-agent -q reloadagent /bye >/dev/null
     printf "${BLUE}logged out, bye!${NOC}\n"
 
@@ -269,31 +289,25 @@ log_out()
 }
 
 
-close()
-{
+close() {
     sh vault close $store
     exit 0
 }
 
 
-show_status()
-{
+show_status() {
     get_mountpoint_status
     get_cache_status
     printf "$mp_status $cache_status\n"
 }
 
 
-get_mountpoint_status()
-{
-	mountpoint -q $store_l && mp_status=$store || mp_status=0
-	#[[ $? -ne 0 ]] && \
-	#	printf "${MAGENTA}password-store not mounted${NOC}\n"
+get_mountpoint_status() {
+    mountpoint -q $store_l && mp_status=$store || mp_status=0
 }
 
 
-get_cache_status()
-{
+get_cache_status() {
     # 1 | 0 (no cache)
     cache_status=$(gpg-connect-agent 'keyinfo --list' /bye 2>/dev/null | \
 	awk 'BEGIN{CACHED=0} /^S/ {if($7==1){CACHED=1}} END\
@@ -301,8 +315,7 @@ get_cache_status()
 }
 
 
-pass_mount()
-{
+pass_mount() {
     # pass crypto source location
 
     # pass mount destination
@@ -345,29 +358,15 @@ pass_mount()
 }
 
 
-gpg_decrypt()
-{
+gpg_decrypt() {
     # always reset cached gpg password
     gpg-connect-agent -q reloadagent /bye >/dev/null
 
     ## for aesthetic reasons: first sudo then O--,
     get_sudo
 
-    tput cuu1
     erase_line
-
     printf "${YELLOW}${BOLD} O--, ${NORMAL}${NOC}"
-    tput civis
-    sleep 2
-    tput cnorm
-    erase_line
-    # TODO show 'enter pwgn input string'
-    # after key pressed get character (via reply function),
-    # erase line shift cursor one pos to the right (optical reasons)
-    ## erase_line && tput cu
-    # continue with read input
-    # cat character with input
-    # end of TODO
 
     echo
     generate_pw
@@ -376,21 +375,38 @@ gpg_decrypt()
 }
 
 
-erase_line()
-{
+erase_line() {
     printf "\r"
     tput el
 }
 
 
-generate_pw()
-{
+process_reply() {
+    action_reply='^a'
+    answer=$(printf "$1" | grep -iq "$action_reply")
+
+    case $reply in
+
+	$1)
+	    continue
+	    ;;
+
+	*)
+	    pwgn
+	    ;;
+
+    esac
+}
+
+
+generate_pw() {
     printf "starting pwgn... ${YELLOW}A${NOC}bort "
 
     reply_read_single_hidden_timer
 
     erase_line
 
+    #[DEV] process_reply $reply
     if printf "$reply" | grep -iq "^a"; then
 
     	continue
@@ -403,8 +419,7 @@ generate_pw()
 }
 
 
-get_element()
-{
+get_element() {
     if [[ -z $element ]]; then
 
     	element=$(printf '%s\n' "${elements[@]}" | \
@@ -415,8 +430,7 @@ get_element()
 }
 
 
-process_object()
-{
+process_object() {
     # empty object selection
     [[ -z $object ]] && exit 0
 
@@ -452,8 +466,7 @@ process_object()
 }
 
 
-get_element_value()
-{
+get_element_value() {
     element_value=$(pass show $object | grep ^$element: | awk '{print $2}')
 
     check_element_value
@@ -464,20 +477,17 @@ get_element_value()
 
 
 
-get_password()
-{
+get_password() {
     pass $object | head -n 1 | wl-copy -n -o
 }
 
 
-check_obj_exist()
-{
+check_obj_exist() {
     [[ -f "$store/$object.gpg" ]] && obj_exist=1
 }
 
 
-get_otp()
-{
+get_otp() {
     # redirection to the separate otp file
     if [[ "$(printf $object | head -c 4)" != "otp_" ]]; then
 
@@ -495,13 +505,10 @@ get_otp()
 
     # reset object value for human info
     object=$(printf $object | cut -c 5-)
-
-    #[[ -z $element_value ]] && element="$element ${MAGENTA}no element value${NOC}"
 }
 
 
-pass_element()
-{
+pass_element() {
     # run pass natively with $element
     case $from_log_in in
 
@@ -523,18 +530,17 @@ pass_element()
 }
 
 
-check_element_value()
-{
+check_element_value() {
     ## no autoentry
     if [[ -z $ae ]]; then
 
     	if [[ -z $element ]]; then
 
-    	    element="${MAGENTA}no element selected${NOC}"
+    	    element="${MAGENTA}element${NOC} no selection"
 
     	elif [[ -z $element_value ]]; then
 
-    	    element="$element ${MAGENTA}no value${NOC}"
+    	    element="${MAGENTA}$element${NOC} no value"
 
     	fi
 
@@ -543,26 +549,53 @@ check_element_value()
     ## autoentry
     if [[ -n $ae ]]; then
 
-    	# [TODO] [[ -z $element_value ]] && element_value="${MAGENTA}no element value${NOC}"
-    	[[ -z $element_value ]] && notify-send "no element value" && exit
+    	[[ -z $element_value ]] && notify-send "$element no value" && exit
 
     fi
 }
 
 
-human_info()
-{
+error_message() {
+    ## selected empty line in element menu
+    if [[ -z $element ]]; then
+
+    	error='no valid selection'
+
+    fi
+}
+
+
+human_info() {
+    # get error message if applicable
     error_message
 
     if [[ -z $ae ]]; then
 
     	if [[ "$object" == 'login' ]]; then
 
-	   printf "$object ${MAGENTA}$error${NOC}\n"
+	    if [[ -n $error ]]; then
+
+		## print error message
+		printf "${MAGENTA}$object${NOC} $error\n"
+
+	    else
+
+	    	printf "$object\n"
+
+	    fi
 
     	else
 
-	   printf "$object $element ${MAGENTA}$error${NOC}\n"
+	    if [[ -n $error ]]; then
+
+		## print error message
+		printf "${MAGENTA}$object $element${NOC} $error\n"
+
+	    else
+
+	    	printf "$object $element\n"
+
+	    fi
 
     	fi
 
@@ -576,19 +609,7 @@ human_info()
 }
 
 
-error_message()
-{
-    ## selected empty line in element menu
-    if [[ $element == " " ]]; then
-
-    	error="no valid selection"
-
-    fi
-}
-
-
-autoentry()
-{
+autoentry() {
     #TODO autoentry when not logged in
     ## now results in show being executed
 
@@ -635,14 +656,12 @@ autoentry()
 }
 
 
-get_object_name()
-{
+get_object_name() {
     printf "$object" | wl-copy -n -o
 }
 
 
-process_element()
-{
+process_element() {
     case $element in
 
     	password)
@@ -691,8 +710,7 @@ process_element()
 }
 
 
-main()
-{
+main() {
     get_object
     process_object
     get_element

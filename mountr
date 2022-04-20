@@ -32,8 +32,7 @@ source_dir="$XDG_DATA_HOME/c/git/code/source/function"
 
 # functions
 
-text_appearance()
-{
+text_appearance() {
 	source $source_dir/text_appearance
 }
 
@@ -48,14 +47,12 @@ get_sudo() {
 
 
 # fzf_inject
-fzf_inject()
-{
+fzf_inject() {
 	fzf_sel=$(printf "$fzf_input" | fzf --prompt="$prompt ")
 }
 
 
 validity_check() {
-
 	## for mounting
 	## check mountpoint dir existing
 	if [[ ! -d $mp_mount ]]; then
@@ -78,7 +75,6 @@ validity_check() {
 	fi
 
 	#printf "${YELLOW}validity check complete${NOC}\n"
-
 }
 
 
@@ -115,8 +111,7 @@ get_source_devs() {
 }
 
 
-sel_source_dev()
-{
+sel_source_dev() {
     ## prepare variables
     fzf_input="$source_devs_avail"
     prompt="mount source_device"
@@ -127,8 +122,7 @@ sel_source_dev()
 }
 
 
-get_mps_mount()
-{
+get_mps_mount() {
     mps_avail=$(printf "/boot\n$HOME/dock/1\n$HOME/dock/2\n$HOME/dock/3\n$HOME/dock/4\nother")
 }
 
@@ -145,7 +139,8 @@ sel_mp_mount() {
 
 
 mount() {
-    sudo mount $source_dev $mp_mount
+    sudo mount -o uid=$(whoami),gid=$(id -gn) $source_dev $mp_mount
+    #sudo mount $source_dev $mp_mount
 }
 
 
