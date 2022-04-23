@@ -8,7 +8,7 @@ source $source_dir/text_appearance
 
 
 # first remove last line from history, then recall last line
-hist_file='/home/cytopyge/.logs/history/history'
+hist_file="$XDG_LOGS_HOME/history/history"
 
 # remove last line from history
 # when script is called via cli

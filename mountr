@@ -139,7 +139,8 @@ sel_mp_mount() {
 
 
 mount() {
-    sudo mount -o uid=$(whoami),gid=$(id -gn) $source_dev $mp_mount
+    sudo mount -o gid=$(id -g $USER),uid=$(id -u $USER) $source_dev $mp_mount
+    #sudo mount -o uid=$(whoami),gid=$(id -gn) $source_dev $mp_mount
     #sudo mount $source_dev $mp_mount
 }
 

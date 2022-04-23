@@ -94,10 +94,70 @@ code()
 
 		fi
 
-		rsync -aAXv \
-		    --info=ALL \
-		    $options \
-		    $src $dst
+		case $src in
+
+		    $XDG_CONFIG_HOME)
+			local dst=$(printf "$code_mount/.config")
+			# code from dotbu:
+			# rsync files in fpcl_file
+			## fpcl contains only files to be copied
+			## those also to be crypted are prepended with a c
+			fpcl_file="$XDG_CONFIG_HOME/.fpcl"
+			## temporary file list
+			all_files_list="$src/.alll"
+
+
+			# create tempo file list
+
+			while IFS= read -r fpcl_location; do
+
+			    ## empty lines; skip
+			    if [[ -z "$fpcl_location" ]]; then
+
+			        continue
+
+			    ## outcommented lines; skip
+			    elif [[ "$(printf "$fpcl_location" | head -c 1)" == "#" ]]; then
+
+			        continue
+
+			    ## lines starting with c; to all
+			    elif [[ "$(printf "$fpcl_location" | head -c 2)" == "c " ]]; then
+
+			        printf "$fpcl_location\n" | cut -c 3- | tee -a $all_files_list
+
+			    ## all other lines; to all
+			    else
+
+			        printf "$fpcl_location\n" | tee -a $all_files_list
+
+			    fi
+
+			done < $fpcl_file
+
+
+			# rsync tempo file list
+
+			rsync -aAXv \
+			    --info=ALL \
+			    --files-from=$all_files_list \
+			    --recursive \
+			    $options \
+			    $src/ $dst
+
+			# remove tempo file list
+
+			rm -rf $all_files_list
+			;;
+
+		    *)
+			rsync -aAXv \
+			    --info=ALL \
+			    $options \
+			    $src $dst
+			;;
+
+		esac
 
 	    done
 	    ;;
