@@ -64,16 +64,16 @@ source_dir="$XDG_DATA_HOME/c/git/code/source/function"
 sourcing()
 {
 	## define colors
-	source $source_dir/text_appearance
+	source "$source_dir/text_appearance"
 
 	## reply functions
-	source $source_dir/reply_functions
+	source "$source_dir/reply_functions"
 
 	## user authentication
-	source $source_dir/get_sudo
+	source "$source_dir/get_sudo"
 
 	## progress bar
-	source $source_dir/progress_bar
+	source "$source_dir/progress_bar"
 }
 
 
