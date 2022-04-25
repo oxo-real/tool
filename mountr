@@ -29,30 +29,6 @@ script_name="mountr"
 initial_release_year="2020"
 source_dir="$XDG_DATA_HOME/c/git/code/source/function"
 
-#TODO does not work when symlink mountr is executed
-# but does work when sh .../tool/mountr is executed
-args=$@
-arg_source_dev=$1
-
-
-case "$arg_source_dev" in
-
-    '')
-	:
-	;;
-
-    *)
-	# specific source device as argument
-	source_dev="$arg_source_dev"
-	source_dev_spec=1
-	source_dev_lines=1
-	action='mount'
-	;;
-
-esac
-
-
-# functions
 
 text_appearance() {
 	source $source_dir/text_appearance
@@ -65,63 +41,18 @@ get_sudo() {
 }
 
 
-fzf_inject() {
-    ## general function to fill fzf with data
-    fzf_sel=$(printf "$fzf_input" | fzf -m --prompt="$prompt ")
+get_mps_mount() {
+    mps_avail=$(printf "/boot\n$HOME/dock/1\n$HOME/dock/2\n$HOME/dock/3\n$HOME/dock/4\n$HOME/dock/transfer\nother")
+    # TODO make sourced array
 }
 
 
-validity_check() {
-    case $action in
-
-        mount)
-            case $mp_mount in
-
-                other)
-		    read -r -p 'mountpoint? ' mp_mount
-          	    validity_check
-          	    ;;
-
-            esac
-
-
-	    ## check source_dev
-	    #[[ ! -b $source_dev ]] && \
-	    #    printf "${MAGENTA}$source_dev${NOC} no block device\n" && \
-	    #    exit 44
-
-	    ## check mountpoint dir existing
-	    [[ ! -d $mp_mount ]] && \
-	        printf "${MAGENTA}$mp_mount${NOC} does not exist\n" && \
-	        exit 44
-
-	    ## check mountpoint already mounted
-	    [[ -z $( mountpoint $mp_mount | grep not ) ]] && \
-	        printf "${MAGENTA}$mp_mount${NOC} is already a mountpoint\n" && \
-		    exit 44
-
-	    ## check mountpoint dir empty
-	    [[ -n $(ls -A $mp_mount) ]] && \
-	        printf "${MAGENTA}$mp_mount${NOC} not empty\n" && \
-	        exit 44
-            ;;
-
-        umount)
-	    target_is_vlt
-	    ;;
-
-    esac
+get_mps_umount() {
+    ## for umount_func
+    mps_umount=$(findmnt --list -o TARGET,LABEL,SOURCE,SIZE | \
+	grep -e '/dev/sd' -e '/dev/mapper/vlt_' | sort)
 }
 
-
-# specific function definitions
-
-#########
-# MOUNT #
-#########
-
-
-# get mountable source (block) devices
 
 get_source_devs() {
     source_devs_avail=$(\
@@ -147,213 +78,140 @@ get_source_devs() {
 }
 
 
-sel_source_dev() {
-    case $source_dev_spec in
+mount_to_select_param() {
+    local fzf_input="$mps_avail"
+    local fzf_prompt="select mountpoint for: $line_select"
+    local fzf_options='--height=20%'
 
-	1)
-	    # TODO option can possibly be removed
-	    source_dev_lines=1
-	    ;;
-
-	'')
-	    ## prepare variables which are input for fzf_inject
-	    fzf_input="$source_devs_avail"
-	    prompt="mount source_device"
-
-	    ## call fzf inject
-	    fzf_inject
-	    ## fzf_inject gives back fzf_sel
-
-	    source_dev=$(printf "$fzf_sel" | awk '{print $1}')
-	    #printf "$("$fzf_sel" | wc -l)\n" ## TODO priolow; doesn't work, why?
-	    source_dev_lines=$(printf "$fzf_sel" | awk 'END{print NR}')
-	    ;;
-
-    esac
+    fzf_choose
+    mount_to=$fzf_select
 }
 
 
-get_mps_mount() {
-    # TODO make sourced array
-    mps_avail=$(printf "/boot\n$HOME/dock/1\n$HOME/dock/2\n$HOME/dock/3\n$HOME/dock/4\n$HOME/dock/transfer\nother")
+devs_and_mps_param() {
+    local fzf_input="$source_devs_avail\n$mps_umount"
+    local fzf_prompt='(u)mount'
+    local fzf_options='--height=20%'
+
+    fzf_choose
+    devs_and_mps=$fzf_select
 }
 
 
-sel_mp_mount() {
-    case $source_dev_lines in
-	1)
-	    # one source device selected to be mounted
-
-	    ## prepare variables
-	    fzf_input="$mps_avail"
-	    prompt="select mountpoint for $source_dev "
-
-	    ## call fzf inject
-	    fzf_inject
-	    mp_mount=$(printf "$fzf_sel" | awk '{print $1}')
-
-	    validity_check
-	    mount_func
-	    ;;
-
-	*)
-	    # more source devices selected to be mounted
-	    ## so we make the variable name plural for this loop
-	    source_devs="$source_dev"
-
-	    while IFS= read -r source_dev_to_mount; do
-
-		## prepare variables
-		fzf_input="$mps_avail"
-		prompt="select mountpoint for $source_dev_to_mount "
-
-		## call fzf inject
-		fzf_inject
-
-		## extract mountpoint from $fzf_sel
-		mp_mount=$(echo $fzf_sel | awk '{print $1}')
-	        source_dev="$source_dev_to_mount"
-
-		validity_check
-	        mount_func
-
-	    done <<< "$source_devs"
-	    ;;
-    esac
-}
-
-
-target_is_vlt() {
-    target_is_vlt=$(lsblk -nrpo "name,mountpoint" | grep $mp_umount | grep vlt_)
-    if [[ -n $target_is_vlt ]]; then
-
-	mp_is_vault=1
-
-    fi
-}
-
-
-mount_func() {
-    sudo cryptsetup isLuks $source_dev >/dev/null 2>&1
-
-    if [[ $? == 0 ]]; then
-
-	vault open $source_dev $mp_mount
-	exit 0
-
-    else
-
-	sudo mount $source_dev $mp_mount
-	#sudo mount -o gid=$(id -g $USER),uid=$(id -u $USER) $source_dev $mp_mount
-	#sudo mount -o uid=$(whoami),gid=$(id -gn) $source_dev $mp_mount
-
-	mount_info
-
-    fi
-}
-
-
-remount_options() {
-    ## prepare variables
-    fzf_input=$(printf "ro\nrw")
-    prompt="remount options:"
-
-    ## fzf inject; gives $fzf_sel back
-    fzf_inject
-    ## extract option from $fzf_sel
-    rorw=$fzf_sel
-}
-
-
-remount() {
-    sudo mount -o remount,$rorw  $mp_umount
+fzf_choose() {
+    fzf_select=$(printf "$fzf_input" | fzf -m --prompt="$fzf_prompt " $fzf_options)
 }
 
 
 mount_info() {
-    label_mount=$(printf "$source_devs_avail" | grep $source_dev | awk '{print $4}')
-
-    printf "${BLUE}$source_dev $label_mount${NOC} mounted to $mp_mount\n"
-}
-
-#################
-#  U M O U N T  #
-#################
-
-
-# get mountpoints that can be umounted
-
-get_mps_umount() {
-    ## for umount_func
-    mps_umount=$(findmnt --list -o TARGET,LABEL,SOURCE,SIZE | \
-	grep -e '/dev/sd' -e '/dev/mapper/vlt_' | sort)
-}
-
-
-sel_mp_umount() {
-    mountpoints=$mps_umount
-
-    case $mountpoints in
-
-	'')
-	    printf "/dev contains no sd devices\n"
-	    exit 40
-	    ;;
-
-    esac
-
-    ## prepare variables
-    fzf_input="$mps_umount"
-    prompt="umount"
-
-    ## fzf inject; gives $fzf_sel back
-    fzf_inject
-
-    while IFS= read -r mountpoint_to_umount; do
-
-	## extract mountpoint from $fzf_sel
-	mp_umount=$(echo $mountpoint_to_umount | awk '{print $1}')
-        source_dev=$(echo $mountpoint_to_umount | awk '{print $3}')
-	label=$(echo $mountpoint_to_umount | awk '{print $2}')
-
-	validity_check
-
-	umount_func
-
-    done <<< "$fzf_sel"
-}
-
-
-umount_func() {
-    case $mp_is_vault in
-
-        1)
-	    vault close $mp_umount
-	    ;;
-
-	*)
-	    sudo umount $mp_umount
-
-	    umount_info
-	    ;;
-
-    esac
+    local label=$(printf "$line_select" | awk '{print $4}')
+    printf "$line_select_ff $label mounted to ${BLUE}$mount_to${NOC}\n"
 }
 
 
 umount_info() {
-    printf "${BLUE}$source_dev $label${NOC} umounted from $mp_umount\n"
+    local label=$(printf "$line_select" | awk '{print $2}')
+    printf "${BLUE}$line_select_ff${NOC} $label umounted\n"
 }
 
 
-action_select() {
-    ## prepare variables
-    fzf_input="mount\nremount\numount"
-    prompt=""
+mountpoint_is_vlt() {
+    mountpoint_is_vlt=$(printf "$line_select" | grep vlt_)
+}
 
-    ## call fzf inject
-    fzf_inject
-    action=$fzf_sel
+
+validity_check() {
+    case $action in
+
+        mount)
+            case $mount_to in
+
+                other)
+		    read -r -p 'mount to? ' mount_to
+          	    validity_check
+          	    ;;
+
+            esac
+
+
+	    ## check source_dev
+	    #[[ ! -b $source_dev ]] && \
+	    #    printf "${MAGENTA}$source_dev${NOC} no block device\n" && \
+	    #    exit 44
+
+	    ## check mountpoint dir existing
+	    [[ ! -d $mount_to ]] && \
+	        printf "${MAGENTA}$mount_to${NOC} does not exist\n" && \
+	        exit 44
+
+	    ## check mountpoint already mounted
+	    [[ -z $( mountpoint $mount_to | grep not ) ]] && \
+	        printf "${MAGENTA}$mount_to${NOC} is already a mountpoint\n" && \
+		    exit 44
+
+	    ## check mountpoint dir empty
+	    [[ -n $(ls -A $mount_to) ]] && \
+	        printf "${MAGENTA}$mp_mount${NOC} no empty directory\n" && \
+	        exit 44
+            ;;
+
+        umount)
+	    mountpoint_is_vlt
+
+    esac
+}
+
+
+process_devs_and_mps() {
+    while IFS= read -r line_select; do
+
+	# check if mountpoint
+	# ff is first field
+	line_select_ff=$(printf "$line_select" | awk '{print $1}')
+
+	mountpoint -q $line_select_ff >/dev/null 2>&1
+
+	case $? in
+
+	    0)
+		action='umount'
+
+		mountpoint=$line_select_ff
+
+		validity_check
+
+		case $mountpoint_is_vlt in
+
+		    '')
+			sudo umount $mountpoint
+			umount_info
+			;;
+
+		    *)
+			vault close $mountpoint
+			;;
+
+		esac
+		;;
+
+	    *)
+		action='mount'
+
+		device=$line_select_ff
+
+		## get location to mount to
+		mount_to_select_param
+
+		validity_check
+
+		sudo mount $device $mount_to
+		mount_info
+		;;
+
+	esac
+
+    done <<< "$devs_and_mps"
+
 }
 
 
@@ -361,56 +219,11 @@ main() {
     text_appearance
     get_sudo
 
-    case $source_dev_spec in
-
-	1)
-	    # a specific device arg was given
-	    get_mps_mount
-	    sel_mp_mount
-	    validity_check
-	    ;;
-
-	'')
-	    # no specific device arg given
-	    action_select
-	    ;;
-
-    esac
-
-
-    case $action in
-
-    mount)
-	get_source_devs
-    	sel_source_dev
-    	get_mps_mount
-    	sel_mp_mount
-    	#validity_check
-    	#mount
-    	#mount_info
-    	exit 0
-    	;;
-
-    umount)
-    	get_mps_umount
-    	sel_mp_umount
-    	#umount
-    	exit 0
-    	;;
-
-    remount)
-    	#get_source_devs
-    	#sel_source_dev
-	get_mps_umount
-        sel_mp_umount
-	remount_options
-        remount
-	#mount_info
-	exit 0
-	;;
-
-    esac
-
+    get_source_devs
+    get_mps_umount
+    get_mps_mount
+    devs_and_mps_param
+    process_devs_and_mps
 }
 
 main

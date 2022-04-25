@@ -78,6 +78,7 @@ initial_release='2019'
 XDG_DATA_HOME="$HOME/.local/share"
 source_dir="$XDG_DATA_HOME/c/git/code/source/function"
 pwgn="$XDG_DATA_HOME/c/git/code/tool/pwgn"
+fzf_options='--height=20% '
 source "$source_dir/text_appearance"
 source "$source_dir/reply_functions"
 source "$source_dir/splash_screen"
@@ -836,7 +837,7 @@ fzf_select_target()
 		list=$(lsblk -lp | grep 'vlt_' | sort -k 7)
 
 		target_list=$(printf "$list_headers\n$list" | \
-			fzf -m --header-lines=1 --prompt='select ' | \
+			fzf -m --header-lines=1 --prompt='select ' $fzf_options | \
 			awk '{print $1}')
 
 	else
@@ -1084,9 +1085,9 @@ fzf_target_mountpoint()
 {
     if [[ -z $target ]]; then
 
-	target=$(fd -uu . \/ | fzf --prompt='target ')
+	target=$(fd -uu . \/ | fzf --prompt='target ' $fzf_options)
 
-	mountpoint=$(fd -uu . \/ | fzf --prompt='mountpoint ')
+	mountpoint=$(fd -uu . \/ | fzf --prompt='mountpoint ' $fzf_options)
 
     fi
 }
