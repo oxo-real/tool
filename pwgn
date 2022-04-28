@@ -85,8 +85,8 @@ optical_input()
 
 keyboard_input()
 {
-	#read input
-	input=$(askpass)
+    #read input
+    input=$(askpass)
 }
 
 

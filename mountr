@@ -80,7 +80,7 @@ get_source_devs() {
 
 mount_to_select_param() {
     local fzf_input="$mps_avail"
-    local fzf_prompt="select mountpoint for: $line_select"
+    local fzf_prompt="select mountpoint for: $line"
     local fzf_options='--height=20%'
 
     fzf_choose
@@ -104,19 +104,30 @@ fzf_choose() {
 
 
 mount_info() {
-    local label=$(printf "$line_select" | awk '{print $4}')
+    local label=$(printf "$line" | awk '{print $4}')
     printf "$line_select_ff $label mounted to ${BLUE}$mount_to${NOC}\n"
 }
 
 
 umount_info() {
-    local label=$(printf "$line_select" | awk '{print $2}')
-    printf "${BLUE}$line_select_ff${NOC} $label umounted\n"
+    local label=$(printf "$line" | awk '{print $2}')
+    printf "${BLUE}$line_ff${NOC} $label umounted\n"
 }
 
 
-mountpoint_is_vlt() {
-    mountpoint_is_vlt=$(printf "$line_select" | grep vlt_)
+mapper_is_vlt() {
+    mapper_is_vlt=$(printf "$line" | grep vlt_)
+}
+
+
+dev_is_luks() {
+    sudo cryptsetup isLuks $device >/dev/null 2>&1
+}
+
+
+dev_is_mountpoint()
+{
+	mountpoint -q $line_ff >/dev/null 2>&1
 }
 
 
@@ -124,20 +135,14 @@ validity_check() {
     case $action in
 
         mount)
-            case $mount_to in
+	    case $mount_to in
 
                 other)
-		    read -r -p 'mount to? ' mount_to
-          	    validity_check
+		    read -r -p 'mount to? ' <&1 mount_to
+		    validity_check
           	    ;;
 
             esac
-
-
-	    ## check source_dev
-	    #[[ ! -b $source_dev ]] && \
-	    #    printf "${MAGENTA}$source_dev${NOC} no block device\n" && \
-	    #    exit 44
 
 	    ## check mountpoint dir existing
 	    [[ ! -d $mount_to ]] && \
@@ -153,34 +158,37 @@ validity_check() {
 	    [[ -n $(ls -A $mount_to) ]] && \
 	        printf "${MAGENTA}$mp_mount${NOC} no empty directory\n" && \
 	        exit 44
-            ;;
+
+	    dev_is_luks
+	    ;;
 
         umount)
-	    mountpoint_is_vlt
+	    mapper_is_vlt
+	    ;;
 
     esac
 }
 
 
 process_devs_and_mps() {
-    while IFS= read -r line_select; do
+    while IFS= read -r line; do
 
 	# check if mountpoint
 	# ff is first field
-	line_select_ff=$(printf "$line_select" | awk '{print $1}')
+	line_ff=$(printf "$line" | awk '{print $1}')
 
-	mountpoint -q $line_select_ff >/dev/null 2>&1
+	dev_is_mountpoint
 
 	case $? in
 
 	    0)
 		action='umount'
 
-		mountpoint=$line_select_ff
+		mountpoint=$line_ff
 
 		validity_check
 
-		case $mountpoint_is_vlt in
+		case $mapper_is_vlt in
 
 		    '')
 			sudo umount $mountpoint
@@ -197,15 +205,25 @@ process_devs_and_mps() {
 	    *)
 		action='mount'
 
-		device=$line_select_ff
+		device=$line_ff
 
 		## get location to mount to
 		mount_to_select_param
 
 		validity_check
 
-		sudo mount $device $mount_to
-		mount_info
+		# (dev_is_luks)
+    	    	case $? in
+
+    	    	    0)
+    	    	        vault open $device $mount_to
+    	    	        ;;
+
+		    *)
+			sudo mount $device $mount_to
+			mount_info
+			;;
+    	    	esac
 		;;
 
 	esac
