@@ -49,10 +49,22 @@ device_process()
 
     else
 
-	# if selected device has connection then disconnect
+	# if selected device has connection then disconnect and delete non-wifi
 	if [[ -n $device_conn ]]; then
 
 	    nmcli device disconnect $device_sel
+
+	    case $device_type in
+
+		wifi)
+		    :
+		    ;;
+
+		*)
+		    nmcli connection delete $device_sel
+		    ;;
+
+	    esac
 
 	    exit 0
 
@@ -70,14 +82,25 @@ connection_identify()
     ## nmcli -t device type = wifi
     [[ $device_type == 'wifi' ]] && device_type='wireless'
 
+    # make connection
+    nmcli connection add type ethernet con-name $device_sel
+
+    nmcli connection modify \
+	$device_sel \
+	ifname $device_sel \
+	ipv4.addresses 192.168.0.2/24 \
+	ipv4.gateway 192.168.2.2 \
+	ipv4.dns 192.168.2.2 \
+	+ipv4.dns 9.9.9.9 \
+	connection.autoconnect no \
+	ipv4.method manual
+
     connection_fzf_height=$(nmcli connection | wc -l)
 
     connection_sel=$(nmcli -t connection | \
 	grep "$device_type" | \
 	fzf --height=$connection_fzf_height | \
 	awk -F : '{print $1}')
-
-    # TODO check if connection exist
 
     connection_device=$(nmcli -t connection | \
 	grep "$connection_sel" | \
