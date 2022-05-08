@@ -7,7 +7,7 @@
 ###  \ V / (_| | |_| | | |_
 ###   \_/ \__,_|\__,_|_|\__|
 ###  _ _|_ _ ._    _  _
-### (_\/|_(_)|_)\/(_|(/_
+### (_\/|_/(_)|_)\/(_|(/_
 ###   /      |  /  _|
 ###
 ### vault
@@ -36,34 +36,36 @@
 #
 
 ## dependencies
-#	$source_dir, cryptsetup, fzf
+#   $source_dir, cryptsetup, fzf
 
 ## usage
-#	vault list	(l)
-#	vault status	(s) [target]
-#	vault create	(a) <target> [size]
-#	vault open	(o) [target] [mountpoint]
-#	vault close	(c) [target] [-y, --no-confirm]
-#	vault close	(ca) all     [-y, --no-confirm]
+#   vault action	    target	arg3
 #
-#	in which 'target' represents a location as:
-#	vault_file	(create, open)
-#	vlt_mapper	(status, close)
-#	mountpoint	(status, close)
+#   vault list	    (l)
+#   vault status    (s)	    [target]
+#   vault create    (a)	    target      [size]
+#   vault open	    (o)	    [target]    [mountpoint]
+#   vault close	    (c)	    [target]    [-y, --no-confirm]
+#   vault close	    (ca)    all		[-y, --no-confirm]
+#
+#   in which 'target' (except 'all') represents a location as:
+#   vault_file	    (create, open)
+#   vlt_mapper_id   (status, close)
+#   mountpoint	    (status, close)
 
 ## examples
-#   vault create vaultX 18M
+#   vault create secure_container 18M
 #   vault open $XDG_DATA_HOME/c/keys/pass/vlt_pass $HOME/dock/vlt/pass
 #   vault ca -y
 
-## notice
-#   size is required is target is a new file
-#   size is an integer with an optional unit
-#	units can be
+## size notice
+#   required if target is a non-existent file
+#   is an integer with an optional unit
+#	size units can be:
 #	    powers of 1024 bits (K,M,G,T,P,E,Z,Y), or
 #	    powers of 1000 bits (KB,MB,GB,TB,PB,...), or
 #	    binary prefixes	(KiB=K, MiB=M,...)
-#   18M is size minumum when action is create and target is file
+#   minimum 18M
 
 
 # initial definitions
@@ -93,19 +95,19 @@ source "$source_dir/get_sudo"
 args="$@"
 
 ## action   (create, open, close, close all, status, list)
-## action   (n,	      o,   c,	    ca,		s,      l)
+## action   (n,	     o,	   c,	  ca,	     s,      l	 )
 arg_action="$1"
+## actions 'create' and 'new' (n) are synonymous
 
 ## target
-## target   (<vault_file>, <mountpoint>, <vlt_mapper>, 'all' or empty)
+## target   (<vault_file>, <mountpoint>, <vlt_mapper_id>, 'all' or empty)
 arg_target="$2"
 
 ## arg_3    (location, size, option_no-confirm (-y) or empty)
 arg_3="$3"
 
 
-check_target_validity()
-{
+check_target_validity() {
     [[ $action != 'close' ]] && target=$arg_target
 
     case $action in
@@ -168,357 +170,340 @@ check_target_validity()
 }
 
 
-create_new_vault()
-{
+create_new_vault() {
     truncate -s $size $target
     target_just_created=1
 }
 
 
-check_target_status()
-{
-	if [[ $action == "create" ]]; then
+check_target_status() {
+    if [[ $action == "create" ]]; then
 
-		# target_c_type (target create type)
-		# because target_type already used in action open)
+	# target_c_type (target create type)
+	# because target_type already used in action open)
+
+	if [[ -b $target ]]; then
+
+	    target_c_type="block_device"
+
+	    printf "${MAGENTA}$target${NOC} is a $target_c_type!\n"
+	    printf "are you sure to overwrite an entire $target_c_type? (y/N) "
+	    reply_single
+	    echo
+
+	    if printf "$reply" | grep -iq "^y"; then
+
+		printf "about to ${MAGENTA}overwrite${NOC} $target_c_type $target\n"
 
 		# human info
-		#lsblk -i --tree -o name,fstype,uuid,path,size,fsuse%,fsused,label,mountpoint
+		blk_dev_info=$(lsblk -i --tree -o name,fstype,uuid,path,size,fsuse%,fsused,label,mountpoint | grep $target)
+		printf "${BOLD}$blk_dev_info${NORMAL}\n"
 
-		if [[ -b $target ]]; then
+		printf "please confirm? (y/N) "
+		reply_single
+		echo
 
-			target_c_type="block_device"
+		if printf "$reply" | grep -iq "^y"; then
 
-			printf "${MAGENTA}$target${NOC} is a $target_c_type!\n"
-			printf "are you sure to overwrite an entire $target_c_type? (y/N) "
-			reply_single
-			echo
+		    echo
+		    return
 
-			if printf "$reply" | grep -iq "^y"; then
+		else
 
-				printf "about to ${MAGENTA}overwrite${NOC} $target_c_type $target\n"
-
-				# human info
-				blk_dev_info=$(lsblk -i --tree -o name,fstype,uuid,path,size,fsuse%,fsused,label,mountpoint | grep $target)
-				printf "${BOLD}$blk_dev_info${NORMAL}\n"
-
-				printf "please confirm? (y/N) "
-				reply_single
-				echo
-
-				if printf "$reply" | grep -iq "^y"; then
-
-					echo
-					return
-
-				else
-
-					printf "target creation aborted\n"
-					exit 11
-
-				fi
-
-			else
-
-				printf "target creation aborted\n"
-				exit 11
-
-			fi
-
-		elif [[ -n $(sudo \
-			lsblk --raw -n -o partuuid,path | \
-			# no space as first character
-			grep '^[^ ]' | \
-			grep -w $target) ]]; then
-
-			target_c_type="partition"
-
-			printf "${MAGENTA}$target is a $target_c_type!${NOC}\n"
-			printf "are you sure to overwrite an entire $target_c_type? (y/N) "
-			reply_single
-			echo
-
-			if printf "$reply" | grep -iq "^y"; then
-
-				printf "${MAGENTA}about to overwrite $target_c_type $target${NOC}\n"
-				printf "really sure? (y/N) "
-				reply_single
-				echo
-
-				if printf "$reply" | grep -iq "^y"; then
-
-					return
-
-				else
-
-					printf "target creation aborted\n"
-					exit 12
-
-				fi
-
-			else
-
-				printf "target creation aborted\n"
-				exit 12
-
-			fi
-
-
-		elif [[ -f $target ]] && [[ "$target_just_created" != '1' ]]; then
-
-			target_c_type="file"
-
-			printf "${MAGENTA}$target already exists!${NOC}\n"
-			printf "overwrite? (y/N) "
-			reply_single
-			echo
-
-			if printf "$reply" | grep -iq "^y"; then
-
-			    return
-
-			else
-
-				printf "target creation aborted\n"
-				exit 13
-
-			fi
+		    printf "target creation aborted\n"
+		    exit 11
 
 		fi
 
-	fi
+	    else
 
+		printf "target creation aborted\n"
+		exit 11
 
-	#[TODO]
-	: '
-	if [[ $action == "list" ]]; then
-	fi
-	# '
+	    fi
 
-	: '
-	if [[ $action == "close" ]]; then
-	fi
-	# '
+	elif [[ -n $(sudo \
+	    lsblk --raw -n -o partuuid,path | \
+		# no space as first character
+		grep '^[^ ]' | \
+		grep -w $target) ]]; then
 
-	: '
-	if [[ $action == "open" ]]; then
-	fi
-	# '
-}
+	    target_c_type="partition"
 
+	    printf "${MAGENTA}$target is a $target_c_type!${NOC}\n"
+	    printf "are you sure to overwrite an entire $target_c_type? (y/N) "
+	    reply_single
+	    echo
 
-check_container_size()
-{
-	## minimum size 18M
-	if [[ $target_c_type == "file" ]] && [ $size -lt 18 ]; then
+	    if printf "$reply" | grep -iq "^y"; then
 
-		# to prevent error: 'requested offset is beyond real size of device'
-		# same error?:
-		# WARNING: Data offset is outside of currently available data device.
+		printf "${MAGENTA}about to overwrite $target_c_type $target${NOC}\n"
+		printf "really sure? (y/N) "
+		reply_single
+		echo
 
-		printf "${MAGENTA}minimum vault size is 18 MB${NOC}\n" && exit 18
+		if printf "$reply" | grep -iq "^y"; then
 
-	fi
-}
+		    return
 
+		else
 
-create_vlt_mapper_name()
-{
-	# create pretty unique and traceable /dev/mapper/vlt_* name
-
-	random_hex="$(< /dev/random tr -d -c "[:xdigit:]" | head -c 6)"
-
-	mapping_name="vlt_$random_hex"
-
-	vlt_mapper="/dev/mapper/vlt_$random_hex"
-}
-
-
-write_random_data()
-{
-	printf "$target writing zero data\n"
-
-	case $target_c_type in
-
-		block_device)
-
-			# dd if target is a block device
-			#sudo dd \
-			#	if=/dev/zero \
-			sudo dd \
-				if=/dev/random \
-				of=$target \
-				bs=1K \
-				iflag=fullblock \
-				status=progress
-			;;
-
-		partition)
-
-			# dd if target is a partition
-			#[TODO]
-			a=1
-			: '	sudo dd \
-				if=/dev/random \
-				of=$target \
-				bs=1K \
-				iflag=fullblock \
-				status=progress
-			# '
-			;;
-
-		file)
-
-			# if target is a file
-			# 18M as minimum size
-			head -c $size /dev/zero > $target
-			#head -c $size /dev/random > $target
-			: '
-			# 10MB:bs=1024 count=10240
-			# 10MB:bs=1K count=10K
-			# 18MB:bs=1K count=18K
-			sudo dd \
-				if=/dev/random \
-				of=$target \
-				bs=1K \
-				count=$size \
-				iflag=fullblock \
-				status=progress
-			# '
-			;;
-
-	esac
-}
-
-
-create_vault()
-{
-	write_random_data
-
-	printf "$target setting up crypto\n"
-
-	## aes-cbc-essiv:sha256 (plain)
-
-	#	:'
-	#	#1 find first unused loopdevice
-	#	loop_device=$(sudo losetup -f)
-	#
-	#	#2 setup loopdevice
-	#	sudo losetup $loop_device $target
-	#
-	#	#3 cryptsetup with plain dm-crypt
-	#	cryptsetup \
-	#		--cipher=aes-cbc-essiv:sha256 \
-	#		--hash=sha512 \
-	#		--key-size=512 \
-	#		--offset=0 \
-	#	#	--key-file=/dev/sdX \
-	#	#	--keyfile-offset=0 \
-	#		--verify-passphrase \
-	#		$target
-	#	#'
-
-	#  OR
-
-	## aes-xts-plain64 (luks2)
-
-	#:'
-	sudo cryptsetup luksFormat --type luks2 --verify-passphrase $target
-	echo
-	#'
-
-	## validate target
-	printf "validating $target:\n"
-	file $target
-}
-
-
-open_luks()
-{
-	echo
-	sudo cryptsetup open --type luks2 $target $mapping_name
-	#DEBUG
-	#sudo cryptsetup open --type luks2 $target $mapping_name --debug
-
-	printf "decrypting $target\n"
-	printf "mapping $target to $vlt_mapper\n"
-}
-
-
-make_fs ()
-{
-	printf "writing ext4 filesystem to $vlt_mapper\n"
-
-	sudo mkfs.ext4 -L VAULT -j $vlt_mapper
-
-	sleep 3
-}
-
-
-permissions()
-{
-	group="wheel"
-	sudo chown -R $USER:$group $mountpoint
-}
-
-
-close_luks()
-{
-	sudo cryptsetup close $vlt_mapper
-
-	printf "cryptsetup closed $vlt_mapper\n"
-
-	clear_cache
-}
-
-
-clean_up()
-{
-	if [[ $action == "create" ]] && [[ -d $mountpoint ]]; then
-
-		rmdir "$mountpoint"
-
-	fi
-}
-
-
-check_mp_dir()
-{
-	# existence & emptyness (for mounting)
-
-	## no mountpoint entry
-	if [[ -z $mountpoint ]]; then
-
-		printf "${MAGENTA}empty mountpoint entry${NOC}\n"
-		printf "vault open <vault_file> <mountpoint>\n"
-		exit 3
-
-	## mountpoint directory does not exist
-	elif [[ ! -d $mountpoint ]]; then
-
-			printf "${MAGENTA}$mountpoint does not exist!${NOC}\n" && exit 3
-
-	## directory does exist
-	elif [[ -d $mountpoint ]]; then
-
-		## and is a mountpoint already
-		if mount | awk '{print $3}' | grep -x $mountpoint > /dev/null; then
-
-			printf "${MAGENTA}$mountpoint is already a mountpoint${NOC}\n" && exit 3
+		    printf "target creation aborted\n"
+		    exit 12
 
 		fi
 
-	else
+	    else
 
-		## mountpoint is available!
-		c=1
+		printf "target creation aborted\n"
+		exit 12
+
+	    fi
+
+
+	elif [[ -f $target ]] && [[ "$target_just_created" != '1' ]]; then
+
+	    target_c_type="file"
+
+	    printf "${MAGENTA}$target already exists!${NOC}\n"
+	    printf "overwrite? (y/N) "
+	    reply_single
+	    echo
+
+	    if printf "$reply" | grep -iq "^y"; then
+
+	        return
+
+	    else
+
+	    	printf "target creation aborted\n"
+		exit 13
+
+	    fi
 
 	fi
+
+    fi
+
+
+    : '
+    if [[ $action == "list" ]]; then
+    fi
+    # '
+
+    : '
+    if [[ $action == "close" ]]; then
+    fi
+    # '
+
+    : '
+    if [[ $action == "open" ]]; then
+    fi
+    # '
 }
 
 
-generate_pw()
-{
+check_container_size() {
+    ## minimum size 18M
+    if [[ $target_c_type == "file" ]] && [ $size -lt 18 ]; then
+
+	# to prevent error: 'requested offset is beyond real size of device'
+	# same error?:
+	# WARNING: Data offset is outside of currently available data device.
+
+	printf "${MAGENTA}minimum vault size is 18 MB${NOC}\n" && exit 18
+
+    fi
+}
+
+
+create_vlt_mapper_id_name() {
+    # create pretty unique and traceable /dev/mapper/vlt_* name
+
+    random_hex="$(< /dev/random tr -d -c "[:xdigit:]" | head -c 8)"
+
+    mapping_name="vlt_$random_hex"
+
+    vlt_mapper_id="/dev/mapper/vlt_$random_hex"
+}
+
+
+write_random_data() {
+    printf "$target writing zero data\n"
+
+    case $target_c_type in
+
+    	block_device)
+
+	    # dd if target is a block device
+	    sudo dd \
+	    	if=/dev/random \
+		of=$target \
+		bs=1K \
+		iflag=fullblock \
+		status=progress
+		#if=/dev/zero \
+	    ;;
+
+	partition)
+
+	    # dd if target is a partition
+	    #[TODO]
+	    a=1
+	    : '
+	    sudo dd \
+	        if=/dev/random \
+	        of=$target \
+	        bs=1K \
+	        iflag=fullblock \
+	        status=progress
+	    # '
+	    ;;
+
+	file)
+
+	    # if target is a file
+	    # 18M as minimum size
+	    head -c $size /dev/zero > $target
+	    #head -c $size /dev/random > $target
+	    : '
+	    # 10MB:bs=1024 count=10240
+	    # 10MB:bs=1K count=10K
+	    # 18MB:bs=1K count=18K
+	    sudo dd \
+	    	if=/dev/random \
+		of=$target \
+		bs=1K \
+		count=$size \
+		iflag=fullblock \
+		status=progress
+	    # '
+	    ;;
+
+    esac
+}
+
+
+create_vault() {
+    write_random_data
+
+    printf "$target setting up crypto\n"
+
+    ## aes-cbc-essiv:sha256 (plain)
+
+    :'
+    # 1 find first unused loopdevice
+    	loop_device=$(sudo losetup -f)
+
+    # 2 setup loopdevice
+	sudo losetup $loop_device $target
+
+    # 3 cryptsetup with plain dm-crypt
+	cryptsetup \
+	    --cipher=aes-cbc-essiv:sha256 \
+	    --hash=sha512 \
+	    --key-size=512 \
+	    --offset=0 \
+	    $target
+	#   --key-file=/dev/sdX \
+	#   --keyfile-offset=0 \
+	#   --verify-passphrase \
+    #'
+
+    #  OR
+
+    ## aes-xts-plain64 (luks2)
+
+    #:'
+    sudo cryptsetup luksFormat --type luks2 --verify-passphrase $target
+    echo
+    #'
+
+    ## validate target
+    printf "validating $target:\n"
+    file $target
+}
+
+
+open_luks() {
+    echo
+    sudo cryptsetup open --type luks2 $target $mapping_name
+    # DEBUG
+    #sudo cryptsetup open --type luks2 $target $mapping_name --debug
+
+    printf "decrypting $target\n"
+    printf "mapping $target to $vlt_mapper_id\n"
+}
+
+
+make_fs () {
+    printf "writing ext4 filesystem to $vlt_mapper_id\n"
+
+    sudo mkfs.ext4 -L VAULT -j $vlt_mapper_id
+
+    sleep 3
+}
+
+
+permissions() {
+    group="wheel"
+    sudo chown -R $USER:$group $mountpoint
+}
+
+
+close_luks() {
+    sudo cryptsetup close $vlt_mapper_id
+
+    printf "cryptsetup closed $vlt_mapper_id\n"
+
+    clear_cache
+}
+
+
+clean_up() {
+    if [[ $action == "create" ]] && [[ -d $mountpoint ]]; then
+
+	rmdir "$mountpoint"
+
+    fi
+}
+
+
+check_mp_dir() {
+    # existence & emptyness (for mounting)
+
+    ## no mountpoint entry
+    if [[ -z $mountpoint ]]; then
+
+	printf "${MAGENTA}empty mountpoint entry${NOC}\n"
+	printf "vault open <vault_file> <mountpoint>\n"
+	exit 3
+
+    ## mountpoint directory does not exist
+    elif [[ ! -d $mountpoint ]]; then
+
+	printf "${MAGENTA}$mountpoint does not exist!${NOC}\n" && exit 3
+
+    ## directory does exist
+    elif [[ -d $mountpoint ]]; then
+
+    	## and is a mountpoint already
+	if mount | awk '{print $3}' | grep -x $mountpoint > /dev/null; then
+
+	    printf "${MAGENTA}$mountpoint is already a mountpoint${NOC}\n" && exit 3
+
+	fi
+
+    else
+
+	## mountpoint is available!
+	c=1
+
+    fi
+}
+
+
+generate_pw() {
     printf "starting pwgn... ${YELLOW}A${NOC}bort "
 
     # hide cursor
@@ -526,12 +511,9 @@ generate_pw()
 
     reply_read_single_hidden_timer
 
-    # erase reply text
-    tput cuu1
-    tput ed
-    # and reset cursur style
-    echo
+    # reset cursur style
     tput cnorm
+    echo
 
     if printf "$reply" | grep -iq "^a"; then
 
@@ -545,282 +527,230 @@ generate_pw()
 }
 
 
-mounting()
-{
-	sudo mount $vlt_mapper $mountpoint
+mounting() {
+    sudo mount $vlt_mapper_id $mountpoint
 }
 
 
-get_vault_data()
-{
-	# single target (vault close 'target')
-	## target is a luks container, mountpoint or vlt_mapper
-
-	## scenario1: container
-	## target_type is a luks encrypted container file
-
-	get_sudo
-
-	if [[ -z $target ]]; then
-
-		return
-
-	fi
+get_vault_data() {
+    # single target (vault close 'target')
+    ## target is a luks container, mountpoint or vlt_mapper_id
 
 
-	luks_status=1					# initialize luks_status
-	if [[ -f $target ]] || [[ -b $target ]]; then
+    ## scenario1: container
+    ## target_type is a luks encrypted container file
 
-		sudo cryptsetup isLuks $target
-		luks_status=$?				# set luks_status
+    get_sudo
 
-	fi
+    if [[ -z $target ]]; then
 
+	return
 
-	if [ $luks_status -eq 0 ]; then
-
-		target_type="luks_container"
-
-		luks_container=$target
-
-		loop_device=$(losetup -j $target | awk -F ':' '{print $1}')
-
-			if [[ -z $loop_device ]]; then
-
-				## luks_container is not mapped
-				luks_uuid=$(sudo cryptsetup luksUUID $target)
-
-				loop_device="n/a"
-				loop_ctime="n/a"
-				loop_uuid="n/a"
-
-				vlt_mapper="n/a"
-				mountpoint="n/a"
-				return
+    fi
 
 
-			else
+    luks_status=1				    # initialize luks_status
+    if [[ -f $target ]] || [[ -b $target ]]; then
 
-				mountpoint=$(lsblk -parf --noheadings $loop_device | \
-					tail -n 1 | awk '{print $8}')
+	sudo cryptsetup isLuks $target
+	luks_status=$?				    # set luks_status
 
-			fi
-
-	fi
-
-
-	## scenario2: mountpoint
-	## target_type is a valid mountpoint
-
-	mountpoint_status=1				# initialize mountpoint status
-	if [[ -d $target ]]; then
-
-		mountpoint -q $target
-		mountpoint_status=$?		# set mountpoint status
-
-	fi
+    fi
 
 
-	if [ $mountpoint_status -eq 0 ]; then
+    if [ $luks_status -eq 0 ]; then
 
-		target_type="mountpoint"
+    	target_type="luks_container"
 
-		mountpoint=$target
+	luks_container=$target
 
-	fi
+	loop_device=$(losetup -j $target | awk -F ':' '{print $1}')
 
+	if [[ -z $loop_device ]]; then
 
-	## scenario3: vlt_mapper
-	## target_type is a valid vlt_mapper
+	    ## luks_container is not mapped
+	    luks_uuid=$(sudo cryptsetup luksUUID $target)
 
-	if [[ -n $loop_active ]]; then
+	    loop_device="n/a"
+	    loop_ctime="n/a"
+	    loop_uuid="n/a"
 
-		# we are in a while loop from close_luks_all
-		target_type=""
-
-	fi
-
-	if [[ -z $target_type ]]; then
-
-		vlt_target=$(lsblk -parf | grep 'vlt_' | awk '{print $1}' | grep $target)
-
-		if [[ -n $vlt_target ]]; then
-			## $2 user entry ($target) is a loop device (vlt_mapper)
-
-			target_type="vlt_mapper"
-
-			vlt_mapper=$target
-
-			mountpoint=$(mount | grep $vlt_mapper | cut -d " " -f 3)
-
-		fi
-
-	fi
-
-
-	## scenario4: vlt w/o mp
-	## vlt_mapper has no mountpoint
-
-	if [[ -z $mountpoint ]]; then
-
-		mountpoint="n/a"
-		## assuming we have a vlt_mapper
-		vlt_mapper=$(lsblk -parf --noheadings | grep 'vlt_' | grep -v % | awk '{print $1}')
+	    vlt_mapper_id="n/a"
+	    mountpoint="n/a"
+	    return
 
 	else
 
-		## grep -w to prevent two hits if i.e. ../s and ../s2 exists
-		vlt_mapper=$(lsblk -rp | grep -w $mountpoint | awk '{print $1}')
+	    mountpoint=$(lsblk -parf --noheadings $loop_device | \
+		tail -n 1 | awk '{print $8}')
 
 	fi
 
+    fi
 
 
-	if [[ -n $vlt_mapper ]]; then
+    ## scenario2: mountpoint
+    ## target_type is a valid mountpoint
 
-		loop_uuid=$(lsblk -parf | grep $vlt_mapper | awk '{print $5}')
+    mountpoint_status=1				    # initialize mountpoint status
+    if [[ -d $target ]]; then
 
-		loop_device=$(lsblk -parf | grep -B 1 $loop_uuid | head -n 1 | \
-			awk '{print $1}')
+	mountpoint -q $target
+	mountpoint_status=$?			    # set mountpoint status
 
-		luks_uuid=$(lsblk -parf | grep $loop_device | awk '{print $4}')
+    fi
 
-		loop_ctime=$(ls -ila --time ctime \
-			--time-style=+%Y%m%d_%H%M%S $loop_device | awk '{print $8}')
 
-		# losetup error test
-		tput sc
-		losetup $loop_device
+    if [ $mountpoint_status -eq 0 ]; then
 
-		if [[ $? -ne 0 ]]; then
+	target_type="mountpoint"
 
-			# losetup gives error
-			# losetup: /dev/sdc: failed to use device: No such device
-			# if loop_device is a (physical) block device
+	mountpoint=$target
 
-			# remove losetup result (error message)
-			tput rc
-			tput cuu1
-			#tput cuu1
-			tput ed
+    fi
 
-			luks_container=$(sudo cryptsetup status $vlt_mapper | grep device | awk '{print $2}')
 
-		else
+    ## scenario3: vlt_mapper_id
+    ## target_type is a valid vlt_mapper_id
 
-			# remove losetup result
-			tput rc
-			tput cuu1
-			#tput cuu1
-			tput ed
+    if [[ -n $loop_active ]]; then
 
-			luks_container=$(losetup $loop_device | cut -d "(" -f2 | cut -d ")" -f1)
+	# we are in a while loop from close_luks_all
+	target_type=""
 
-		fi
+    fi
 
-		#luks_container=$(losetup $loop_device | cut -d "(" -f2 | cut -d ")" -f1 2>dev/null)
+    if [[ -z $target_type ]]; then
 
-		#if [[ -z $luks_container ]]; then
-		#	# losetup gives error if luks_container is a block device
+    	vlt_target=$(lsblk -parf | grep 'vlt_' | awk '{print $1}' | \
+	    grep $target)
 
-		#	luks_container=$(sudo cryptsetup status $vlt_mapper | grep device | awk '{print $2}')
+	if [[ -n $vlt_target ]]; then
+	    ## $2 user entry ($target) is a loop device (vlt_mapper_id)
 
-		#fi
+	    target_type="vlt_mapper_id"
+
+	    vlt_mapper_id=$target
+
+	    mountpoint=$(mount | grep $vlt_mapper_id | cut -d " " -f 3)
+
+	fi
+
+    fi
+
+
+    ## scenario4: vlt w/o mp
+    ## vlt_mapper_id has no mountpoint
+
+    if [[ -z $mountpoint ]]; then
+
+    	mountpoint="n/a"
+	## assuming we have a vlt_mapper_id
+	vlt_mapper_id=$(lsblk -parf --noheadings | grep 'vlt_' | grep -v % | \
+	    awk '{print $1}')
+
+    else
+
+	## grep -w to prevent two hits if i.e. ../s and ../s2 exists
+	vlt_mapper_id=$(lsblk -rp | grep -w $mountpoint | awk '{print $1}')
+
+    fi
+
+
+
+    if [[ -n $vlt_mapper_id ]]; then
+
+	loop_uuid=$(lsblk -parf | grep $vlt_mapper_id | awk '{print $5}')
+
+	loop_device=$(lsblk -parf | grep -B 1 $loop_uuid | head -n 1 | \
+	    awk '{print $1}')
+
+	luks_uuid=$(lsblk -parf | grep $loop_device | awk '{print $4}')
+
+	loop_ctime=$(ls -ila --time ctime \
+	    --time-style=+%Y%m%d_%H%M%S $loop_device | awk '{print $8}')
+
+	# losetup error test
+	tput sc
+	losetup $loop_device
+
+	if [[ $? -ne 0 ]]; then
+
+	    # losetup gives error
+	    # losetup: /dev/sdc: failed to use device: No such device
+	    # if loop_device is a (physical) block device
+
+	    # remove losetup result (error message)
+	    tput rc
+	    tput cuu1
+	    #tput cuu1
+	    tput ed
+
+	    luks_container=$(sudo cryptsetup status $vlt_mapper_id | grep device | \
+		awk '{print $2}')
 
 	else
 
-		## empty vlt_mapper
-		vlt_mapper="n/a"
+	    # remove losetup result
+	    tput rc
+	    tput cuu1
+	    #tput cuu1
+	    tput ed
+
+	    luks_container=$(losetup $loop_device | cut -d "(" -f2 | \
+		cut -d ")" -f1)
 
 	fi
+
+    else
+
+	## empty vlt_mapper_id
+	vlt_mapper_id="n/a"
+
+    fi
 }
 
 
-show_spec_info()
-{
-	if [[ -z $target_type ]]; then
+show_spec_info() {
+    if [[ -z $target_type ]]; then
 
-		## get_vault_data could not assign a target_type
-		printf "\n%s\n" "no specific info available"
-		printf "no valid target_type ${MAGENTA}$target${NOC}\n"
+	## get_vault_data could not assign a target_type
+	printf "\n%s\n" "no specific info available"
+	printf "no valid target_type ${MAGENTA}$target${NOC}\n"
 
-		exit 77
+	exit 77
 
-	else
+    else
 
-		printf "\n%22s${BLUE} %s${NOC}\n" "specific info for:" "$target_type $target"
-
-		echo
-		printf "%22s %s\n" "crypto source:" $luks_container
-		printf "%22s %s\n" "luks_uuid:" $luks_uuid
-
-		echo
-		printf "%22s %s\n" "loop device:" $loop_device
-		printf "%22s %s\n" "up since:" $loop_ctime
-		printf "%22s %s\n" "loop_uuid:" $loop_uuid
-
-		echo
-		if [ $vlt_mapper != "n/a" ]; then
-
-			printf "%22s %s\n" "vlt_mapper:" $vlt_mapper
-
-		else
-
-			printf "%22s${MAGENTA} %s${NOC}\n" "vlt_mapper:" $vlt_mapper
-
-		fi
-
-		if [ $mountpoint != "n/a" ]; then
-
-			printf "%22s %s\n" "mountpoint:" $mountpoint
-
-		else
-
-			printf "%22s${MAGENTA} %s${NOC}\n" "mountpoint:" $mountpoint
-
-		fi
-
-	fi
-}
-
-
-check_target_exists()
-{
-	# for close
-	b=1
-}
-
-
-check_no_confirm()
-{
-    if [[ -z $no_confirm ]]; then
-
-	# no_confirm is empty;
-	# confirmation dialogue comes up
+	printf "\n%22s${BLUE} %s${NOC}\n" "specific info for:" "$target_type $target"
 
 	echo
-	printf "close vault? (Y/n) "
+	printf "%22s %s\n" "luks_uuid:" $luks_uuid
+	printf "%22s %s\n" "crypto source:" $luks_container
 
-	reply_read_single
+	echo
+	printf "%22s %s\n" "loop_uuid:" $loop_uuid
+	printf "%22s %s\n" "up since:" $loop_ctime
+	printf "%22s %s\n" "loop device:" $loop_device
 
-	if printf "$reply" | grep -iq "^n"; then
+	echo
+	if [ $vlt_mapper_id != "n/a" ]; then
 
-	    echo
-	    confirmation="negative"
-	    printf "${MAGENTA}$action $target aborted by user${NOC}\n"
-
-	    if [[ -z $loop_active ]]; then
-
-		# we are in a while loop and have multiple targets
-		exit
-
-	    fi
+	    printf "%22s %s\n" "vlt_mapper_id:" $vlt_mapper_id
 
 	else
 
-	    confirmation="positive"
-	    echo
-	    return
+	    printf "%22s${MAGENTA} %s${NOC}\n" "vlt_mapper_id:" $vlt_mapper_id
+
+	fi
+
+	if [ $mountpoint != "n/a" ]; then
+
+	    printf "%22s %s\n" "mountpoint:" $mountpoint
+
+	else
+
+	    printf "%22s${MAGENTA} %s${NOC}\n" "mountpoint:" $mountpoint
 
 	fi
 
@@ -828,135 +758,185 @@ check_no_confirm()
 }
 
 
-fzf_select_target()
-{
-	# check for non empty vlt list
-	if [[ -n $(vault_list | grep /dev/mapper/vlt_) ]]; then
+check_target_exists() {
+    # for close
+    b=1
+}
 
-		list_headers=$(lsblk -lp | head -n 1)
-		list=$(lsblk -lp | grep 'vlt_' | sort -k 7)
 
-		target_list=$(printf "$list_headers\n$list" | \
-			fzf -m --header-lines=1 --prompt='select ' $fzf_options | \
-			awk '{print $1}')
+check_no_confirm() {
+    if [[ -z $no_confirm ]]; then
+
+	# no_confirm is empty;
+	# confirmation dialogue comes up
+
+	echo
+	printf "close vault? (y/N) "
+
+	reply_read_single
+
+	if printf "$reply" | grep -iq "^y"; then
+
+	    confirmation="positive"
+	    echo
+	    #return
 
 	else
 
-		#[TODO] umounted vault but still a dev_mapper_vlt
-		printf "${BLUE}empty${NOC}\n"
-		exit
+	    confirmation="negative"
+	    echo
+	    printf "${MAGENTA}$action $target aborted by user${NOC}\n"
 
-	fi
-}
+	    #if [[ -n $loop_active ]]; then
 
+	    #    # we are in a while loop and have multiple targets
+	    #    #exit
+	    #    return
 
-close_target()
-{
-	# all (vault close all)
-
-	if [[ $target == "all" ]]; then
-
-		close_luks_all
-		exit
-
-	# no target specified in command;
-	## select with fzf if there are targets
-	elif [[ -z $target ]]; then
-
-		fzf_select_target
-
-		while IFS= read target; do
-
-			loop_active=1
-
-			get_vault_data
-			show_spec_info
-
-			check_no_confirm
-
-			unmount
-			close_luks
-
-			sleep 2
-
-		done <<< $target_list
-
-		loop_active="" && unset loop_active
-
-	else
-
-	# close a single target
-
-		get_vault_data
-		show_spec_info
-
-		check_no_confirm
-
-		unmount
-		close_luks
-
-	fi
-}
-
-
-unmount()
-{
-	# if pwd is inside mountpoint on close
-	if [[ $action == "close" ]] && \
-		[[ -n $(echo $PWD | grep $mountpoint) ]]; then
-
-			echo
-			printf "${MAGENTA}cannot unmount myself!${NOC}\n"
-			printf "please move to another directory and run again\n"
-			exit 66
+	    #fi
 
 	fi
 
-
-	# unmount
-	if [[ -n $mountpoint && $mountpoint != "n/a" ]]; then
-
-			sudo umount $mountpoint
-
-			printf "\n$vlt_mapper unmounted from $mountpoint\n"
-
-	fi
-
-	# special case: remove vlt_pass
-	## vlt_pass umounted => $HOME/.password-store becomes red
-	case $mountpoint in
-
-		$HOME/dock/vlt/pass)
-
-			rm -rf $mountpoint
-			;;
-
-	esac
+    fi
 }
 
 
-clear_cache()
-{
-	sudo sysctl --write vm/drop_caches=3
-	printf "${BLUE}vault closed${NOC}\n"
+fzf_select_target() {
+    # check for non empty vlt list
+    if [[ -n $(vault_list | grep /dev/mapper/vlt_) ]]; then
+
+	list_headers=$(lsblk -lp | head -n 1)
+	list=$(lsblk -lp | grep 'vlt_' | sort -k 7)
+
+	target_list=$(printf "$list_headers\n$list" | \
+	    fzf -m --header-lines=1 --prompt='select ' $fzf_options | \
+	    awk '{print $1}')
+
+    else
+
+	#[TODO] umounted vault but still a dev_mapper_vlt
+	printf "${BLUE}empty${NOC}\n"
+	exit
+
+    fi
 }
 
 
-get_all_vlt_mappers()
-{
-	vlt_mappers=$(\lsblk -rp | grep 'vlt_' | sort -k 7 | awk '{print $1}')
+close_target() {
+    # all (vault close all)
 
-	if [[ -z "$vlt_mappers" ]]; then
+    if [[ $target == "all" ]]; then
 
-		vault_list
-		exit
+	close_luks_all
+	exit
 
-	fi
+    # no target specified in command;
+    ## select with fzf if there are targets
+    elif [[ -z $target ]]; then
+
+	fzf_select_target
+
+	while IFS= read target <&8; do
+	# IFS = internal field separator
+	# <&8 .. 8<<<; see
+	# notes/linux/shell/command/read/filedescriptor
+
+
+	    loop_active=1
+
+	    get_vault_data
+	    show_spec_info
+
+	    check_no_confirm
+
+	    case $confirmation in
+
+	        positive)
+		    unmount
+		    close_luks
+		;;
+
+		negative)
+		    continue
+		;;
+
+	    esac
+
+	    sleep 2
+
+	done 8<<< $target_list
+
+	loop_active="" && unset loop_active
+
+    else
+
+    # close a single target
+
+	get_vault_data
+	show_spec_info
+
+	check_no_confirm
+
+	unmount
+	close_luks
+
+    fi
 }
 
 
-vault_list()
-{
+unmount() {
+    # if pwd is inside mountpoint on close
+    if [[ $action == "close" ]] && \
+	[[ -n $(echo $PWD | grep $mountpoint) ]]; then
+
+	echo
+	printf "${MAGENTA}cannot unmount myself!${NOC}\n"
+	printf "please move to another directory and run again\n"
+	exit 66
+
+    fi
+
+
+    # unmount
+    if [[ -n $mountpoint && $mountpoint != "n/a" ]]; then
+
+	sudo umount $mountpoint
+
+	printf "\n$vlt_mapper_id unmounted from $mountpoint\n"
+
+    fi
+
+    # special case: remove vlt_pass
+    ## vlt_pass umounted => $HOME/.password-store becomes red
+    case $mountpoint in
+
+	$HOME/dock/vlt/pass)
+	    rm -rf $mountpoint
+	    ;;
+
+    esac
+}
+
+
+clear_cache() {
+    sudo sysctl --write vm/drop_caches=3
+    printf "${BLUE}vault closed${NOC}\n"
+}
+
+
+get_all_vlt_mapper_ids() {
+    vlt_mapper_ids=$(\lsblk -rp | grep 'vlt_' | sort -k 7 | awk '{print $1}')
+
+    if [[ -z "$vlt_mapper_ids" ]]; then
+
+	vault_list
+	exit
+
+    fi
+}
+
+
+vault_list() {
     # show list of all vlt mapped devices with their mountpoints
 
     if [[ -z $(df -h | grep 'vlt_') ]]; then
@@ -975,77 +955,74 @@ vault_list()
 }
 
 
-vault_spec_info()
-{
-	# show info about specific target / target_list
+vault_spec_info() {
+    # show info about specific target / target_list
 
-	if [[ -n $target ]]; then
+    if [[ -n $target ]]; then
 
-		# target specified in command
-		get_vault_data
-		show_spec_info
+	# target specified in command
+	get_vault_data
+	show_spec_info
 
-	elif [[ -n $target_list ]]; then
+    elif [[ -n $target_list ]]; then
 
-		while IFS= read target; do
+	while IFS= read target; do
 
-			loop_active=1
+	    loop_active=1
 
-			get_vault_data
-			show_spec_info
+	    get_vault_data
+	    show_spec_info
 
-		done <<< $target_list
-
-		loop_active="" && unset loop_active
-
-	fi
-}
-
-
-close_luks_all()
-{
-	get_all_vlt_mappers
-	vault_list
-
-	vlt_mapper_loop_list=$vlt_mappers
-
-	while IFS= read -r vlt_mapper <&9; do
-		# IFS = internal field separator
-		# <&9 .. 9<<<; see
-		# notes/linux/shell/command/read/filedescriptor
-
-		loop_active=1
-		target=$vlt_mapper
-		get_vault_data
-		show_spec_info
-
-		check_no_confirm
-
-		if [[ $confirmation == "positive" ]]; then
-
-			unmount
-			close_luks
-
-		fi
-
-		if [[ -n $no_confirm ]]; then
-
-			unmount
-			close_luks
-
-		fi
-
-	done 9<<< "$vlt_mapper_loop_list"
+	done <<< $target_list
 
 	loop_active="" && unset loop_active
 
-	echo
-	vault_list
+    fi
 }
 
 
-check_no_confirm_flag()
-{
+close_luks_all() {
+    get_all_vlt_mapper_ids
+    vault_list
+
+    vlt_mapper_id_loop_list=$vlt_mapper_ids
+
+    while IFS= read -r vlt_mapper_id <&9; do
+	# IFS = internal field separator
+	# <&9 .. 9<<<; see
+	# notes/linux/shell/command/read/filedescriptor
+
+	loop_active=1
+	target=$vlt_mapper_id
+	get_vault_data
+	show_spec_info
+
+	check_no_confirm
+
+	if [[ $confirmation == "positive" ]]; then
+
+	    unmount
+	    close_luks
+
+	fi
+
+	if [[ -n $no_confirm ]]; then
+
+	    unmount
+	    close_luks
+
+	fi
+
+    done 9<<< "$vlt_mapper_id_loop_list"
+
+    loop_active="" && unset loop_active
+
+    echo
+    vault_list
+}
+
+
+check_no_confirm_flag() {
     case $action in
 
 	close)
@@ -1081,8 +1058,7 @@ check_no_confirm_flag()
 }
 
 
-fzf_target_mountpoint()
-{
+fzf_target_mountpoint() {
     if [[ -z $target ]]; then
 
 	target=$(fd -uu . \/ | fzf --prompt='target ' $fzf_options)
@@ -1093,15 +1069,13 @@ fzf_target_mountpoint()
 }
 
 
-get_target_luks_uuid()
-{
+get_target_luks_uuid() {
     luks_uuid=$(sudo cryptsetup luksUUID $target)
     printf "$luks_uuid" | wl-copy -n -o
 }
 
 
-set_close_args()
-{
+set_close_args() {
     # getting the right arguments for all scenarios
 
     case $arg_action in
@@ -1132,85 +1106,84 @@ set_close_args()
 }
 
 
-main()
-{
-	case $arg_action in
+main() {
+    case $arg_action in
 
-		list | l)
-		    action='list'
-		    vault_list
-		    ;;
+	list | l)
+	    action='list'
+	    vault_list
+	    ;;
 
-		status | s)
-		    action='status'
-		    check_target_validity
-		    check_target_status
+	status | s)
+	    action='status'
+	    check_target_validity
+	    check_target_status
 
-		    fzf_select_target
-		    vault_list
-		    vault_spec_info
-		    ;;
+	    fzf_select_target
+	    vault_list
+	    vault_spec_info
+	    ;;
 
-		create | new | n)
-		    action='create'
-		    size=$arg_3
+	create | new | n)
+	    action='create'
+	    size=$arg_3
 
-		    get_sudo
+	    get_sudo
 
-		    check_target_validity
-		    check_target_status
+	    check_target_validity
+	    check_target_status
 
-		    #check_container_size
-		    create_vlt_mapper_name
-		    create_vault
-		    open_luks
-		    make_fs
-		    close_luks
-		    clean_up
-		    ;;
+	    #check_container_size
+	    create_vlt_mapper_id_name
+	    create_vault
+	    open_luks
+	    make_fs
+	    close_luks
+	    clean_up
+	    ;;
 
-		open | o)
-		    action='open'
-		    mountpoint=$arg_3
+	open | o)
+	    action='open'
+	    mountpoint=$arg_3
 
-		    get_sudo
+	    get_sudo
 
-		    check_target_validity
-		    check_target_status
+	    check_target_validity
+	    check_target_status
 
-		    get_target_luks_uuid
+	    get_target_luks_uuid
 
-		    check_mp_dir
-		    generate_pw
-		    create_vlt_mapper_name
-		    open_luks
-		    mounting
-		    permissions
+	    check_mp_dir
+	    generate_pw
+	    create_vlt_mapper_id_name
+	    open_luks
+	    mounting
+	    permissions
 
-		    target=$mountpoint
+	    target=$mountpoint
 
-		    get_vault_data
-		    show_spec_info
-		    ;;
+	    get_vault_data
+	    show_spec_info
+	    ;;
 
-		close | ca | c)
-		    set_close_args
+	close | ca | c)
+	    set_close_args
 
-		    get_sudo
+	    get_sudo
 
-		    check_target_validity
-		    check_target_status
-		    check_no_confirm_flag
+	    check_target_validity
+	    check_target_status
+	    check_no_confirm_flag
 
-		    close_target
-		    ;;
+	    close_target
+	    ;;
 
-		*)
-		    printf "${MAGENTA}no valid action${NOC}\n"
-		    exit 40
-		    ;;
+	*)
+	    printf "${MAGENTA}no valid action${NOC}\n"
+	    exit 40
+	    ;;
 
-	esac
+    esac
 }
 
 main

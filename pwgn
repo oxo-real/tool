@@ -61,8 +61,7 @@ source_dir="$XDG_DATA_HOME/c/git/code/source/function"
 #--------------------------------
 
 
-sourcing()
-{
+sourcing() {
 	## define colors
 	source "$source_dir/text_appearance"
 
@@ -77,68 +76,53 @@ sourcing()
 }
 
 
-optical_input()
-{
+optical_input() {
 	input=$(zbarcam --oneshot --raw)
 }
 
 
-keyboard_input()
-{
+keyboard_input() {
     #read input
     input=$(askpass)
 }
 
 
-clear_line()
-{
+clear_line() {
     tput ed
 }
 
 
-choose_input()
-{
+choose_input() {
 	# choose optical or manual input
 
 	# print optical text
-	printf "${YELLOW}O${NOC}ptical scan and decode from video device "
-
-	# hide cursor
-	tput civis
+	printf "${YELLOW}O${NOC}ptical scan decode video device "
 
 	reply_read_single_hidden_timer
 
-	# erase reply text
-	tput cuu1
-	printf "\r"
-	tput ed
-	# and reset cursur style
 	echo
-	tput cnorm
-
 	if printf "$reply" | grep -q "^O"; then
 
-		## entry must be shift+o
-		optical_input
+	    ## entry must be shift+o
+	    optical_input
+	    echo
 
 	else
+            tput cnorm
+	    echo
 
 	    keyboard_input
-
-	    clear_line
 
 	fi
 }
 
 
-input_validation()
-{
+input_validation() {
 	[[ -z $input ]] && exit 10
 }
 
 
-hashing()
-{
+hashing() {
 	## input, algorithm
 
 	## sed removes '(stdin)= ' of openssl dgst
@@ -146,8 +130,7 @@ hashing()
 }
 
 
-hmacing()
-{
+hmacing() {
 	## sha3 hmac rfc2104
 	## input, algorithm, hmac
 
@@ -155,8 +138,7 @@ hmacing()
 }
 
 
-hash_1_input()
-{
+hash_1_input() {
 	## create sha1 hash from input
 
 	local input=$input
@@ -166,8 +148,7 @@ hash_1_input()
 }
 
 
-hash_3_input()
-{
+hash_3_input() {
 	## create sha3-512 hash from input
 	## keccak sha3 standard fips pub 202
 
@@ -180,8 +161,7 @@ hash_3_input()
 }
 
 
-clear_input()
-{
+clear_input() {
 	## overwrite input variable, then clear and unset it for security
 
 	input=$(< /dev/random tr -d -c "[:xdigit:]" | head -c 128)
@@ -190,8 +170,7 @@ clear_input()
 }
 
 
-print_blocks()
-{
+print_blocks() {
 	## print four lines of eight; two space-separated, four-column,
 	## zero-filled, two-byte quantities of hexadecimal inputdata
 
@@ -207,8 +186,7 @@ print_blocks()
 }
 
 
-round_pool()
-{
+round_pool() {
 	## dynamic truncate hash_sha3512
 	## dividend is based on the sha3512 hash of the input
 
@@ -219,8 +197,7 @@ round_pool()
 }
 
 
-round_space()
-{
+round_space() {
 	## dynamic truncate hash_sha1
 	## divisor is based on the sha1 hash of the input
 
@@ -231,16 +208,14 @@ round_space()
 }
 
 
-rounds_number()
-{
+rounds_number() {
 	## input='s'; rounds=532
 
 	rounds=$(( $dividend % $divisor ))
 }
 
 
-round_key()
-{
+round_key() {
 	## create hmac key for running_rounds
 	## input='s'; round_key='bb40..d76f'
 
@@ -252,8 +227,7 @@ round_key()
 }
 
 
-create_printing_space()
-{
+create_printing_space() {
 	## prevent printing errors when shifting lines down
 
 	shifts=29
@@ -271,21 +245,12 @@ create_printing_space()
 }
 
 
-running_rounds()
-{
+running_rounds() {
 	## keep hash_sha3512 variable untouched
 	input_calc=$hash_sha3512
 
 	## hide cursor
 	tput civis
-
-	# erase input
-	shifts=1
-	for up in $(seq $shifts); do
-
-		tput cuu1
-
-	done
 
 	# print first blocks
 	print_blocks $hash_sha3512
@@ -330,8 +295,7 @@ running_rounds()
 }
 
 
-print_progress_bar()
-{
+print_progress_bar() {
 	local round=$1
 	local rounds=$2
 
@@ -347,8 +311,7 @@ print_progress_bar()
 }
 
 
-two_fa()
-{
+two_fa() {
 	# two factor authentication
 
 	## human enters 2fa code from separate source
@@ -381,15 +344,13 @@ two_fa()
 }
 
 
-output_console()
-{
+output_console() {
 	## personal iterations multiplier (pim)
 	printf "$(print_blocks $output)\n"
 }
 
 
-output_wlcopy()
-{
+output_wlcopy() {
 	printf $output | cut -c -64 | wl-copy -o -n
 
 	## to file
@@ -402,21 +363,18 @@ output_wlcopy()
 }
 
 
-print_qr_code()
-{
+print_qr_code() {
 	#[TODO if no qrencode, then just skip printing
 	[[ -n $(command -v qrencode) ]] && printf $1 | qrencode -m 3 -t UTF8
 }
 
 
-print_qr_codeblock()
-{
+print_qr_codeblock() {
 	print_qr_code $output
 }
 
 
-dynamic_truncate()
-{
+dynamic_truncate() {
 	## truncates a sha1 hex string (rfc4226, DynamicTruncate)
 	## get last 4 bits from hash ($hex_str)
 	## get the integer number (0-f > 1-10) of those bits; this is the offset
@@ -457,8 +415,7 @@ dynamic_truncate()
 }
 
 
-debugging()
-{
+debugging() {
 	printf "input:		$input\n"
 	printf "hash_sha1:	$hash_sha1\n"
 	printf "hash_sha3512:	$hash_sha3512\n"
