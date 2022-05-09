@@ -43,6 +43,9 @@
 
 ### status management
 
+% passr new [$object]
+% passr n [$object]
+
 % passr open
 % passr o
 
@@ -120,6 +123,7 @@ elements=(\
 	"" \
 	"A autoentry" \
 	"" \
+	"N new" \
 	"E edit" \
 	"S show" \
 	"C copy" \
@@ -178,6 +182,16 @@ get_object() {
     element=$arg_element
 
     case $object in
+
+	new | n)
+	    object='new'
+	    pass_new
+	    ;;
+
+	edit | e)
+	    object='edit'
+	    #TODO pass_edit
+	    ;;
 
 	open | o)
 	    object='open'
@@ -252,6 +266,62 @@ get_object() {
 	    ;;
 
     esac
+}
+
+
+pass_new() {
+    object=$arg_element
+    align=11
+
+    ## get object
+    case $object in
+	'')
+	    printf "%"$align"s %s\t" "object: "
+	    read object
+	    ;;
+
+	*)
+	    printf "%"$align"s %s\t" "object: "
+	    printf "$object\n"
+
+    esac
+
+    ## get url
+    printf "%"$align"s %s\t" "url: "
+    read url
+
+    ## get userid
+    printf "%"$align"s %s\t" "userid: "
+    read userid
+
+    ## get comments
+    printf "%"$align"s %s\t" "comments: "
+    read comments
+
+    ## get password
+    gen_sel_pw
+
+    ## synthesize string
+    printf "%s\n%s\n%s\n%s\n%s\n" \
+	"$password" \
+	"userid: $userid" \
+	"url: $url" \
+	"comments:" "$comments" | \
+	wl-copy -o
+
+    ## create new object gpg file
+    pass edit $object
+
+    exit 0
+}
+
+
+gen_sel_pw() {
+
+    password=$(\
+	tr -d -c "[:alnum:]"'~!@#$%^&*()-=[];\,./_+{}:|<>?' < /dev/urandom | \
+	fold -w 32 | head -n 16 | cat -b | fzf --height=20 --prompt=' password? ' | awk '{print $2}')
+
 }
 
 
@@ -683,6 +753,10 @@ process_element() {
 	    pass_element
 	    ;;
 
+    	new)
+	    element='new'
+	    pass_new
+	    ;;
     	edit)
 	    element='edit'
 	    pass_element
