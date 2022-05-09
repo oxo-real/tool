@@ -184,6 +184,7 @@ get_object() {
     case $object in
 
 	new | n)
+	    # TODO make $action
 	    object='new'
 	    pass_new
 	    ;;
@@ -270,33 +271,37 @@ get_object() {
 
 
 pass_new() {
+
     object=$arg_element
+    process_object
+
     align=11
 
     ## get object
     case $object in
 	'')
-	    printf "%"$align"s %s\t" "object: "
-	    read object
+	    printf "%"$align"s %s" "object: "
+	    read -r -e object
 	    ;;
 
 	*)
-	    printf "%"$align"s %s\t" "object: "
+	    printf "%"$align"s %s" "object: "
 	    printf "$object\n"
 
     esac
 
     ## get url
-    printf "%"$align"s %s\t" "url: "
-    read url
+    printf "%"$align"s %s" "url: "
+    read -r -e url
+    #read -r -e -i 'https://' url
 
     ## get userid
-    printf "%"$align"s %s\t" "userid: "
-    read userid
+    printf "%"$align"s %s" "userid: "
+    read -r -e userid
 
     ## get comments
-    printf "%"$align"s %s\t" "comments: "
-    read comments
+    printf "%"$align"s %s" "comments: "
+    read -r -e comments
 
     ## get password
     gen_sel_pw
@@ -312,6 +317,7 @@ pass_new() {
     ## create new object gpg file
     pass edit $object
 
+    printf "${BLUE}$object${NOC} saved"
     exit 0
 }
 
@@ -320,7 +326,7 @@ gen_sel_pw() {
 
     password=$(\
 	tr -d -c "[:alnum:]"'~!@#$%^&*()-=[];\,./_+{}:|<>?' < /dev/urandom | \
-	fold -w 32 | head -n 16 | cat -b | fzf --height=20 --prompt=' password? ' | awk '{print $2}')
+	fold -w 32 | head -n 16 | cat -b | fzf --height=20 --prompt=' password: ' | awk '{print $2}')
 
 }
 
@@ -506,9 +512,18 @@ process_object() {
 
     # existing object
     check_obj_exist
-    if [[ $obj_exist == 1 ]]; then
+    if [[ $obj_exist -eq 1 ]]; then
 
-    	:
+	case $arg_object in
+
+	    new)
+		printf "object ${MAGENTA}$object${NOC} exists\n"; exit 47
+		;;
+
+	    *)
+		:
+		;;
+	esac
 
     else
 
