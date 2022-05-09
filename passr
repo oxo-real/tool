@@ -178,20 +178,20 @@ otp-strings can be stored into otp_mail_john.gpg
 
 
 get_object() {
+
     object=$arg_object
     element=$arg_element
 
     case $object in
 
 	new | n)
-	    # TODO make $action
 	    object='new'
 	    pass_new
 	    ;;
 
 	edit | e)
 	    object='edit'
-	    #TODO pass_edit
+	    pass_edit
 	    ;;
 
 	open | o)
@@ -317,7 +317,17 @@ pass_new() {
     ## create new object gpg file
     pass edit $object
 
-    printf "${BLUE}$object${NOC} saved"
+    printf "${BLUE}$object${NOC} saved\n"
+    exit 0
+}
+
+
+pass_edit(){
+
+    object=$arg_element
+    process_object
+
+    pass edit $object
     exit 0
 }
 
@@ -332,11 +342,13 @@ gen_sel_pw() {
 
 
 vault_open() {
+
     pass_mount
 }
 
 
 log_in() {
+
     get_mountpoint_status
 
     case $mp_status in
@@ -358,6 +370,7 @@ log_in() {
 
 
 log_out() {
+
     gpg-connect-agent -q reloadagent /bye >/dev/null
     printf "${BLUE}logged out, bye!${NOC}\n"
 
@@ -366,12 +379,14 @@ log_out() {
 
 
 close() {
+
     sh vault close $store
     exit 0
 }
 
 
 show_status() {
+
     get_mountpoint_status
     get_cache_status
     printf "$mp_status $cache_status\n"
@@ -379,11 +394,13 @@ show_status() {
 
 
 get_mountpoint_status() {
+
     mountpoint -q $store_l && mp_status=$store || mp_status=0
 }
 
 
 get_cache_status() {
+
     # 1 | 0 (no cache)
     cache_status=$(gpg-connect-agent 'keyinfo --list' /bye 2>/dev/null | \
 	awk 'BEGIN{CACHED=0} /^S/ {if($7==1){CACHED=1}} END\
@@ -392,6 +409,7 @@ get_cache_status() {
 
 
 pass_mount() {
+
     # pass crypto source location
 
     # pass mount destination
@@ -435,6 +453,7 @@ pass_mount() {
 
 
 gpg_decrypt() {
+
     # always reset cached gpg password
     gpg-connect-agent -q reloadagent /bye >/dev/null
 
@@ -452,12 +471,14 @@ gpg_decrypt() {
 
 
 erase_line() {
+
     printf "\r"
     tput el
 }
 
 
 process_reply() {
+
     action_reply='^a'
     answer=$(printf "$1" | grep -iq "$action_reply")
 
@@ -476,6 +497,7 @@ process_reply() {
 
 
 generate_pw() {
+
     printf "starting pwgn... ${YELLOW}A${NOC}bort "
 
     reply_read_single_hidden_timer
@@ -496,6 +518,7 @@ generate_pw() {
 
 
 get_element() {
+
     if [[ -z $element ]]; then
 
     	element=$(printf '%s\n' "${elements[@]}" | \
@@ -507,27 +530,35 @@ get_element() {
 
 
 process_object() {
-    # empty object selection
-    [[ -z $object ]] && exit 0
 
-    # existing object
     check_obj_exist
+
     if [[ $obj_exist -eq 1 ]]; then
 
 	case $arg_object in
 
-	    new)
+	    new | n)
 		printf "object ${MAGENTA}$object${NOC} exists\n"; exit 47
 		;;
 
 	    *)
-		:
+		continue
 		;;
 	esac
 
     else
 
-    	printf "${MAGENTA}no object${NOC}\n" && exit 70
+	case $arg_object in
+
+	    new | n)
+		continue
+		;;
+
+	    *)
+        	printf "${MAGENTA}no object${NOC}\n" && exit 70
+		;;
+
+	esac
 
     fi
 
@@ -539,7 +570,6 @@ process_object() {
 
     fi
 
-    # TODO if only passr is entered when status is 0 0
     get_cache_status
     case $cache_status in
 
@@ -552,6 +582,7 @@ process_object() {
 
 
 get_element_value() {
+
     element_value=$(pass show $object | grep ^$element: | awk '{print $2}')
 
     check_element_value
@@ -563,16 +594,19 @@ get_element_value() {
 
 
 get_password() {
+
     pass $object | head -n 1 | wl-copy -n -o
 }
 
 
 check_obj_exist() {
+
     [[ -f "$store/$object.gpg" ]] && obj_exist=1
 }
 
 
 get_otp() {
+
     # redirection to the separate otp file
     if [[ "$(printf $object | head -c 4)" != "otp_" ]]; then
 
@@ -580,7 +614,6 @@ get_otp() {
 
     fi
 
-    #TODO
     #check_obj_exist && pass otp $object | wl-copy -n -o
     if [[ -f $store/$object.gpg ]]; then
 
@@ -594,6 +627,7 @@ get_otp() {
 
 
 pass_element() {
+
     # run pass natively with $element
     case $from_log_in in
 
@@ -616,6 +650,7 @@ pass_element() {
 
 
 check_element_value() {
+
     ## no autoentry
     if [[ -z $ae ]]; then
 
@@ -641,6 +676,7 @@ check_element_value() {
 
 
 error_message() {
+
     ## selected empty line in element menu
     if [[ -z $element ]]; then
 
@@ -651,6 +687,7 @@ error_message() {
 
 
 human_info() {
+
     # get error message if applicable
     error_message
 
@@ -695,8 +732,6 @@ human_info() {
 
 
 autoentry() {
-    #TODO autoentry when not logged in
-    ## now results in show being executed
 
     ae=1
     ## sleep time
@@ -742,11 +777,13 @@ autoentry() {
 
 
 get_object_name() {
+
     printf "$object" | wl-copy -n -o
 }
 
 
 process_element() {
+
     case $element in
 
     	password)
@@ -800,6 +837,7 @@ process_element() {
 
 
 main() {
+
     get_object
     process_object
     get_element
