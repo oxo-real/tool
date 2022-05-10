@@ -121,7 +121,7 @@ source $source_dir/text_appearance
 source $source_dir/reply_functions
 source $source_dir/get_sudo
 
-elements=(\
+element_menu=(\
 	"1 url" \
 	"2 userid" \
 	"" \
@@ -167,7 +167,7 @@ $element definition
 
 2. an element can be an action applied to an object
 
-retrievals are numbered and actions are lettered in the elements menu
+retrievals are numbered and actions are lettered in the element menu
 
 gpg file contents
 ^^^^^^^^^^^^^^^^^
@@ -264,7 +264,7 @@ get_object() {
 			   	         # with sed we remove the trailing .gpg extension
 			   	         sed "s/.gpg//g" | \
 			   	         sort | \
-			   	         fzf --prompt='select object ')
+			   	         fzf --height=20% --prompt='select object ')
 				    ;;
 
 			    esac
@@ -346,7 +346,7 @@ gen_sel_pw() {
 
     password=$(\
 	tr -d -c "[:alnum:]"'~!@#$%^&*()-=[];\,./_+{}:|<>?' < /dev/urandom | \
-	fold -w 32 | head -n 16 | cat -b | fzf --height=20 --prompt=' password: ' | awk '{print $2}')
+	fold -w 32 | head -n 16 | cat -b | fzf --height=17 --prompt=' password: ' | awk '{print $2}')
 
 }
 
@@ -531,8 +531,8 @@ get_element() {
 
     if [[ -z $element ]]; then
 
-    	element=$(printf '%s\n' "${elements[@]}" | \
-	    fzf --prompt='select element ' | \
+    	element=$(printf '%s\n' "${element_menu[@]}" | \
+	    fzf --height=18 --prompt='select element ' | \
 	    awk '{print $2}')
 
     fi
