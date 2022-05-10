@@ -132,10 +132,11 @@ elements=(\
 	"" \
 	"A autoentry" \
 	"" \
-	"N new" \
-	"E edit" \
 	"S show" \
 	"C copy" \
+	"" \
+	"E edit" \
+	"N new" \
 	"" \
 	"ESC cancel")
 
