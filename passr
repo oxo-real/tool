@@ -39,12 +39,9 @@
 	pass, gpg, cryptsetup, fzf
 	pwgn, vault, source functions
 
-## usage
+# usage
 
-### status management
-
-% passr new [$object]
-% passr n [$object]
+## status management
 
 % passr open
 % passr o
@@ -61,19 +58,31 @@
 % passr close
 % passr c
 
-### operational modes
+## data extraction
 
-#### object
+### object menu
 % passr
 
-#### element
+### element menu
 # passr $object
 % passr email_john
 
-#### direct
+### direct w/o menu
 # passr $object $element
 % passr email_john password
+
+## data manipulation
+
+### adding object data
+% passr new [$object]
+% passr n [$object]
+
+### editing object data
+% passr edit [$object]
+% passr e [$object]
+
 # '
+
 
 # initial definitions
 
