@@ -80,6 +80,7 @@ initial_release='2019'
 XDG_DATA_HOME="$HOME/.local/share"
 source_dir="$XDG_DATA_HOME/c/git/code/source/function"
 pwgn="$XDG_DATA_HOME/c/git/code/tool/pwgn"
+password_store_lnk="$HOME/.password-store"
 fzf_options='--height=20% '
 source "$source_dir/text_appearance"
 source "$source_dir/reply_functions"
@@ -910,7 +911,7 @@ unmount() {
     ## vlt_pass umounted => $HOME/.password-store becomes red
     case $mountpoint in
 
-	$HOME/dock/vlt/pass)
+	"$(readlink $password_store_lnk)")
 	    rm -rf $mountpoint
 	    ;;
 

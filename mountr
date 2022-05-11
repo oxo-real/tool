@@ -29,6 +29,9 @@ script_name="mountr"
 initial_release_year="2020"
 source_dir="$XDG_DATA_HOME/c/git/code/source/function"
 
+crypto_source="$XDG_DATA_HOME/c/keys/pass/vlt_pass"
+#pass_mount="$HOME/dock/vlt/pass"
+password_store_lnk="$HOME/.password-store"
 
 text_appearance() {
 	source $source_dir/text_appearance
@@ -42,7 +45,7 @@ get_sudo() {
 
 
 get_mps_mount() {
-    mps_avail=$(printf "/boot\n$HOME/dock/1\n$HOME/dock/2\n$HOME/dock/3\n$HOME/dock/4\n$HOME/dock/transfer\nother")
+    mps_avail+="$(printf "/boot\n$HOME/dock/1\n$HOME/dock/2\n$HOME/dock/3\n$HOME/dock/4\n$HOME/dock/transfer\nother")"
     # TODO make sourced array
 }
 
@@ -63,10 +66,30 @@ get_source_devs() {
 	grep -v nvme | \
 	## only disks or partitions
 	grep -e disk -e part | \
+	## size not 0B
+	grep -v 0B | \
 	## not already mounted
 	awk 'length($5)==0' \
 
 	)
+
+	## add password-store to devs_avail
+	## if symlink to password-store exists
+	if [[ -L $password_store_lnk ]]; then
+
+	    ## and password-store is not already mounted
+	    if [[ ! -d $(readlink $password_store_lnk) ]]; then
+
+		## then add password-store to source_devs_avail
+		source_devs_avail+=$(printf "\n$crypto_source")
+
+		##DEL
+		## and add password-store mountpoint to mps_avail
+		#mps_avail+=$(printf "\n$(dirname $(readlink $password_store_lnk))")
+
+	    fi
+
+	fi
 
     if [[ -z $source_devs_avail ]]; then
 
@@ -171,12 +194,13 @@ validity_check() {
 
 
 process_devs_and_mps() {
-    while IFS= read -r line; do
+    while IFS= read -r -u 4 line; do
 
 	# check if mountpoint
 	# ff is first field
 	line_ff=$(printf "$line" | awk '{print $1}')
 
+	dev_is_vlt_pass
 	dev_is_mountpoint
 
 	case $? in
@@ -228,7 +252,22 @@ process_devs_and_mps() {
 
 	esac
 
-    done <<< "$devs_and_mps"
+    done 4<<< "$devs_and_mps"
+
+}
+
+
+dev_is_vlt_pass() {
+    if [[ $(printf "$line_ff" | grep "$crypto_source") ]]; then
+
+	pass_mount=$(readlink $password_store_lnk)
+	[[ -d $pass_mount ]] || mkdir -p $pass_mount
+
+	vault open $crypto_source $pass_mount
+
+	exit 0
+
+    fi
 
 }
 
