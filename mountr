@@ -89,11 +89,17 @@ get_source_devs() {
 		## then add password-store to source_devs_avail
 		source_devs_avail+=$(printf "\n$crypto_source")
 
+	    ## and password-store is already mounted
+	    elif [[ -d $(readlink $password_store_lnk) ]]; then
+
+		## then add password-store to mps_avail
+		mps_avail+=$(printf "\n$(readlink $password_store_lnk)")
+
 	    fi
 
 	fi
 
-    if [[ -z $source_devs_avail ]]; then
+    if [[ -z $source_devs_avail ]] && [[ -z $mps_avail ]]; then
 
 	printf "${MAGENTA}no mountable source devices detected${NOC}\n"
 	printf "exiting\n"
