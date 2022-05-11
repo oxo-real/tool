@@ -1000,6 +1000,12 @@ close_luks_all() {
 
 	check_no_confirm
 
+	if [[ $confirmation == "negative" ]]; then
+
+	    continue  ## TODO check close vault? n
+
+	fi
+
 	if [[ $confirmation == "positive" ]]; then
 
 	    unmount

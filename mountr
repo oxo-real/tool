@@ -60,7 +60,9 @@ get_mps_umount() {
 get_source_devs() {
     source_devs_avail=$(\
 
-	lsblk -nrpo "name,size,type,label,mountpoint" | \
+	\lsblk -nrp -o "name,size,type,label,mountpoint" | \
+	## \lsblk prevents an alias causing error:
+	## lsblk: mutually exclusive arguments: --pairs --tree --list --raw
 	## exclude non-volatile storage media on
 	## peripheral component interconnect express bus
 	grep -v nvme | \
@@ -73,7 +75,11 @@ get_source_devs() {
 
 	)
 
-	## add password-store to devs_avail
+	## TODO improve grep -v 0B
+
+
+	# add password-store to source_devs_avail
+
 	## if symlink to password-store exists
 	if [[ -L $password_store_lnk ]]; then
 
@@ -82,10 +88,6 @@ get_source_devs() {
 
 		## then add password-store to source_devs_avail
 		source_devs_avail+=$(printf "\n$crypto_source")
-
-		##DEL
-		## and add password-store mountpoint to mps_avail
-		#mps_avail+=$(printf "\n$(dirname $(readlink $password_store_lnk))")
 
 	    fi
 
@@ -158,6 +160,13 @@ validity_check() {
     case $action in
 
         mount)
+	    if [[ -z $device ]]; then
+
+		printf "no device selected\n"
+		exit 11
+
+	    fi
+
 	    case $mount_to in
 
                 other)
