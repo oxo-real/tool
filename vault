@@ -858,11 +858,11 @@ close_target() {
 	        positive)
 		    unmount
 		    close_luks
-		;;
+		    ;;
 
 		negative)
 		    continue
-		;;
+		    ;;
 
 	    esac
 
@@ -881,8 +881,18 @@ close_target() {
 
 	check_no_confirm
 
-	unmount
-	close_luks
+	case $confirmation in
+
+	        positive)
+		    unmount
+		    close_luks
+		    ;;
+
+		negative)
+		    continue
+		    ;;
+
+	esac
 
     fi
 }
@@ -893,7 +903,6 @@ unmount() {
     if [[ $action == "close" ]] && \
 	[[ -n $(echo $PWD | grep $mountpoint) ]]; then
 
-	echo
 	printf "${MAGENTA}cannot unmount myself!${NOC}\n"
 	printf "please move to another directory and run again\n"
 	exit 66
@@ -906,7 +915,7 @@ unmount() {
 
 	sudo umount $mountpoint
 
-	printf "\n$vlt_mapper_id unmounted from $mountpoint\n"
+	printf "$vlt_mapper_id unmounted from $mountpoint\n"
 
     fi
 
