@@ -100,8 +100,6 @@ choose_input() {
 
 	reply_read_single_hidden_timer
 
-	erase_line
-
 	if printf "$reply" | grep -iq "^q"; then
 
 	    optical_input
@@ -109,7 +107,7 @@ choose_input() {
 
 	else
 
-	    #echo
+	    erase_line
 
 	    keyboard_input
 
