@@ -432,7 +432,7 @@ pass_mount() {
 
     get_sudo
 
-    # pass luksuuid
+    # pass crypto source luksuuid
     luksuuid=$(sudo cryptsetup luksUUID $crypto_source)
     printf "$luksuuid" | wl-copy -n -o
 

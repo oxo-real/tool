@@ -96,13 +96,13 @@ erase_line() {
 choose_input() {
 	# choose optical or manual input
 
-	printf "${YELLOW}O${NOC}ptical scan decode video device "
+	printf "decode video input (${YELLOW}Q${NOC}R-code) "
 
 	reply_read_single_hidden_timer
 
 	erase_line
 
-	if printf "$reply" | grep -iq "^o"; then
+	if printf "$reply" | grep -iq "^q"; then
 
 	    optical_input
 	    echo

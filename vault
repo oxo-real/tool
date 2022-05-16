@@ -504,19 +504,19 @@ check_mp_dir() {
 }
 
 
+erase_line() {
+
+    printf "\r"
+    tput el
+}
+
+
 generate_pw() {
     # choose generated or manual input
 
-    printf "starting pwgn... ${YELLOW}A${NOC}bort "
+    printf "starting pwgn... (${YELLOW}A${NOC}bort) "
 
-    # hide cursor
-    #tput civis
-    #
     reply_read_single_hidden_timer
-
-    # reset cursur style
-    #tput cnorm
-    echo
 
     if printf "$reply" | grep -iq "^a"; then
 
@@ -524,6 +524,7 @@ generate_pw() {
 
     else
 
+	erase_line
 	sh $pwgn
 
     fi
