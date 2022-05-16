@@ -6,13 +6,12 @@
 ### | |_) \ V  V / (_| | | | |
 ### | .__/ \_/\_/ \__, |_| |_|
 ### |_|           |___/
-###  _ _|_ _ ._    _  _
-### (_\/|_(_)|_)\/(_|(/_
-###   /      |  /  _|
+###  _    _
+### (_)><(_)
 ###
 ### pwgn
 ### generate unique hex strings
-### copyright (c) 2020 - 2022  |  cytopyge
+### copyright (c) 2020 - 2022  |  oxo
 ###
 ### GNU GPLv3 GENERAL PUBLIC LICENSE
 ### This program is free software: you can redistribute it and/or modify
@@ -35,10 +34,10 @@
 #
 
 ## dependencies
-#	$source_dir, qrencode, zbarcam
+#$  source_dir, qrencode, zbarcam
 
 ## usage
-#	pwgn
+#   pwgn
 
 
 # initial definitions
@@ -87,29 +86,30 @@ keyboard_input() {
 }
 
 
-clear_line() {
-    tput ed
+erase_line() {
+
+    printf "\r"
+    tput el
 }
 
 
 choose_input() {
 	# choose optical or manual input
 
-	# print optical text
 	printf "${YELLOW}O${NOC}ptical scan decode video device "
 
 	reply_read_single_hidden_timer
 
-	echo
-	if printf "$reply" | grep -q "^O"; then
+	erase_line
 
-	    ## entry must be shift+o
+	if printf "$reply" | grep -iq "^o"; then
+
 	    optical_input
 	    echo
 
 	else
-            tput cnorm
-	    echo
+
+	    #echo
 
 	    keyboard_input
 

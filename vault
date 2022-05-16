@@ -505,15 +505,17 @@ check_mp_dir() {
 
 
 generate_pw() {
+    # choose generated or manual input
+
     printf "starting pwgn... ${YELLOW}A${NOC}bort "
 
     # hide cursor
-    tput civis
-
+    #tput civis
+    #
     reply_read_single_hidden_timer
 
     # reset cursur style
-    tput cnorm
+    #tput cnorm
     echo
 
     if printf "$reply" | grep -iq "^a"; then

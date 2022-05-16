@@ -346,7 +346,8 @@ gen_sel_pw() {
 
     password=$(\
 	tr -d -c "[:alnum:]"'~!@#$%^&*()-=[];\,./_+{}:|<>?' < /dev/urandom | \
-	fold -w 32 | head -n 16 | cat -b | fzf --height=17 --prompt=' password: ' | awk '{print $2}')
+	fold -w 32 | head -n 16 | cat -b | \
+	fzf --height=17 --prompt=' password: ' | awk '{print $2}')
 
 }
 
