@@ -758,6 +758,8 @@ show_spec_info() {
 
 	fi
 
+	echo
+
     fi
 }
 
@@ -853,15 +855,26 @@ close_target() {
 
 	    check_no_confirm
 
-	    case $confirmation in
+	    case $no_confirm in
 
-	        positive)
-		    unmount
-		    close_luks
+		'')
+		    case $confirmation in
+
+		        positive)
+			    unmount
+			    close_luks
+			    ;;
+
+			negative)
+			    continue
+			    ;;
+
+		    esac
 		    ;;
 
-		negative)
-		    continue
+		1)
+		    unmount
+		    close_luks
 		    ;;
 
 	    esac
@@ -1014,7 +1027,7 @@ close_luks_all() {
 
 	if [[ $confirmation == "negative" ]]; then
 
-	    continue  ## TODO check close vault? n
+	    continue
 
 	fi
 
@@ -1042,6 +1055,8 @@ close_luks_all() {
 
 
 check_no_confirm_flag() {
+
+    ## set no_confirm to '' or 1
     case $action in
 
 	close)
@@ -1090,7 +1105,19 @@ fzf_target_mountpoint() {
 
 get_target_luks_uuid() {
     luks_uuid=$(sudo cryptsetup luksUUID $target)
-    printf "$luks_uuid" | wl-copy -n -o
+
+    case $luks_uuid in
+
+	'')
+
+	    exit 4
+	    ;;
+
+	*)
+	    printf "$luks_uuid" | wl-copy -n -o
+	    ;;
+
+    esac
 }
 
 
@@ -1186,6 +1213,7 @@ main() {
 	    ;;
 
 	close | ca | c)
+	    action='close'
 	    set_close_args
 
 	    get_sudo

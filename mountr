@@ -176,7 +176,7 @@ validity_check() {
 	    case $mount_to in
 
                 other)
-		    read -r -p 'mount to? ' <&1 mount_to
+		    read -r -p "mount $device to? " <&1 mount_to
 		    validity_check
           	    ;;
 
