@@ -43,7 +43,7 @@
 #
 #   vault list	    (l)
 #   vault status    (s)	    [target]
-#   vault create    (a)	    target      [size]
+#   vault create    (n)	    target      [size]
 #   vault open	    (o)	    [target]    [mountpoint]
 #   vault close	    (c)	    [target]    [-y, --no-confirm]
 #   vault close	    (ca)    all		[-y, --no-confirm]
@@ -114,25 +114,25 @@ check_target_validity() {
     case $action in
 
 	create)
-	    if [[ ! -f $target ]]; then
+	    #if [[ ! -f $target ]]; then
 
-		printf "$target does not exist, create? (y/N) "
+	    #    printf "$target does not exist, create? (y/N) "
 
-		reply_read_single_hidden_timer
+	    #    reply_read_single_hidden_timer
 
-		echo
+	    #    echo
 
-		if printf "$reply" | grep -iq "^y"; then
+	    #    if printf "$reply" | grep -iq "^y"; then
 
-		    create_new_vault
+	    #        create_new_vault_file
 
-		else
+	    #    else
 
-		    exit 21
+	    #        exit 21
 
-		fi
+	    #    fi
 
-	    fi
+	    #fi
 	    ;;
 
 	open)
@@ -171,7 +171,7 @@ check_target_validity() {
 }
 
 
-create_new_vault() {
+create_new_vault_file() {
     truncate -s $size $target
     target_just_created=1
 }
@@ -187,8 +187,25 @@ check_target_status() {
 
 	    target_c_type="block_device"
 
-	    printf "${MAGENTA}$target${NOC} is a $target_c_type!\n"
-	    printf "are you sure to overwrite an entire $target_c_type? (y/N) "
+	    printf "${MAGENTA}$target${NOC} is a $target_c_type "
+
+	    ## warn if target is luks device
+	    sudo cryptsetup isLuks $target
+
+	    case $? in
+
+		0)
+		    printf "and contains a ${MAGENTA}LUKS device${NOC}\n"
+		    ;;
+
+		*)
+		    echo
+		    ;;
+
+	    esac
+
+	    printf "CAUTION! all data will be permanently lost!\n"
+	    printf "are you sure to overwrite the entire $target_c_type? (y/N) "
 	    reply_single
 	    echo
 
@@ -197,6 +214,7 @@ check_target_status() {
 		printf "about to ${MAGENTA}overwrite${NOC} $target_c_type $target\n"
 
 		# human info
+		echo
 		blk_dev_info=$(lsblk -i --tree -o name,fstype,uuid,path,size,fsuse%,fsused,label,mountpoint | grep $target)
 		printf "${BOLD}$blk_dev_info${NORMAL}\n"
 
@@ -261,6 +279,29 @@ check_target_status() {
 
 	    fi
 
+	    ############################
+	elif [[ ! -f $target ]]; then
+
+	    target_c_type="new_vault_file"
+
+	    printf "$target does not exist, create new vault file? (y/N) "
+
+	    reply_read_single_hidden_timer
+
+	    echo
+
+	    if printf "$reply" | grep -iq "^y"; then
+
+		create_new_vault_file
+
+	    else
+
+		exit 21
+
+	    fi
+
+
+	    ############################
 
 	elif [[ -f $target ]] && [[ "$target_just_created" != '1' ]]; then
 
@@ -337,13 +378,16 @@ write_random_data() {
     	block_device)
 
 	    # dd if target is a block device
+	    a=1
+	    : '
 	    sudo dd \
-	    	if=/dev/random \
+		if=/dev/zero \
 		of=$target \
 		bs=1K \
 		iflag=fullblock \
 		status=progress
-		#if=/dev/zero \
+		#if=/dev/random \
+	    # '
 	    ;;
 
 	partition)
@@ -409,7 +453,7 @@ create_vault() {
 	#   --key-file=/dev/sdX \
 	#   --keyfile-offset=0 \
 	#   --verify-passphrase \
-    #'
+    # '
 
     #  OR
 
@@ -902,7 +946,7 @@ close_target() {
 		    ;;
 
 		negative)
-		    continue
+		    :
 		    ;;
 
 	esac
@@ -917,7 +961,7 @@ unmount() {
 	[[ -n $(echo $PWD | grep $mountpoint) ]]; then
 
 	printf "${MAGENTA}cannot unmount myself!${NOC}\n"
-	printf "please move to another directory and run again\n"
+	printf "please change directory\n"
 	exit 66
 
     fi

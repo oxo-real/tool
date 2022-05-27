@@ -45,7 +45,8 @@ get_sudo() {
 
 
 get_mps_mount() {
-    mps_avail+="$(printf "/boot\n$HOME/dock/1\n$HOME/dock/2\n$HOME/dock/3\n$HOME/dock/4\n$HOME/dock/transfer\nother")"
+    mps_avail+=(/boot $HOME/dock/1 $HOME/dock/2 $HOME/dock/3 $HOME/dock/4 $HOME/dock/transfer other)
+    #mps_avail+="$(printf "/boot\n$HOME/dock/1\n$HOME/dock/2\n$HOME/dock/3\n$HOME/dock/4\n$HOME/dock/transfer\nother")"
     # TODO make sourced array
 }
 
@@ -59,7 +60,6 @@ get_mps_umount() {
 
 get_source_devs() {
     source_devs_avail=$(\
-
 	\lsblk -nrp -o "name,size,type,label,mountpoint" | \
 	## \lsblk prevents an alias causing error:
 	## lsblk: mutually exclusive arguments: --pairs --tree --list --raw
@@ -69,13 +69,16 @@ get_source_devs() {
 	## only disks or partitions
 	grep -e disk -e part | \
 	## size not 0B
+	## TODO improve grep -v 0B
 	grep -v 0B | \
 	## not already mounted
-	awk 'length($5)==0' \
-
+	awk 'length($5)==0'\
 	)
 
-	## TODO improve grep -v 0B
+	## #sda+=($source_devs_avail1)
+
+	## #printf "DEV\n $source_devs_avail1"; exit 255
+	## #printf "DEV\n ${sda[@]}"; exit 255
 
 
 	# add password-store to source_devs_avail
@@ -87,13 +90,16 @@ get_source_devs() {
 	    if [[ ! -d $(readlink $password_store_lnk) ]]; then
 
 		## then add password-store to source_devs_avail
-		source_devs_avail+=$(printf "\n$crypto_source")
+		source_devs_avail+=(printf "$crypto_source")
+		#DELsource_devs_avail+=$(printf "\n$crypto_source")
 
 	    ## and password-store is already mounted
 	    elif [[ -d $(readlink $password_store_lnk) ]]; then
 
 		## then add password-store to mps_avail
-		mps_avail+=$(printf "\n$(readlink $password_store_lnk)")
+		password_store_mp=$(printf "$(readlink $password_store_lnk)")
+		mps_avail+=($password_store_mp)
+		#DELmps_avail+=$(printf "\n$(readlink $password_store_lnk)")
 
 	    fi
 
@@ -110,7 +116,8 @@ get_source_devs() {
 
 
 mount_to_select_param() {
-    local fzf_input="$mps_avail"
+    #local fzf_input="$mps_avail"
+    local fzf_input=$(printf '%s\n' "${mps_avail[@]}")
     local fzf_prompt="select mountpoint for: $line"
     local fzf_options='--height=20%'
 
