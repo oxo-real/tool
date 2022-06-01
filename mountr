@@ -103,6 +103,8 @@ get_source_devs() {
 
 	    fi
 
+	# TODO on mount: remove devices are already in the mount list
+
 	fi
 
     if [[ -z $source_devs_avail ]] && [[ -z $mps_avail ]]; then
