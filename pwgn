@@ -61,366 +61,387 @@ source_dir="$XDG_DATA_HOME/c/git/code/source/function"
 
 
 sourcing() {
-	## define colors
-	source "$source_dir/text_appearance"
+    ## define colors
+    source "$source_dir/text_appearance"
 
-	## reply functions
-	source "$source_dir/reply_functions"
+    ## reply functions
+    source "$source_dir/reply_functions"
 
-	## user authentication
-	source "$source_dir/get_sudo"
+    ## user authentication
+    source "$source_dir/get_sudo"
 
-	## progress bar
-	source "$source_dir/progress_bar"
+    ## progress bar
+    source "$source_dir/progress_bar"
 }
 
 
 optical_input() {
-	input=$(zbarcam --oneshot --raw)
+    input=$(zbarcam --oneshot --raw)
 }
 
 
 keyboard_input() {
     #read input
-    input=$(askpass)
+    askpass_exist=$(command -v askpass >/dev/null 2>&1; echo $?)
+
+    case $askpass_exist in
+
+	0)
+	    input=$(askpass)
+	    ;;
+
+	*)
+	    printf "🔐  [no_echo!]"
+	    read -e -r -s -n 1 char1
+	    tput cuu1
+	    erase_line
+	    printf "🔐  "
+	    read -e -r -s input2
+	    input="$char1$input2"
+	    ## remove eol
+	    input=$(echo $input | tr -d '\n')
+
+	    echo
+	    ;;
+
+    esac
 }
 
 
 erase_line() {
-
     printf "\r"
     tput el
 }
 
 
 choose_input() {
-	# choose optical or manual input
+    # choose optical or manual input
 
-	printf "decode video input (${YELLOW}Q${NOC}R-code) "
+    printf "decode video input (${YELLOW}Q${NOC}R-code) "
 
-	reply_read_single_hidden_timer
+    reply_read_single_hidden_timer
 
-	if printf "$reply" | grep -iq "^q"; then
+    if printf "$reply" | grep -iq "^q"; then
 
-	    optical_input
-	    echo
+        optical_input
+        echo
 
-	else
+    else
 
-	    erase_line
+        erase_line
 
-	    keyboard_input
+        keyboard_input
 
-	fi
+    fi
 }
 
 
 input_validation() {
-	[[ -z $input ]] && exit 10
+    [[ -z $input ]] && exit 10
 }
 
 
 hashing() {
-	## input, algorithm
+    ## input, algorithm
 
-	## sed removes '(stdin)= ' of openssl dgst
-	printf $1 | openssl dgst -$2 | sed 's/^.*= //'
+    ## sed removes '(stdin)= ' of openssl dgst
+    printf $1 | openssl dgst -$2 | sed 's/^.*= //'
 }
 
 
 hmacing() {
-	## sha3 hmac rfc2104
-	## input, algorithm, hmac
+    ## sha3 hmac rfc2104
+    ## input, algorithm, hmac
 
-	printf $1 | openssl dgst -$2 -hmac $3 | sed 's/^.*= //'
+    printf $1 | openssl dgst -$2 -hmac $3 | sed 's/^.*= //'
 }
 
 
 hash_1_input() {
-	## create sha1 hash from input
+    ## create sha1 hash from input
 
-	local input=$input
-	local algo="sha1"
+    local input=$input
+    local algo="sha1"
 
-	hash_sha1=$(hashing $input $algo)
+    hash_sha1=$(hashing $input $algo)
 }
 
 
 hash_3_input() {
-	## create sha3-512 hash from input
-	## keccak sha3 standard fips pub 202
+    ## create sha3-512 hash from input
+    ## keccak sha3 standard fips pub 202
 
-	local input=$input
-	local algo="sha3-512"
+    local input=$input
+    local algo="sha3-512"
 
-	hash_sha3512=$(hashing $input $algo)
+    hash_sha3512=$(hashing $input $algo)
 
-	# for input='s'; hash_sha3512='723a..16fc'
+    # for input='s'; hash_sha3512='723a..16fc'
 }
 
 
 clear_input() {
-	## overwrite input variable, then clear and unset it for security
+    ## overwrite input variable, then clear and unset it for security
 
-	input=$(< /dev/random tr -d -c "[:xdigit:]" | head -c 128)
-	input=""
-	unset input
+    input=$(< /dev/random tr -d -c "[:xdigit:]" | head -c 128)
+    input=""
+    unset input
 }
 
 
 print_blocks() {
-	## print four lines of eight; two space-separated, four-column,
-	## zero-filled, two-byte quantities of hexadecimal inputdata
+    ## print four lines of eight; two space-separated, four-column,
+    ## zero-filled, two-byte quantities of hexadecimal inputdata
 
-	row1=$(printf $1 | cut -c 1-32 | sed 's/.\{4\}/&  /g')
-	row2=$(printf $1 | cut -c 33-64 | sed 's/.\{4\}/&  /g')
-	row3=$(printf $1 | cut -c 65-96 | sed 's/.\{4\}/&  /g')
-	row4=$(printf $1 | cut -c 97-128 | sed 's/.\{4\}/&  /g')
+    row1=$(printf $1 | cut -c 1-32 | sed 's/.\{4\}/&  /g')
+    row2=$(printf $1 | cut -c 33-64 | sed 's/.\{4\}/&  /g')
+    row3=$(printf $1 | cut -c 65-96 | sed 's/.\{4\}/&  /g')
+    row4=$(printf $1 | cut -c 97-128 | sed 's/.\{4\}/&  /g')
 
-	printf '\e[38;2;215;215;215m%s\e[m\n' "$row1"
-	printf '\e[38;2;155;155;155m%s\e[m\n' "$row2"
-	printf '\e[38;2;215;215;215m%s\e[m\n' "$row3"
-	printf '\e[38;2;155;155;155m%s\e[m\n' "$row4"
+    printf '\e[38;2;215;215;215m%s\e[m\n' "$row1"
+    printf '\e[38;2;155;155;155m%s\e[m\n' "$row2"
+    printf '\e[38;2;215;215;215m%s\e[m\n' "$row3"
+    printf '\e[38;2;155;155;155m%s\e[m\n' "$row4"
 }
 
 
 round_pool() {
-	## dynamic truncate hash_sha3512
-	## dividend is based on the sha3512 hash of the input
+    ## dynamic truncate hash_sha3512
+    ## dividend is based on the sha3512 hash of the input
 
-	local hs=$hash_sha3512
-	local dgts="10"
+    local hs=$hash_sha3512
+    local dgts="10"
 
-	dividend=$(dynamic_truncate $hs $dgts)
+    dividend=$(dynamic_truncate $hs $dgts)
 }
 
 
 round_space() {
-	## dynamic truncate hash_sha1
-	## divisor is based on the sha1 hash of the input
+    ## dynamic truncate hash_sha1
+    ## divisor is based on the sha1 hash of the input
 
-	local hs=$hash_sha1
-	local dgts="4"
+    local hs=$hash_sha1
+    local dgts="4"
 
-	divisor=$(dynamic_truncate $hs $dgts)
+    divisor=$(dynamic_truncate $hs $dgts)
 }
 
 
 rounds_number() {
-	## input='s'; rounds=532
+    ## input='s'; rounds=532
 
-	rounds=$(( $dividend % $divisor ))
+    rounds=$(( $dividend % $divisor ))
 }
 
 
 round_key() {
-	## create hmac key for running_rounds
-	## input='s'; round_key='bb40..d76f'
+    ## create hmac key for running_rounds
+    ## input='s'; round_key='bb40..d76f'
 
-	local input=$dividend
-	local algo="sha3-512"
-	local hmac=$divisor
+    local input=$dividend
+    local algo="sha3-512"
+    local hmac=$divisor
 
-	round_key=$(hmacing $input $algo $hmac)
+    round_key=$(hmacing $input $algo $hmac)
 }
 
 
 create_printing_space() {
-	## prevent printing errors when shifting lines down
+    ## prevent printing errors when shifting lines down
 
-	shifts=29
-	for down in $(seq $shifts); do
+    shifts=29
+    for down in $(seq $shifts); do
 
-		tput cud1
+	tput cud1
 
-	done
+    done
 
-	for up in $(seq $shifts); do
+    for up in $(seq $shifts); do
 
-		tput cuu1
+	tput cuu1
 
-	done
+    done
 }
 
 
 running_rounds() {
-	## keep hash_sha3512 variable untouched
-	input_calc=$hash_sha3512
+    ## keep hash_sha3512 variable untouched
+    input_calc=$hash_sha3512
 
-	## hide cursor
-	tput civis
+    ## hide cursor
+    tput civis
 
-	# print first blocks
-	print_blocks $hash_sha3512
+    # print first blocks
+    print_blocks $hash_sha3512
 
-	create_printing_space
+    create_printing_space
 
-	## save cursor position
-	tput sc
+    ## save cursor position
+    tput sc
 
-	for (( round=1; round<=$rounds; round++ ))
+    for (( round=1; round<=$rounds; round++ ))
 
-	do
+    do
 
-		local input=$input_calc
-		local algo="sha3-512"
-		local hmac=$round_key
+	local input=$input_calc
+	local algo="sha3-512"
+	local hmac=$round_key
 
-		output=$(hmacing $input $algo $hmac)
+	output=$(hmacing $input $algo $hmac)
 
-		## migrate output to input_calc for next round
-		[[ $rounds > 1 ]] && input_calc=$output
+	## migrate output to input_calc for next round
+	[[ $rounds > 1 ]] && input_calc=$output
 
-		## every round the $input_calc from the previous round is taken in
-		## $round_key stays static
+	## every round the $input_calc from the previous round is taken in
+	## $round_key stays static
 
-		# show iterations
-		## restore cursor position
-		tput rc
-		## clear to end of screen
-		tput ed
+	# show iterations
+	## restore cursor position
+	tput rc
+	## clear to end of screen
+	tput ed
 
-		print_qr_codeblock
-		print_blocks $output
-		print_progress_bar $round $rounds
+	print_qr_codeblock
+	print_blocks $output
+	print_progress_bar $round $rounds
 
-	done
+    done
 
-	## show cursor
-	tput cnorm
+    ## show cursor
+    tput cnorm
 
 	# for input='s' output='b68a..027a'
 }
 
 
 print_progress_bar() {
-	local round=$1
-	local rounds=$2
+    local round=$1
+    local rounds=$2
 
-	bar_width=38
-	# progress percentage indicator
-	if [[ $round -lt $rounds ]]; then
+    bar_width=38
+    # progress percentage indicator
+    if [[ $round -lt $rounds ]]; then
 
-		prog_perc=$(awk "BEGIN {print ($round/$rounds*100)}" | cut -f 1 -d .)
+	prog_perc=$(awk "BEGIN {print ($round/$rounds*100)}" | cut -f 1 -d .)
 
-		bar $prog_perc $bar_width
+	bar $prog_perc $bar_width
 
-	fi
+    fi
 }
 
 
 two_fa() {
-	# two factor authentication
+    # two factor authentication
 
-	## human enters 2fa code from separate source
-	printf "?2fa  "
-	read two_fa
+    ## human enters 2fa code from separate source
+    printf "?2fa  "
+    read two_fa
 
-	## set variables to send to genotp
-	secret="$XDG_DATA_HOME/c/git/private/vault/totp.key"
-	mode="totp"
-	alg="sha512"
-	digits="12"
-	period="30"
-	dt_str=""
-	counter="0"
-	from_hmac="1"
+    ## set variables to send to genotp
+    secret="$XDG_DATA_HOME/c/git/private/vault/totp.key"
+    mode="totp"
+    alg="sha512"
+    digits="12"
+    period="30"
+    dt_str=""
+    counter="0"
+    from_hmac="1"
 
-	## call genotp to get current code
-	eval $(source $XDG_DATA_HOME/c/git/notes/crypto/2fa/genotp/genotp.sh; echo code="$code";)
+    ## call genotp to get current code
+    eval $(source $XDG_DATA_HOME/c/git/notes/crypto/2fa/genotp/genotp.sh; echo code="$code";)
 
-	## code from genotp is 12 digits (for aesthetic purposes there)
-	## first two though are always leading zeros
-	code=$(printf $code | cut -c 3-)
+    ## code from genotp is 12 digits (for aesthetic purposes there)
+    ## first two though are always leading zeros
+    code=$(printf $code | cut -c 3-)
 
-	if [[ "$two_fa" != "$code" ]]; then
+    if [[ "$two_fa" != "$code" ]]; then
 
-		#printf "unable to authenticate\n"
-		exit 33
+	#printf "unable to authenticate\n"
+	exit 33
 
-	fi
+    fi
 }
 
 
 output_console() {
-	## personal iterations multiplier (pim)
-	printf "$(print_blocks $output)\n"
+    ## personal iterations multiplier (pim)
+    printf "$(print_blocks $output)\n"
 }
 
 
 output_wlcopy() {
-	printf $output | cut -c -64 | wl-copy -o -n
+    printf $output | cut -c -64 | wl-copy -o -n
 
-	## to file
-	### for barebone tty usage
-	### beware! potentially unsafe
-	#printf "$output_64" | cut -c -64 > output.tmp
+    ## to file
+    ### for barebone tty usage
+    ### CAUTION! potentially unsafe
+    #printf "$output_64" | cut -c -64 > output.tmp
 
-	## to variable
-	#clpbrd=$(printf "$output_64" | cut -c -64)
+    ## to variable
+    #clpbrd=$(printf "$output_64" | cut -c -64)
 }
 
 
 print_qr_code() {
-	#[TODO if no qrencode, then just skip printing
-	[[ -n $(command -v qrencode) ]] && printf $1 | qrencode -m 3 -t UTF8
+    # qrencode not installed, then skip printing
+    [[ -n $(command -v qrencode) ]] && printf $1 | qrencode -m 3 -t UTF8
 }
 
 
 print_qr_codeblock() {
-	print_qr_code $output
+    print_qr_code $output
 }
 
 
 dynamic_truncate() {
-	## truncates a sha1 hex string (rfc4226, DynamicTruncate)
-	## get last 4 bits from hash ($hex_str)
-	## get the integer number (0-f > 1-10) of those bits; this is the offset
-	## starting from the offset get the first 4 bytes from the hash ($hex_str)
+    ## truncates a sha1 hex string (rfc4226, DynamicTruncate)
+    ## get last 4 bits from hash ($hex_str)
+    ## get the integer number (0-f > 1-10) of those bits; this is the offset
+    ## starting from the offset get the first 4 bytes from the hash ($hex_str)
 
-	## this is an altered version of dynamic truncate compared to the rfc4226
+    ## this is an altered version of dynamic truncate compared to the rfc4226
 
-	##				values for
-	##		hex_str	digits	input='s'
-	##
-	##  dividend	sha3512	10	1402058969
-	##  divisor	sha1	 4	2593
+    ##				values for
+    ##			    hex_str	digits	input='s'
+    ##
+    ##  dividend    sha3512	10	1402058969
+    ##  divisor	    sha1	 4	2593
 
-	local hex_str="$1"
-	local digits="$2"
+    local hex_str="$1"
+    local digits="$2"
 
-	## 2 times decimal value of the last char of the hex string
-	## so this value is between 0 (0) and 30 (F)
-	## i.e. if last char is 'c' then decimal value is 12
-	### $((2 * 0x${hex_str: -1})) explained:
-	### ${hex_str: -1}	= get the last hex character from $hex_str  (c)
-	### echo ((0xc))	= convert hex value to decimal value	    (12)
-	### 2 * 12		= two times decimal value		    (24)
+    ## 2 times decimal value of the last char of the hex string
+    ## so this value is between 0 (0) and 30 (F)
+    ## i.e. if last char is 'c' then decimal value is 12
+    ### $((2 * 0x${hex_str: -1})) explained:
+    ### ${hex_str: -1}	= get the last hex character from $hex_str  (c)
+    ### echo ((0xc))	= convert hex value to decimal value	    (12)
+    ### 2 * 12		= two times decimal value		    (24)
 
-	local offset=$((2 * 0x${hex_str: -1}))
+    local offset=$((2 * 0x${hex_str: -1}))
 
-	## from the offset get next 4 bytes from hex_str (8 hexchars / 32 bits)
-	## mind that first position has an offset value of 0
-	## bytes are bitwise AND compared with 7fffffff
-	## so the 32 bits are AND compared with the binary value of 7fffffff
-	## the bitwise comparison result is put in a modulo dividend
-	## the divisor is digits as a power of 10
-	## effectively this returns the last <digits> digits of the dividend
+    ## from the offset get next 4 bytes from hex_str (8 hexchars / 32 bits)
+    ## mind that first position has an offset value of 0
+    ## bytes are bitwise AND compared with 7fffffff
+    ## so the 32 bits are AND compared with the binary value of 7fffffff
+    ## the bitwise comparison result is put in a modulo dividend
+    ## the divisor is digits as a power of 10
+    ## effectively this returns the last <digits> digits of the dividend
 
-	digits_ret=$(( ( (0x${hex_str:$offset:8}) & 0x7FFFFFFF ) % ( 10**$digits ) ))
+    digits_ret=$(( ( (0x${hex_str:$offset:8}) & 0x7FFFFFFF ) % ( 10**$digits ) ))
 
-	echo $digits_ret
+    echo $digits_ret
 }
 
 
 debugging() {
-	printf "input:		$input\n"
-	printf "hash_sha1:	$hash_sha1\n"
-	printf "hash_sha3512:	$hash_sha3512\n"
-	printf "dividend:	$dividend\n"
-	printf "divisor:	$divisor\n"
-	printf "rounds:		$rounds\n"
-	printf "round_key:	$round_key\n"
+    printf "input:	    $input\n"
+    printf "hash_sha1:	    $hash_sha1\n"
+    printf "hash_sha3512:   $hash_sha3512\n"
+    printf "dividend:	    $dividend\n"
+    printf "divisor:	    $divisor\n"
+    printf "rounds:	    $rounds\n"
+    printf "round_key:	    $round_key\n"
 }
 
 
