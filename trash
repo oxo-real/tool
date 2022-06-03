@@ -6,15 +6,18 @@
 ### | __| '__/ _` / __| '_ \
 ### | |_| | | (_| \__ \ | | |
 ###  \__|_|  \__,_|___/_| |_|
+###  _    _
+### (_)><(_)
 ###
-### copyright (c) 2020 - 2022  |  cytopyge
+### copyright (c) 2020 - 2022  |  oxo
 ###
 ### remove files to an intermediate location
 ###
 ### recommendation:	alias rm="trash"
 ###
 ### usage:	rm [-options] <location>
-###			trash empty
+###		trash empty
+###		trash
 ##
 #
 
@@ -91,6 +94,12 @@ process_args_array()
 			trash_empty
 
 		fi
+
+	else
+
+	    # no arguments given
+	    trash_size
+	    printf "$size\n"
 
 	fi
 }
