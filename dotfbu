@@ -236,14 +236,22 @@ validate_destination() {
     if [[ ! -z $(ls -A $dest 2>/dev/null) ]]; then
 	printf "${YELLOW}destination${NOC} directory is ${BOLD}NOT${NORMAL} empty${NOC}\n\n"
 
-	printf "continue? (y/N) "
+	printf "destroy $dest? (y/n) "
 	reply_read_single
-	#reply_single
 	echo
 
-	if printf "$reply" | grep -iq "^y"; then
+	if printf "$reply" | grep -iq "^n"; then
 
 	    echo
+	    printf "starting $mode operation ${YELLOW}CAUTION!${NOC} without destroying $dest\n"
+
+	elif printf "$reply" | grep -iq "^y"; then
+
+	    echo
+
+	    printf "destroying $dest\n"
+	    rm -rf $dest >/dev/null 2>&1
+
 	    printf "starting $mode operation\n"
 
 	else
@@ -252,6 +260,23 @@ validate_destination() {
 	    exit 23
 
 	fi
+
+	#printf "continue? (y/N) "
+	#reply_read_single
+	##reply_single
+	#echo
+
+	#if printf "$reply" | grep -iq "^y"; then
+
+	#    echo
+	#    printf "starting $mode operation\n"
+
+	#else
+
+	#    printf "operation ${MAGENTA}aborted${NOC}, exiting, bye!\n"
+	#    exit 23
+
+	#fi
 
     fi
 }
@@ -730,6 +755,8 @@ verify() {
 		#exit 81
 
 	    fi
+	    # TODO verify no unencrypted directories from .fpcl '^c .' exist
+
 	    ;;
 
     esac
