@@ -28,7 +28,7 @@
 ### along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ### https://www.gnu.org/licenses/gpl-3.0.txt
 ###
-### y3l0b3b5z2u=:matrix.org @cytopyge@mastodon.social
+### y3l0b3b5z2u=:matrix.org @oxo@qoto.org
 ###
 ##
 #
@@ -50,7 +50,7 @@ input=
 
 ## script
 script_name='pwgn'
-developer='cytopyge'
+developer='oxo'
 license='gplv3'
 initial_release='2020'
 
