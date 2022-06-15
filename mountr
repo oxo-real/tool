@@ -34,33 +34,66 @@ crypto_source="$XDG_DATA_HOME/c/keys/pass/vlt_pass"
 password_store_lnk="$HOME/.password-store"
 
 text_appearance() {
-	source $source_dir/text_appearance
+
+    source $source_dir/text_appearance
 }
 
 
 get_sudo() {
-	source $source_dir/get_sudo
-	get_sudo
+
+    source $source_dir/get_sudo
+    get_sudo
 }
 
 
 get_mps_mount() {
-    mps_avail+=(/boot $HOME/dock/1 $HOME/dock/2 $HOME/dock/3 $HOME/dock/4 $HOME/dock/transfer other)
-    #mps_avail+="$(printf "/boot\n$HOME/dock/1\n$HOME/dock/2\n$HOME/dock/3\n$HOME/dock/4\n$HOME/dock/transfer\nother")"
-    # TODO make sourced array
+
+    # common mountpoints
+    common_mps+=(\
+	/boot \
+	$HOME/dock/1 \
+	$HOME/dock/2 \
+	$HOME/dock/3 \
+	$HOME/dock/4 \
+	$HOME/dock/transfer \
+	other\
+    )
+
+    # building mps_avail
+    for mp in "${common_mps[@]}"; do
+
+	# check if mp is already a mountpoint
+	is_mp=$(mountpoint -q $mp; echo $?)
+
+	case $is_mp in
+
+	    0)
+		# mp is not an available mountpoint
+		continue
+		;;
+
+	    *)
+		# mp is an available mountpoint
+		mps_avail+=( $mp )
+		;;
+
+	esac
+
+    done
 }
 
 
 get_mps_umount() {
-    ## for umount_func
-    mps_umount=$(findmnt --list -o TARGET,LABEL,SOURCE,SIZE | \
+
+    ## umountable mountpoints
+    mps_umount=$(findmnt --list -o TARGET,SIZE,LABEL,SOURCE | \
 	grep -e '/dev/sd' -e '/dev/mapper/vlt_' | sort)
 }
 
 
 get_source_devs() {
     source_devs_avail=$(\
-	\lsblk -nrp -o "name,size,type,label,mountpoint" | \
+	\lsblk -nrp -o "name,type,size,label,mountpoint" | \
 	## \lsblk prevents an alias causing error:
 	## lsblk: mutually exclusive arguments: --pairs --tree --list --raw
 	## exclude non-volatile storage media on
@@ -69,7 +102,6 @@ get_source_devs() {
 	## only disks or partitions
 	grep -e disk -e part | \
 	## size not 0B
-	## TODO improve grep -v 0B
 	grep -v 0B | \
 	## not already mounted
 	awk 'length($5)==0'\
@@ -91,7 +123,6 @@ get_source_devs() {
 
 		## then add password-store to source_devs_avail
 		source_devs_avail+=(printf "$crypto_source")
-		#DELsource_devs_avail+=$(printf "\n$crypto_source")
 
 	    ## and password-store is already mounted
 	    elif [[ -d $(readlink $password_store_lnk) ]]; then
@@ -99,11 +130,8 @@ get_source_devs() {
 		## then add password-store to mps_avail
 		password_store_mp=$(printf "$(readlink $password_store_lnk)")
 		mps_avail+=($password_store_mp)
-		#DELmps_avail+=$(printf "\n$(readlink $password_store_lnk)")
 
 	    fi
-
-	# TODO on mount: remove devices are already in the mount list
 
 	fi
 
@@ -118,9 +146,9 @@ get_source_devs() {
 
 
 mount_to_select_param() {
-    #local fzf_input="$mps_avail"
+    # choose mountpoint
     local fzf_input=$(printf '%s\n' "${mps_avail[@]}")
-    local fzf_prompt="select mountpoint for: $line"
+    local fzf_prompt="mountpoint: $line"
     local fzf_options='--height=20%'
 
     fzf_choose
@@ -129,6 +157,7 @@ mount_to_select_param() {
 
 
 devs_and_mps_param() {
+    # choose devices (mount) and or mountpoints (umount)
     local fzf_input="$source_devs_avail\n$mps_umount"
     local fzf_prompt='(u)mount'
     local fzf_options='--height=20%'
@@ -139,19 +168,36 @@ devs_and_mps_param() {
 
 
 fzf_choose() {
-    fzf_select=$(printf "$fzf_input" | fzf -m --prompt="$fzf_prompt " $fzf_options)
+
+    fzf_select=$(printf "$fzf_input" | fzf -m --header="${BOLD}source device						mountpoint${NORMAL}" --prompt="$fzf_prompt " $fzf_options)
+    #fzf_select=$(printf "$fzf_input" | fzf -m --prompt="$fzf_prompt " $fzf_options)
+
+    # no choice: print available source devices and umountable mountpoints
+    case $fzf_select in
+
+	'')
+	    printf "${BOLD}source device\t\t\t\t\t\tmountpoint${NORMAL}\n$source_devs_avail\n$mps_umount\n"
+	    exit 0
+	    ;;
+
+    esac
 }
 
 
 mount_info() {
-    local label=$(printf "$line" | awk '{print $4}')
-    printf "$line_select_ff $label mounted to ${BLUE}$mount_to${NOC}\n"
+
+    printf "$line mounted to ${BLUE}$mount_to${NOC}\n"
 }
 
 
 umount_info() {
-    local label=$(printf "$line" | awk '{print $2}')
-    printf "${BLUE}$line_ff${NOC} $label umounted\n"
+
+    local size=$(printf "$line" | awk '{print $2}')
+    local label=$(printf "$line" | awk '{print $3}')
+    local source_dev=$(printf "$line" | awk '{print $4}')
+    local type=$(\lsblk -nrp -o "name,type" | grep $source_dev | awk '{print $2}')
+
+    printf "$source_dev $type $size $label  umounted from ${BLUE}$mountpoint${NOC}\n"
 }
 
 
@@ -167,7 +213,7 @@ dev_is_luks() {
 
 dev_is_mountpoint()
 {
-	mountpoint -q $line_ff >/dev/null 2>&1
+    mountpoint -q $line_ff >/dev/null 2>&1
 }
 
 
