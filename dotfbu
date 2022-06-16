@@ -14,8 +14,8 @@
 ###	usage:	dotbu backup  [<bu_src> <bu_dest>]
 ###		dotbu restore [<rs_src> <rs_dest>]
 ###
-###	i.e.:	dotbu backup $XDG_CONFIG_HOME $HOME/.dot/files
-###		dotbu restore $HOME/.dot/files $XDG_CONFIG_HOME
+###	i.e.:	dotbu backup $XDG_CONFIG_HOME $XDG_DATA_HOME/c/git/dotfbu
+###		dotbu restore $XDG_DATA_HOME/c/git/dotfbu $XDG_CONFIG_HOME
 ##
 #
 
@@ -36,6 +36,8 @@
 ##	2.	decrypt files or directories
 
 
+# arguments
+
 mode=$1		# 'backup' or 'restore'
 src=$2		# source directory
 dest=$3		# destination directory
@@ -47,6 +49,7 @@ sourcing() {
     source $source_dir/reply_functions
     source $source_dir/text_appearance
     pwgn="$XDG_DATA_HOME/c/git/code/tool/pwgn"
+    fpcl_file="$src/.fpcl"
 }
 
 
@@ -61,8 +64,6 @@ initialize() {
 
     ## files / directories to en-/decrypt
     ## their lines start with 'c '
-
-    fpcl_file="$src/.fpcl"
 
     case $mode in
 
