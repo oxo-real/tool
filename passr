@@ -70,13 +70,21 @@
 # passr $object $element
 % passr email_john password
 
+### search objects
+% passr search [$string]
+% passr z [$string]
+
+### grep object data
+% passr grep [$string]
+% passr g [$string]
+
 ## data manipulation
 
-### adding object data
+### add object data
 % passr new [$object]
 % passr n [$object]
 
-### editing object data
+### edit object data
 % passr edit [$object]
 % passr e [$object]
 
@@ -188,6 +196,7 @@ otp-strings can be stored into otp_mail_john.gpg
 
 get_object() {
 
+    # passr $object $element
     object=$arg_object
     element=$arg_element
 
@@ -230,6 +239,32 @@ get_object() {
 	    close
 	    ;;
 
+	grep | g)
+	    object='grep'
+	    pass_grep
+	    ;;
+
+	search | z)
+	    object='search'
+	    pass_search
+	    ;;
+
+	## specific element given as object
+	## i.e.: 'passr url object' also works
+	## therefore below are forbidden object names!
+	url | \
+	userid | \
+	password | \
+	pw | \
+	otp | \
+	unlock | \
+	peacto | \
+	autoentry | \
+	show | \
+	copy)
+	    element_as_object
+	    ;;
+
 	*)
 	    get_mountpoint_status
 
@@ -263,7 +298,7 @@ get_object() {
 			   	         # with sed we remove the trailing .gpg extension
 			   	         sed "s/.gpg//g" | \
 			   	         sort | \
-			   	         fzf --height=20% --prompt='select object ')
+			   	         fzf --height=20% --prompt='object ')
 				    ;;
 
 			    esac
@@ -276,6 +311,19 @@ get_object() {
 	    ;;
 
     esac
+}
+
+
+element_as_object() {
+
+    arg_element_tmp="$arg_object"
+
+    arg_object="$arg_element"
+    arg_element="$arg_element_tmp"
+
+    [[ $arg_element == 'pw' ]] && arg_element='password'
+
+    get_object
 }
 
 
@@ -331,12 +379,32 @@ pass_new() {
 }
 
 
-pass_edit(){
+pass_edit() {
 
     object=$arg_element
     process_object
 
     pass edit $object
+    exit 0
+}
+
+
+pass_grep() {
+
+    # search object data
+    grep_string="$(printf "$args" | cut -d ' ' -f 2-)"
+
+    pass grep $grep_string
+    exit 0
+}
+
+
+pass_search() {
+
+    # search objects
+    search_string="$element"
+
+    pass search $search_string
     exit 0
 }
 
@@ -532,7 +600,7 @@ get_element() {
     if [[ -z $element ]]; then
 
     	element=$(printf '%s\n' "${element_menu[@]}" | \
-	    fzf --height=18 --prompt='select element ' | \
+	    fzf --height=18 --prompt='element ' | \
 	    awk '{print $2}')
 
     fi

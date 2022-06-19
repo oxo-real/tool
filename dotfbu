@@ -250,6 +250,28 @@ validate_destination() {
 	    echo
 
 	    printf "destroying $dest\n"
+
+	    ## check if $dest is git repo
+	    cd $dest
+	    #local location_git_status=$(git status >/dev/null 2>&1; echo $?)
+	    local location_git_status=$(git -C $dest rev-parse >/dev/null 2>&1; echo $?)
+	    cd -
+
+	    case $location_git_status in
+
+		0)
+		    # git repo
+		    cd $dest
+		    ## delete upstream
+		    # TODO hardcoded, make .git/config the data source
+		    git push origin --delete main
+		    cd -
+		    ;;
+
+	    esac
+
+	    printf "DEV $dest $location_git_status"; exit 255
+	    ## remove local
 	    rm -rf $dest >/dev/null 2>&1
 
 	    printf "starting $mode operation\n"
@@ -332,13 +354,13 @@ create_lists() {
 
     esac
 
-    :'
+    : '
     now we have 3 temporary lists in $src:
 
     all_files_list	.alll	with all files to be copied
     crypt_list		.crpl	with files to be encrypted
     plain_list		.plnl	with files that can stay as they are
-    #'
+    # '
 }
 
 
@@ -401,9 +423,12 @@ modify() {
 	backup)
 
 	    # remove all nested git databases
-	    printf "removing .git directories\n"
+	    printf "removing .git directories ... "
+
 	    ## -mindepth 2 protects main dotfile repo .git
-	    find $bu_dest -mindepth 2 -type d -name '*.git' -exec rm -rf {} \;
+	    find $bu_dest -mindepth 2 -type d -name '*.git' -exec rm -rf {} \; >/dev/null 2>&1
+
+	    printf "complete\n"
 	    ;;
 
 	restore)
@@ -738,7 +763,8 @@ verify() {
     case $mode in
 
 	backup)
-	   # all 'c' marked locations are indeed encrypted
+	    # all 'c' marked locations are indeed encrypted (accuracy)
+
 	    no_aes_files_created=$(find $bu_dest -name '*.aes' | wc -l)
 	    no_c_lines_fpcl=$(grep '^c ' $fpcl_file | wc -l)
 
@@ -755,8 +781,84 @@ verify() {
 		#exit 81
 
 	    fi
-	    # TODO verify no unencrypted directories from .fpcl '^c .' exist
 
+	    # TODO verify if no unencrypted directories exist
+	    # that are marked '^c .' in .fpcl file (completeness)
+
+	    ## encrypted locations are prepended with a c in .fpcl
+	    while IFS= read -r fpcl_location; do
+
+		## empty lines; skip
+		if [[ -z "$fpcl_location" ]]; then
+
+		    continue
+
+		## outcommented lines; skip
+		elif [[ "$(printf "$fpcl_location" | head -c 1)" == "#" ]]; then
+
+		    continue
+
+		fi
+
+		## skip lines that do not start with 'c '
+		if [[ $(printf "$file_2_decrypt" | head -c 2) != "c " ]]; then
+
+		    continue
+
+		fi
+
+		## lines starting with c
+		loc_verify=$(printf "$bu_dest/$fpcl_location.tar.aes" | cut -c 2-)
+
+		### loc_verify is existing file
+		[[ -f $loc_verify ]] || \
+		    printf "CRITICAL ERROR ${MAGENTA}$loc_verify${NOC} file does not exist\n"
+
+		### loc_verify has openssl encryption
+		file $loc_verify | grep -q 'openssl enc' || \
+		    printf "CRITICAL ERROR ${MAGENTA} $loc_verify${NOC} not openssl encrypted\n"
+
+		### unencrypted location "$fpcl_line" does exist
+		[[ -f "$bu_dest/$fpcl_location" ]] || \
+		    printf "CRITICAL ERROR ${MAGENTA} $bu_dest/$fpcl_location${NOC} exist\n"
+
+	    done < $fpcl_file
+
+	    ## $dest_bu is git repo
+	    location_git_status=$(git -C $dest_bu rev-parse >/dev/null 2>&1; echo $?)
+	    case $location_git_status in
+
+		0)
+		    # git repo
+		    :
+		    ;;
+
+		*)
+		    # no git repo
+		    printf "WARNING ${MAGENTA}$dest_bu${NOC} is no git repo.\n"
+		    printf "git init and remote add? (Y/n)"
+
+		    reply_read_single
+		    echo
+
+		    if printf "$reply" | grep -iq "^n"; then
+
+			:
+
+		    else
+
+			cd $dest_bu
+			git init
+			# TODO hardcoded, make .git/config the data source
+			git remote add origin git@codeberg.org/oxo/dotf.git
+			git push --set-upstream origin main
+
+		    fi
+
+
+		    ;;
+
+	    esac
 	    ;;
 
     esac
@@ -799,7 +901,7 @@ generate_pw() {
 
     else
 
-        sh $pwgn
+        sh "$pwgn"
 	pw=$(wl-paste -n)
 	echo
 
