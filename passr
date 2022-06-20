@@ -633,7 +633,9 @@ process_object() {
 		;;
 
 	    *)
-        	printf "${MAGENTA}no object${NOC}\n" && exit 70
+        	printf "${MAGENTA}$arg_object${NOC} not found\n"
+		arg_object=''
+		get_object
 		;;
 
 	esac
