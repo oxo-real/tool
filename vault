@@ -43,10 +43,10 @@
 #
 #   vault list	    (l)
 #   vault status    (s)	    [target]
-#   vault create    (n)	    target      [size]
+#   vault create    (n)	     target     [size]
 #   vault open	    (o)	    [target]    [mountpoint]
 #   vault close	    (c)	    [target]    [-y, --no-confirm]
-#   vault close	    (ca)    all		[-y, --no-confirm]
+#   vault close	    (ca)     all	[-y, --no-confirm]
 #
 #   in which 'target' (except 'all') represents a location as:
 #   vault_file	    (create, open)
@@ -149,6 +149,7 @@ check_target_validity() {
 		return
 
 	    fi
+	    # TODO reduce to?: if [[ -z $target ]]; then return
 	    ;;
 
 	status)
@@ -720,7 +721,7 @@ get_vault_data() {
 
 	# losetup error test
 	tput sc
-	losetup $loop_device
+	losetup $loop_device >/dev/null 2>&1
 
 	if [[ $? -ne 0 ]]; then
 
@@ -821,29 +822,20 @@ check_no_confirm() {
 	# confirmation dialogue comes up
 
 	echo
-	printf "close vault? (y/N) "
+	printf "close vault? (Y/n) "
 
 	reply_read_single
 
-	if printf "$reply" | grep -iq "^y"; then
-
-	    confirmation="positive"
-	    echo
-	    #return
-
-	else
+	if printf "$reply" | grep -iq "^n"; then
 
 	    confirmation="negative"
 	    echo
 	    printf "${MAGENTA}$action $target aborted by user${NOC}\n"
 
-	    #if [[ -n $loop_active ]]; then
+	else
 
-	    #    # we are in a while loop and have multiple targets
-	    #    #exit
-	    #    return
-
-	    #fi
+	    confirmation="positive"
+	    echo
 
 	fi
 
@@ -852,6 +844,16 @@ check_no_confirm() {
 
 
 fzf_select_target() {
+
+    case $action in
+
+	status)
+	    # return when target is given as argument
+	    [[ -n $target ]] && return
+	    ;;
+
+    esac
+
     # check for non empty vlt list
     if [[ -n $(vault_list | grep /dev/mapper/vlt_) ]]; then
 
@@ -1210,7 +1212,7 @@ main() {
 	    check_target_status
 
 	    fzf_select_target
-	    vault_list
+	    #vault_list
 	    vault_spec_info
 	    ;;
 

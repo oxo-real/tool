@@ -632,6 +632,10 @@ process_object() {
 		continue
 		;;
 
+	    '')
+		exit 0
+		;;
+
 	    *)
         	printf "${MAGENTA}$arg_object${NOC} not found\n"
 		arg_object=''
@@ -760,7 +764,7 @@ error_message() {
     ## selected empty line in element menu
     if [[ -z $element ]]; then
 
-    	error='no valid selection'
+    	error='no element'
 
     fi
 }
@@ -778,7 +782,7 @@ human_info() {
 	    if [[ -n $error ]]; then
 
 		## print error message
-		printf "${MAGENTA}$object${NOC} $error\n"
+		printf "$object ${MAGENTA}$error${NOC}\n"
 
 	    else
 
@@ -791,7 +795,7 @@ human_info() {
 	    if [[ -n $error ]]; then
 
 		## print error message
-		printf "${MAGENTA}$object $element${NOC} $error\n"
+		printf "$object ${MAGENTA}$error${NOC}\n"
 
 	    else
 

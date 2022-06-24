@@ -32,6 +32,7 @@ crypto_source="$XDG_DATA_HOME/c/keys/pass/vlt_pass"
 #pass_mount="$HOME/dock/vlt/pass"
 password_store_lnk="$HOME/.password-store"
 
+
 text_appearance() {
 
     source $source_dir/text_appearance
@@ -85,20 +86,20 @@ get_mps_mount() {
 get_mps_umount() {
 
     ## umountable mountpoints
-    mps_umount=$(findmnt --list -o TARGET,SIZE,LABEL,SOURCE | \
+    mps_umount=$(findmnt --list -o SOURCE,SIZE,LABEL,TARGET | \
 	grep -e '/dev/sd' -e '/dev/mapper/vlt_' | sort)
 }
 
 
 get_source_devs() {
-    source_devs_avail=$(\
+    source_devs_avail_list=$(\
 	\lsblk -nrp -o "name,type,size,label,mountpoint" | \
 	## \lsblk prevents an alias causing error:
 	## lsblk: mutually exclusive arguments: --pairs --tree --list --raw
 	## exclude non-volatile storage media on
 	## peripheral component interconnect express bus
 	grep -v nvme | \
-	## only disks or partitions
+	## only disks and partitions
 	grep -e disk -e part | \
 	## size not 0B
 	grep -v 0B | \
@@ -106,33 +107,107 @@ get_source_devs() {
 	awk 'length($5)==0'\
 	)
 
-	## #sda+=($source_devs_avail1)
+    # save current ifs, change to newline, create array, reset ifs
+    ifs_0=$IFS
+    IFS=$'\n'
+    source_devs_avail=($source_devs_avail_list)
+    IFS=$ifs_0
 
-	## #printf "DEV\n $source_devs_avail1"; exit 255
-	## #printf "DEV\n ${sda[@]}"; exit 255
+
+    # add password-store to source_devs_avail
+
+    ## if symlink to password-store exists
+    #if [[ -L $password_store_lnk ]]; then
+
+    #    ## and password-store is not already mounted
+    #    if [[ ! -d $(readlink $password_store_lnk) ]]; then
+
+    #	## then add password-store to source_devs_avail
+    #	source_devs_avail+=("$crypto_source")
+
+    #    ## if password-store is already mounted
+    #    elif [[ -d $(readlink $password_store_lnk) ]]; then
+
+    #	## then add password-store to mps_avail
+    #	password_store_mp="$(readlink $password_store_lnk)"
+    #	#password_store_mp=$(printf "$(readlink $password_store_lnk)")
+    #	mps_avail+=($password_store_mp)
+
+    #    fi
+
+    #fi
 
 
-	# add password-store to source_devs_avail
+    # remove mounted vlt-mappers from source_devs_avail
 
-	## if symlink to password-store exists
-	if [[ -L $password_store_lnk ]]; then
+    ## get mounted vlt_mappers
+    vlt_mappers=()
+    while IFS= read -r line; do
 
-	    ## and password-store is not already mounted
-	    if [[ ! -d $(readlink $password_store_lnk) ]]; then
+        vlt_mappers+=("$line")
 
-		## then add password-store to source_devs_avail
-		source_devs_avail+=(printf "$crypto_source")
+    done <<< $(mount | grep vlt_ | cut -d ' ' -f 1)
 
-	    ## and password-store is already mounted
-	    elif [[ -d $(readlink $password_store_lnk) ]]; then
+    ## create mapper_source associative array (vlt_mapper=source_dev)
+    declare -A mapper_source
 
-		## then add password-store to mps_avail
-		password_store_mp=$(printf "$(readlink $password_store_lnk)")
-		mps_avail+=($password_store_mp)
+    for vlt_mapper in ${vlt_mappers[@]}; do
+
+	## get mapper data for current vlt_mapper from vault status
+	vscm=$(vault status $vlt_mapper)
+	source_dev=$(printf "$vscm" | grep 'crypto source' | awk '{print $3}')
+
+	## add vlt_mapper source_dev to mapper_source associative array
+	## key: vlt_mapper
+	## value: source_dev
+	mapper_source["$vlt_mapper"]="$source_dev"
+
+    done
+
+
+    #DEV
+    print_entire_array() {
+	declare -n __p="$1"
+	for k in "${!__p[@]}"; do
+	    printf "%s=%s\n" "$k" "${__p[$k]}"
+	done
+    }
+    #print_entire_array source_devs_avail
+
+
+    ## loop through mapper_source keys (vlt_mappers)
+    ## and remove sources from source_devs_avail
+    ## these sources are already mounted
+    for mapper in "${!mapper_source[@]}"; do
+
+	## get the mapper_source device that is linked to mapper
+	## and remove it from source_devs_avail
+        target_source_dev="${mapper_source[$mapper]}"
+
+	for (( i=0; i<=${#source_devs_avail[*]}; i++ )); do
+
+	    sda_name="$(printf "%s\n" "${source_devs_avail[$i]}" | cut -d ' ' -f 1)"
+
+	    if [[ "$sda_name" == "$target_source_dev" ]]; then
+
+		unset 'source_devs_avail[i]'
+
+		# remove the gap
+		for i in "${!source_devs_avail[@]}"; do
+
+		    new_array+=( "${source_devs_avail[i]}" )
+
+		done
+
+		source_devs_avail=("${new_array[@]}")
+		unset new_array
 
 	    fi
 
-	fi
+	done
+
+    done
+
 
     if [[ -z $source_devs_avail ]] && [[ -z $mps_avail ]]; then
 
@@ -144,7 +219,16 @@ get_source_devs() {
 }
 
 
+refresh_mps_avail() {
+
+    unset common_mps
+    unset mps_avail
+    get_mps_mount
+}
+
+
 mount_to_select_param() {
+
     # choose mountpoint
     local fzf_input=$(printf '%s\n' "${mps_avail[@]}")
     local fzf_prompt="mountpoint: $line"
@@ -157,7 +241,9 @@ mount_to_select_param() {
 
 devs_and_mps_param() {
     # choose devices (mount) and or mountpoints (umount)
-    local fzf_input="$source_devs_avail\n$mps_umount"
+    local fzf_input="$(printf "%s\n" "${source_devs_avail[@]}")\n"$mps_umount
+    #local fzf_input="$(printf "%s\n" "${source_devs_avail[@]}") && $(printf "$mps_umount")"
+    #local fzf_input="$source_devs_avail\n$mps_umount"
     local fzf_prompt='(u)mount'
     local fzf_options='--height=20%'
 
@@ -168,14 +254,15 @@ devs_and_mps_param() {
 
 fzf_choose() {
 
-    fzf_select=$(printf "$fzf_input" | fzf -m --header="${BOLD}source device						mountpoint${NORMAL}" --prompt="$fzf_prompt " $fzf_options)
-    #fzf_select=$(printf "$fzf_input" | fzf -m --prompt="$fzf_prompt " $fzf_options)
+    fzf_select=$(printf "$fzf_input" | fzf -m --header="${BOLD}source device			      mountpoint${NORMAL}" --prompt="$fzf_prompt " $fzf_options)
 
     # no choice: print available source devices and umountable mountpoints
     case $fzf_select in
 
 	'')
-	    printf "${BOLD}source device\t\t\t\t\t\tmountpoint${NORMAL}\n$source_devs_avail\n$mps_umount\n"
+	    printf "\n${BOLD}source device\t\t\t\tmountpoint${NORMAL}\n" && \
+		printf "%s\n" "${source_devs_avail[@]}" && \
+		printf "$mps_umount\n"
 	    exit 0
 	    ;;
 
@@ -193,7 +280,7 @@ umount_info() {
 
     local size=$(printf "$line" | awk '{print $2}')
     local label=$(printf "$line" | awk '{print $3}')
-    local source_dev=$(printf "$line" | awk '{print $4}')
+    local source_dev=$(printf "$line" | awk '{print $1}')
     local type=$(\lsblk -nrp -o "name,type" | grep $source_dev | awk '{print $2}')
 
     printf "$source_dev $type $size $label  umounted from ${BLUE}$mountpoint${NOC}\n"
@@ -212,7 +299,8 @@ dev_is_luks() {
 
 dev_is_mountpoint()
 {
-    mountpoint -q $line_ff >/dev/null 2>&1
+    local mountpoint=$(printf "$line" | awk '{print $4}')
+    mountpoint -q $mountpoint >/dev/null 2>&1
 }
 
 
@@ -266,8 +354,8 @@ process_devs_and_mps() {
     while IFS= read -r -u 4 line; do
 
 	# check if mountpoint
-	# ff is first field
-	line_ff=$(printf "$line" | awk '{print $1}')
+	#line_ff=$(printf "$line" | awk '{print $1}')
+	#line_ff=$(printf "$line" | awk '{print $4}')
 
 	dev_is_vlt_pass
 	dev_is_mountpoint
@@ -277,7 +365,7 @@ process_devs_and_mps() {
 	    0)
 		action='umount'
 
-		mountpoint=$line_ff
+		mountpoint=$(printf "$line" | awk '{print $4}')
 
 		validity_check
 
@@ -298,7 +386,7 @@ process_devs_and_mps() {
 	    *)
 		action='mount'
 
-		device=$line_ff
+		device=$(printf "$line" | awk '{print $1}')
 
 		## get location to mount to
 		mount_to_select_param
@@ -317,6 +405,9 @@ process_devs_and_mps() {
 			mount_info
 			;;
     	    	esac
+
+	        refresh_mps_avail
+
 		;;
 
 	esac
@@ -327,7 +418,7 @@ process_devs_and_mps() {
 
 
 dev_is_vlt_pass() {
-    if [[ $(printf "$line_ff" | grep "$crypto_source") ]]; then
+    if [[ $(printf "$line" | grep "$crypto_source") ]]; then
 
 	pass_mount=$(readlink $password_store_lnk)
 	[[ -d $pass_mount ]] || mkdir -p $pass_mount
