@@ -87,11 +87,15 @@ get_mps_umount() {
 
     ## umountable mountpoints
     mps_umount=$(findmnt --list -o SOURCE,SIZE,LABEL,TARGET | \
-	grep -e '/dev/sd' -e '/dev/mapper/vlt_' | sort)
+	grep -e '/dev/sd' -e '/dev/mmcblk' -e '/dev/mapper/vlt_' | sort)
+    #TODO check: if no label
+    # here the no_label problem arises
+    #printf "DEV \n$mps_umount\n"; exit 255
 }
 
 
 get_source_devs() {
+
     source_devs_avail_list=$(\
 	\lsblk -nrp -o "name,type,size,label,mountpoint" | \
 	## \lsblk prevents an alias causing error:
@@ -104,7 +108,10 @@ get_source_devs() {
 	## size not 0B
 	grep -v 0B | \
 	## not already mounted
+	#TODO check: if no label; $4 added
+	awk 'length($4)==0' | \
 	awk 'length($5)==0'\
+	#awk 'length($5)==0'\
 	)
 
     # save current ifs, change to newline, create array, reset ifs
@@ -211,9 +218,7 @@ get_source_devs() {
 
     if [[ -z $source_devs_avail ]] && [[ -z $mps_avail ]]; then
 
-	printf "${MAGENTA}no mountable source devices detected${NOC}\n"
-	printf "exiting\n"
-	exit 30
+	printf "${MAGENTA}no mountable source devices detected${NOC}\n\n"
 
     fi
 }
@@ -240,10 +245,9 @@ mount_to_select_param() {
 
 
 devs_and_mps_param() {
+
     # choose devices (mount) and or mountpoints (umount)
     local fzf_input="$(printf "%s\n" "${source_devs_avail[@]}")\n"$mps_umount
-    #local fzf_input="$(printf "%s\n" "${source_devs_avail[@]}") && $(printf "$mps_umount")"
-    #local fzf_input="$source_devs_avail\n$mps_umount"
     local fzf_prompt='(u)mount'
     local fzf_options='--height=20%'
 
@@ -256,7 +260,7 @@ fzf_choose() {
 
     fzf_select=$(printf "$fzf_input" | fzf -m --header="${BOLD}source device			      mountpoint${NORMAL}" --prompt="$fzf_prompt " $fzf_options)
 
-    # no choice: print available source devices and umountable mountpoints
+    # no choice: print status of available source devices and umountable mountpoints
     case $fzf_select in
 
 	'')
@@ -272,18 +276,19 @@ fzf_choose() {
 
 mount_info() {
 
-    printf "$line mounted to ${BLUE}$mount_to${NOC}\n"
+    printf "$source_dev $dev_type $size $label mounted to ${BLUE}$mount_to${NOC}\n"
+    #printf "$line mounted to ${BLUE}$mount_to${NOC}\n"
 }
 
 
 umount_info() {
 
-    local size=$(printf "$line" | awk '{print $2}')
-    local label=$(printf "$line" | awk '{print $3}')
-    local source_dev=$(printf "$line" | awk '{print $1}')
-    local type=$(\lsblk -nrp -o "name,type" | grep $source_dev | awk '{print $2}')
+    #local source_dev=$(printf "$line" | awk '{print $1}')
+    #local size=$(printf "$line" | awk '{print $2}')
+    #local label=$(printf "$line" | awk '{print $3}')
+    #local type=$(\lsblk -nrp -o "name,type" | grep $source_dev | awk '{print $2}')
 
-    printf "$source_dev $type $size $label  umounted from ${BLUE}$mountpoint${NOC}\n"
+    printf "$source_dev $dev_type $size $label umounted from ${BLUE}$mountpoint${NOC}\n"
 }
 
 
@@ -299,12 +304,32 @@ dev_is_luks() {
 
 dev_is_mountpoint()
 {
-    local mountpoint=$(printf "$line" | awk '{print $4}')
+    source_dev=$(printf "$line" | awk '{print $1}')
+    size=$(printf "$line" | awk '{print $2}')
+    label=$(printf "$line" | awk '{print $3}')
+    dev_type=$(\lsblk -nrp -o "name,type" | grep $source_dev | awk '{print $2}')
+    mountpoint=$(printf "$line" | awk '{print $NF}')
+
+    #TODO check: if no label
+    if [[ "$label" == "$mountpoint" ]]; then
+
+	label='noLBL'
+
+    fi
+
+    if [[ "$size" == "$dev_type" ]]; then
+
+	size=$(printf "$line" | awk '{print $3}')
+
+    fi
+
     mountpoint -q $mountpoint >/dev/null 2>&1
+
 }
 
 
 validity_check() {
+
     case $action in
 
         mount)
@@ -365,7 +390,7 @@ process_devs_and_mps() {
 	    0)
 		action='umount'
 
-		mountpoint=$(printf "$line" | awk '{print $4}')
+		#mountpoint=$(printf "$line" | awk '{print $4}')
 
 		validity_check
 
@@ -418,6 +443,7 @@ process_devs_and_mps() {
 
 
 dev_is_vlt_pass() {
+
     if [[ $(printf "$line" | grep "$crypto_source") ]]; then
 
 	pass_mount=$(readlink $password_store_lnk)
@@ -433,6 +459,7 @@ dev_is_vlt_pass() {
 
 
 main() {
+
     text_appearance
     get_sudo
 
