@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-## usage:	chln [directory]
+## usage:	chln [non-default target directory]
 
 : '
 change symlinks $HOME to other $USER
@@ -14,13 +14,18 @@ when it is moved to another $USER
 ## non-default target
 target="$1"
 
+
+# designate target
+
 if [[ -z "$target" ]]; then
 
-	target="$XDG_CONFIG_HOME/shln"
+    ## default target
+    target="$XDG_CONFIG_HOME/shln"
 
 else
 
-	:
+    ## non-default target
+    :
 
 fi
 

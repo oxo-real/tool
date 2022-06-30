@@ -115,7 +115,7 @@ get_source_devs() {
     # save current ifs, change to newline, create array, reset ifs
     ifs_0=$IFS
     IFS=$'\n'
-    source_devs_avail=("$source_devs_avail_list")
+    source_devs_avail=($source_devs_avail_list)
     IFS=$ifs_0
 
 
@@ -174,15 +174,14 @@ get_source_devs() {
 		unset 'source_devs_avail[i]'
 
 		# remove the gap
-		tmp_array=()
 		for i in "${!source_devs_avail[@]}"; do
 
-		    tmp_array+=( "${source_devs_avail[i]}" )
+		    new_array+=( "${source_devs_avail[i]}" )
 
 		done
 
 		source_devs_avail=("${new_array[@]}")
-		unset tmp_array
+		unset new_array
 
 	    fi
 
@@ -194,32 +193,15 @@ get_source_devs() {
     # if no label
     while IFS= read -r -u 4 line; do
 
-	printf "DEV line: $line\n"
-	get_device_data
-	convert_data_no_label
-	dev_has_mountpoint
+	#get_device_data
+	#convert_data_no_label
 
+	dev_is_mountpoint
 	case $? in
-
 	    0)
-		printf "DEV >>> $source_dev is mountpoint indeed\n"
-		element_del=$line
-
-		for line in "${source_devs_avail}"; do
-
-		    # create new array without element_del
-		    [[ "$line" != "$element_del" ]] && tmp_array2+=($line)
-
-		    # reset source_devs_avail
-		    source_devs_avail=()
-		    source_devs_avail=$tmp_array2
-		    unset tmp_array2
-
-		done
-		#unset 'source_devs_avail[line]'
-		#source_devs_avail=( "${source_devs_avail[@]/$source_dev/}" )
+		printf "DEV mp $mountpoint\n"; exit 255
+		unset 'source_devs_avail[line]'
 		;;
-
 	esac
 
     done 4<<< "$source_devs_avail"
@@ -320,18 +302,26 @@ get_device_data() {
 
     # get device data
     source_dev=$(printf "$line" | awk '{print $1}')
-    dev_type=$(\lsblk -nrp -o "name,type" | grep -w $source_dev | awk '{print $2}')
+    dev_type=$(\lsblk -nrp -o "name,type" | grep $source_dev | awk '{print $2}')
     size=$(printf "$line" | awk '{print $3}')
     label=$(printf "$line" | awk '{print $4}')
     mountpoint=$(printf "$line" | awk '{print $NF}')
+    ## get device data
+    #source_dev=$(printf "$line" | awk '{print $1}')
+    #size=$(printf "$line" | awk '{print $2}')
+    #label=$(printf "$line" | awk '{print $3}')
+    #dev_type=$(\lsblk -nrp -o "name,type" | grep $source_dev | awk '{print $2}')
+    #mountpoint=$(printf "$line" | awk '{print $NF}')
 }
 
 
 convert_data_no_label() {
 
-    # if device has no label then correct messed up fields
+    # if no label
 
     ## correct label
+    printf "DEV label: $label\n"
+    printf "DEV mountpoint: $mountpoint\n"
     if [[ "$label" == "$mountpoint" ]]; then
 
 	label='noLBL'
@@ -348,19 +338,17 @@ convert_data_no_label() {
     ## correct mountpoint
     if [[ "$mountpoint" == "$size" ]]; then
 
-	# device has no label and is not mounted
-	mountpoint=''
+	mountpoint=$(printf "$line" | awk '{print $4}')
 
     fi
-		#printf "DEV source_dev: $source_dev\n"
-		#printf "DEV dev_type: $dev_type\n"
-		#printf "DEV size: $size\n"
-		#printf "DEV label: $label\n"
-		#printf "DEV mountpoint: $mountpoint\n"
 }
 
 
-dev_has_mountpoint() {
+dev_is_mountpoint() {
+
+    # if no label
+    get_device_data
+    convert_data_no_label
 
     mountpoint -q $mountpoint >/dev/null 2>&1
 }
@@ -421,9 +409,7 @@ process_devs_and_mps() {
 	#line_ff=$(printf "$line" | awk '{print $4}')
 
 	dev_is_vlt_pass
-	get_device_data
-	convert_data_no_label
-	dev_has_mountpoint
+	dev_is_mountpoint
 
 	case $? in
 

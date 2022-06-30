@@ -22,11 +22,11 @@
 ### # examples
 ###
 ### ## backup
-### syncr /home/cytopyge/dock/transfer/tux/home/cytopyge \
+### syncr $HOME/dock/transfer/tux/home/cytopyge \
 ###	    --dry-run --links --delete
 ###
 ### ## archive
-### syncr /home/cytopyge/dock/transfer/tux/home/cytopyge \
+### syncr $HOME/dock/transfer/tux/home/cytopyge \
 ###	    --dry-run --links
 ##
 #

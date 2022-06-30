@@ -7,13 +7,12 @@
 ### | | | | (_) \__ \ |_\__ \   | |_) | | (_) | (__|   <| | \__ \ |_
 ### |_| |_|\___/|___/\__|___/___|_.__/|_|\___/ \___|_|\_\_|_|___/\__|
 ###                        |_____|
-###  _ _|_ _ ._    _  _
-### (_\/|_(_)|_)\/(_|(/_
-###   /      |  /  _|
+###  _    _
+### (_)><(_)
 ###
 ### hosts_blocklist
 ### update dns hosts_blocklist
-### copyright (c) 2019 - 2022  |  cytopyge
+### copyright (c) 2019 - 2022  |  oxo
 ###
 ### GNU GPLv3 GENERAL PUBLIC LICENSE
 ### This program is free software: you can redistribute it and/or modify
@@ -30,7 +29,7 @@
 ### along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ### https://www.gnu.org/licenses/gpl-3.0.txt
 ###
-### y3l0b3b5z2u=:matrix.org @cytopyge@mastodon.social
+### @oxo@qoto.org
 ###
 ##
 #
@@ -52,7 +51,7 @@
 
 ## script
 script_name='update_dns_hosts_blocklist'
-developer='cytopyge'
+developer='oxo'
 license='gplv3'
 initial_release='2019'
 
@@ -80,10 +79,11 @@ create_git_repo()
 	## copy original etc/hosts to branch blocklist_off
 	git checkout blocklist_off
 	[[ -f /etc/hosts ]] && sudo cp /etc/hosts .
+	chown $USER:$GROUP hosts
 	git add .
 	git commit -m "$(date +%Y%m%d_%H%M%S)_created branch blocklist_off"
 
-	## create branch blocklist_on ...
+	## create branch blocklist_on
 	git branch blocklist_on
 	git checkout blocklist_on
 	git add .
