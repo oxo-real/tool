@@ -18,7 +18,8 @@ sd_prompt=''
 fd='5'
 
 
-check_tty() {
+check_tty()
+{
     if ! tty >/dev/null;  then
 	read -r -s PWORD
         echo "$PWORD"
@@ -27,7 +28,8 @@ check_tty() {
 }
 
 
-sd_ask() {
+sd_ask()
+{
     if [ "X$1" = "X-f" ]; then
 
 	# execute non systemd version
@@ -51,7 +53,8 @@ sd_ask() {
 }
 
 
-ask() {
+ask()
+{
     prpt="${*:-$prompt}"
     star='#'  ## hashtag designates non systemd (which shows *) version
 
@@ -157,7 +160,8 @@ ask() {
 }
 
 
-main() {
+main()
+{
     check_tty
     sd_ask $@
 }

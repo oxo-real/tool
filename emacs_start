@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-daemon_active=$(ls /run/user/1000/emacs | wc -l)
+daemon_active=$(ls /run/user/1000/emacs >/dev/null 2>&1 | wc -l)
 
 case $daemon_active in
 
@@ -9,10 +9,10 @@ case $daemon_active in
 	emacs --daemon
 	emacsclient -t "$@"
 	;;
-    
+
     *)
 	# a deamon is active
 	emacsclient -t "$@"
 	;;
-	  
+
 esac
