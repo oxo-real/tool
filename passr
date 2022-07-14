@@ -187,7 +187,7 @@ unlock: password
 peacto: iloveyou
 comments: important
 
-otp-strings can be stored into otp_mail_john.gpg
+otp-strings can be stored i.e.: otp_mail_john.gpg
 '
 
 
@@ -249,9 +249,14 @@ get_object() {
 	    pass_search
 	    ;;
 
-	## specific element given as object
-	## i.e.: 'passr url object' also works
-	## therefore below are forbidden object names!
+
+	# specific element given as object
+
+	## case: the user reverses the primarily intended order
+	## which is: $object and then $element
+	## with this i.e. 'passr url $object' also works
+	## as a result below are forbidden object names
+	## which are checked when creating new objects
 	url | \
 	userid | \
 	password | \
@@ -271,25 +276,30 @@ get_object() {
 	    case $mp_status in
 
 		0)
+		    # pass_vlt not mounted
 		    object='login'
 		    pass_mount
 		    ;;
 
 		$store)
+		    # pass_vlt already mounted
 		    get_cache_status
 
 		    case $cache_status in
 
 			0)
+			    # no gpg_agent cache; need to login
 			    log_in
-			    get_object
+
+			    [[ -n $object ]] && get_object
 			    ;;
 
 			1)
-
+			    # have gpg_agent cache; no need to login
 			    case $object in
 
 				'')
+				    # no object arg given; fzf prompt for it
 				    object=$(find -L $store_l -type f -iname '*.gpg' | \
 			   	         # with sed we remove the leading path of $store_l
 			   	         # internal field separator is '|'
@@ -324,6 +334,34 @@ element_as_object() {
     [[ $arg_element == 'pw' ]] && arg_element='password'
 
     get_object
+}
+
+
+check_new_obj_names()
+{
+    declare -a prohibited_oject_names=( \
+	url \
+	userid \
+	password \
+	pw \
+	otp \
+	unlock \
+	peacto \
+	autoentry \
+	show \
+	copy \
+	)
+
+    for prohibited_name in "${prohibited_oject_names[@]}"; do
+
+	if [[ $object == $prohibited_name ]];then
+
+	    printf "${MAGENTA}$object${NOC} object name prohibited\n"
+	    exit 55
+
+	fi
+
+    done
 }
 
 
@@ -477,8 +515,8 @@ get_mountpoint_status() {
 }
 
 
-get_cache_status() {
-
+get_cache_status()
+{
     # 1 | 0 (no cache)
     cache_status=$(gpg-connect-agent 'keyinfo --list' /bye 2>/dev/null | \
 	awk 'BEGIN{CACHED=0} /^S/ {if($7==1){CACHED=1}} END\
@@ -629,6 +667,7 @@ process_object() {
 	case $arg_object in
 
 	    new | n)
+		check_new_obj_names
 		continue
 		;;
 

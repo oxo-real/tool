@@ -829,8 +829,7 @@ check_no_confirm() {
 	if printf "$reply" | grep -iq "^n"; then
 
 	    confirmation="negative"
-	    echo
-	    printf "${MAGENTA}$action $target aborted by user${NOC}\n"
+	    printf "${MAGENTA}aborted${NOC} by user\n"
 
 	else
 

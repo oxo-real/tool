@@ -1,0 +1,18 @@
+#!/usr/bin/env sh
+
+daemon_active=$(ls /run/user/1000/emacs | wc -l)
+
+case $daemon_active in
+
+    0)
+	# no deamon active
+	emacs --daemon
+	emacsclient -t "$@"
+	;;
+    
+    *)
+	# a deamon is active
+	emacsclient -t "$@"
+	;;
+	  
+esac

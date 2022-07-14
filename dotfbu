@@ -14,8 +14,8 @@
 ###	usage:	dotbu backup  [<bu_src> <bu_dest>]
 ###		dotbu restore [<rs_src> <rs_dest>]
 ###
-###	i.e.:	dotbu backup $XDG_CONFIG_HOME $XDG_DATA_HOME/c/git/dotfbu
-###		dotbu restore $XDG_DATA_HOME/c/git/dotfbu $XDG_CONFIG_HOME
+###	i.e.:	dotbu backup $XDG_CONFIG_HOME $XDG_DATA_HOME/c/git/dotf
+###		dotbu restore $XDG_DATA_HOME/c/git/dotf $XDG_CONFIG_HOME
 ##
 #
 
@@ -43,7 +43,8 @@ src=$2		# source directory
 dest=$3		# destination directory
 
 
-sourcing() {
+sourcing()
+{
     # external code sources
     source_dir="$XDG_DATA_HOME/c/git/code/source/function"
     source $source_dir/reply_functions
@@ -53,17 +54,16 @@ sourcing() {
 }
 
 
-initialize() {
+initialize()
+{
     # initializing variables
 
     ## not all of .config has to be uploaded to the public repository;
-    ## only the customized files
-    ## files that are not to be published
-    ## are mentioned in the file process list (fpcl)
-    ## their lines start with '# '
-
-    ## files / directories to en-/decrypt
-    ## their lines start with 'c '
+    ## only customized files are mentioned in the file process list (fpcl)
+    ##
+    ## lines starting with:
+    ##	'#'	are skipped and not published
+    ##	'c '	are en-/decrypted
 
     case $mode in
 
@@ -93,7 +93,8 @@ initialize() {
 }
 
 
-validate_source() {
+validate_source()
+{
     # directory validity check
     if [[ -z $src ]]; then
 
@@ -120,7 +121,8 @@ validate_source() {
 }
 
 
-validate_destination() {
+validate_destination()
+{
     if [[ -z $dest ]]; then
 
 	# source is given, destination is empty
@@ -232,8 +234,9 @@ validate_destination() {
 
     esac
 
-    # empty $dest
+    # no empty $dest
     if [[ ! -z $(ls -A $dest 2>/dev/null) ]]; then
+
 	printf "${YELLOW}destination${NOC} directory is ${BOLD}NOT${NORMAL} empty${NOC}\n\n"
 
 	printf "destroy $dest? (y/n) "
@@ -242,8 +245,10 @@ validate_destination() {
 
 	if printf "$reply" | grep -iq "^n"; then
 
+	    # 'n' entered
 	    echo
-	    printf "starting $mode operation ${YELLOW}CAUTION!${NOC} without destroying $dest\n"
+	    printf "starting $mode operation\n${YELLOW}CAUTION!${NOC} without destroying $dest\n"
+	    sleep 5
 
 	elif printf "$reply" | grep -iq "^y"; then
 
@@ -260,17 +265,20 @@ validate_destination() {
 	    case $location_git_status in
 
 		0)
-		    # git repo
+		    # dest is git repo
 		    cd $dest
+
 		    ## delete upstream
 		    # TODO hardcoded, make .git/config the data source
-		    git push origin --delete main
+		    git remote remove origin
+		    #git push origin --delete main
+
 		    cd -
 		    ;;
 
 	    esac
 
-	    printf "DEV $dest $location_git_status"; exit 255
+	    #printf "DEV $dest $location_git_status"; exit 255
 	    ## remove local
 	    rm -rf $dest >/dev/null 2>&1
 
@@ -278,6 +286,7 @@ validate_destination() {
 
 	else
 
+	    # no 'n' or 'y' entered
 	    printf "operation ${MAGENTA}aborted${NOC}, exiting, bye!\n"
 	    exit 23
 
@@ -304,7 +313,8 @@ validate_destination() {
 }
 
 
-create_lists() {
+create_lists()
+{
     case $mode in
 
 	# only backup
@@ -364,7 +374,8 @@ create_lists() {
 }
 
 
-copy() {
+copy()
+{
     case $mode in
 
 	backup)
@@ -389,7 +400,8 @@ copy() {
     esac
 }
 
-report_plain() {
+report_plain()
+{
     case $mode in
 
 	backup)
@@ -417,7 +429,8 @@ report_plain() {
 }
 
 
-modify() {
+modify()
+{
     case $mode in
 
 	backup)
@@ -447,7 +460,8 @@ modify() {
 }
 
 
-crypt() {
+crypt()
+{
     case $mode in
 
 
@@ -759,7 +773,8 @@ crypt() {
 }
 
 
-verify() {
+verify()
+{
     case $mode in
 
 	backup)
@@ -824,8 +839,9 @@ verify() {
 
 	    done < $fpcl_file
 
-	    ## $dest_bu is git repo
-	    location_git_status=$(git -C $dest_bu rev-parse >/dev/null 2>&1; echo $?)
+	    ## $bu_dest is git repo
+	    location_git_status=$(git -C $bu_dest rev-parse >/dev/null 2>&1; echo $?)
+
 	    case $location_git_status in
 
 		0)
@@ -835,7 +851,7 @@ verify() {
 
 		*)
 		    # no git repo
-		    printf "WARNING ${MAGENTA}$dest_bu${NOC} is no git repo.\n"
+		    printf "WARNING! ${MAGENTA}$bu_dest${NOC} is no git repo\n"
 		    printf "git init and remote add? (Y/n)"
 
 		    reply_read_single
@@ -847,25 +863,32 @@ verify() {
 
 		    else
 
-			cd $dest_bu
+			cd $bu_dest
 			git init
 			# TODO hardcoded, make .git/config the data source
 			git remote add origin git@codeberg.org/oxo/dotf.git
 			git push --set-upstream origin main
 
+			read -p 'create remote repo, press Enter when ready '
+
+
+
 		    fi
-
-
 		    ;;
 
 	    esac
 	    ;;
 
+	    ## error: src refspec main does not match any
+	    ## error: failed to push some refs to
+	    ## https://stackoverflow.com/questions/65173291/git-push-error-src-refspec-main-does-not-match-any-on-linux
+
     esac
 }
 
 
-cleanup() {
+cleanup()
+{
     case $mode in
 
 	backup)
@@ -878,7 +901,8 @@ cleanup() {
 }
 
 
-generate_pw() {
+generate_pw()
+{
     echo
 
     printf "starting pwgn... ${YELLOW}A${NOC}bort "
@@ -911,19 +935,22 @@ generate_pw() {
 
 # internal calls
 
-clear_password() {
+clear_password()
+{
     pw=$(< /dev/random tr -d -c "[:xdigit:]" | head -c 64)
     unset pw
 }
 
-destroy() {
+destroy()
+{
     chmod -R 777 $1
     sudo find $1 -depth -type f -exec shred -n 3 --remove=wipesync {} \;
     rm -rf $1
 }
 
 
-main() {
+main()
+{
     sourcing
     initialize
     validate_source
