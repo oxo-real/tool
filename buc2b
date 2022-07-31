@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+src="$XDG_DATA_HOME/c/"
+dst="$XDG_DATA_HOME/b"
+
+sudo chattr -R -i $dst >/dev/null 2>&1 
+rsync -aAXv --delete $src $dst
+sudo chattr -R +i $dst >/dev/null 2>&1  

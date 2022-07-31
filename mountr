@@ -84,13 +84,23 @@ get_mps_mount() {
 
 
 get_mps_umount() {
-
+    
     ## umountable mountpoints
     mps_umount=$(findmnt --list -o SOURCE,SIZE,LABEL,TARGET | \
-	grep -e '/dev/sd' -e '/dev/mmcblk' -e '/dev/mapper/vlt_' | sort)
-    #TODO check: if no label
-    # here the no_label problem arises
-    #printf "DEV \n$mps_umount\n"; exit 255
+	grep -e '/dev/sd' -e '/dev/mmcblk' -e '/dev/mapper/vlt_' | \
+	sort)
+
+    ## add eol to source_devs_avail
+}
+
+
+remove_from_list () {
+    
+    # remove designated lines from source_devs_avail_list
+    # to prevent sed error: 'extra characters after command'
+    # start the sed sting with '\' and use alternative delimiters ':'
+    source_devs_avail_list=$(echo "$source_devs_avail_list" | \
+	grep -v -w "$1")
 }
 
 
@@ -106,13 +116,62 @@ get_source_devs() {
 	## only disks and partitions
 	grep -e disk -e part | \
 	## size not 0B
-	grep -v 0B | \
-	## not already mounted
-	awk 'length($5)==0'\
-	)
+	grep -v 0B)
+    
 
+    # correct for mounted devices in the list
+    
+    while IFS= read -r line; do
+
+	field5=$(echo "$line" | cut -d ' ' -f 5)
+	current_device=$(echo "$line" | cut -d ' ' -f 1)
+
+	mountpoint $field5 &> /dev/null
+
+	if [[ $? == 0 ]]; then
+		
+	    # field5 is a mountpoint
+	    # device is mounted
+	    # remove current line from source_devs_avail_list
+	    remove_from_list $current_device
+
+	fi
+    
+    done <<< "$source_devs_avail_list"
+
+    
+    # devices that have partitions must not show device path itself
+    
+    while IFS= read -r line; do
+
+	## check if device type is disk
+	## get device type from field2
+	field2=$(echo "$line" | cut -d ' ' -f 2)
+	
+	case $field2 in
+
+	    disk)
+		## device type is 'disk'
+		## number of lines that contain device path
+		current_device=$(echo "$line" | cut -d ' ' -f 1)
+		number_of_lines_contain_device=$(echo "$source_devs_avail_list" | grep "$field1" | wc -l)
+
+		if [[ $number_of_lines_contain_device -gt 1 ]]; then
+		    
+		    ## there exists i.e. a /dev/sda and a /dev/sda1
+		    ## current device (line) is /dev/sda (disk)
+		    ## so that can be removed from the list
+		    remove_from_list $current_device
+
+		fi
+		;;
+
+	esac
+
+    done <<< "$source_devs_avail_list"
 
     # save current ifs, change to newline, create array, reset ifs
+
     ifs_0=$IFS
     IFS=$'\n'
     source_devs_avail=("$source_devs_avail_list")
@@ -144,16 +203,6 @@ get_source_devs() {
 	mapper_source["$vlt_mapper"]="$source_dev"
 
     done
-
-
-    #DEV
-    print_entire_array() {
-	declare -n __p="$1"
-	for k in "${!__p[@]}"; do
-	    printf "%s=%s\n" "$k" "${__p[$k]}"
-	done
-    }
-    #print_entire_array source_devs_avail
 
 
     ## loop through mapper_source keys (vlt_mappers)
@@ -191,24 +240,24 @@ get_source_devs() {
     done
 
 
-    # if no label
     while IFS= read -r -u 4 line; do
 
-	printf "DEV line: $line\n"
 	get_device_data
 	convert_data_no_label
+	
 	dev_has_mountpoint
 
+	# remove device from array
 	case $? in
 
 	    0)
-		printf "DEV >>> $source_dev is mountpoint indeed\n"
 		element_del=$line
 
 		for line in "${source_devs_avail}"; do
 
 		    # create new array without element_del
-		    [[ "$line" != "$element_del" ]] && tmp_array2+=($line)
+		    [[ "$line" != "$element_del" ]] && \
+			tmp_array2+=($line)
 
 		    # reset source_devs_avail
 		    source_devs_avail=()
@@ -216,23 +265,33 @@ get_source_devs() {
 		    unset tmp_array2
 
 		done
-		#unset 'source_devs_avail[line]'
-		#source_devs_avail=( "${source_devs_avail[@]/$source_dev/}" )
 		;;
 
 	esac
 
     done 4<<< "$source_devs_avail"
 
-    #printf "DEV\nsrc:$source_dev\nsze:$size\nlbl:$label\ntyp:$dev_type\nmpt:$mountpoint\n"; exit 255
-    #printf "DEV\n$source_devs_avail\n"; exit 255
-
-
+    # TODO if all is empty then exit
+    # check queriing array source_devs_avail
     if [[ -z $source_devs_avail ]] && [[ -z $mps_avail ]]; then
 
-	printf "${MAGENTA}no mountable source devices detected${NOC}\n\n"
+	printf "${BLUE}no mountable source devices detected${NOC}\n"
 
     fi
+}
+
+    
+print_source_devs_avail()
+{
+    #DEV
+    printf "DEV source_devs_avail:\n"
+    print_entire_array() {
+       declare -n __p="$1"
+    	for k in "${!__p[@]}"; do
+    	    printf "%s=%s\n" "$k" "${__p[$k]}"
+       done
+       }
+    print_entire_array source_devs_avail
 }
 
 
@@ -259,7 +318,17 @@ mount_to_select_param() {
 devs_and_mps_param() {
 
     # choose devices (mount) and or mountpoints (umount)
-    local fzf_input="$(printf "%s\n" "${source_devs_avail[@]}")\n"$mps_umount
+    
+    local fzf_input="$(printf "%s\n%s" "${source_devs_avail[@]}" "$mps_umount")"
+
+    # for aesthetic reasons; remove empty line in fzf_input
+    # TODO find a better way to do this
+    if [[ -z "${source_devs_avail[@]}" ]]; then
+
+	local fzf_input="$(printf "%s%s" "${source_devs_avail[@]}" "$mps_umount")"
+
+    fi
+    
     local fzf_prompt='(u)mount'
     local fzf_options='--height=20%'
 
@@ -276,9 +345,19 @@ fzf_choose() {
     case $fzf_select in
 
 	'')
-	    printf "\n${BOLD}source device\t\t\t\tmountpoint${NORMAL}\n" && \
-		printf "%s\n" "${source_devs_avail[@]}" && \
-		printf "$mps_umount\n"
+
+	    printf "${BOLD}source device\t\t\t\tmountpoint${NORMAL}\n"
+		
+	    # for aesthetic reasons; avoid empty line 
+	    # TODO find a better way to do this
+	    if [[ -n "${source_devs_avail[@]}" ]]; then
+
+		printf "%s\n" "${source_devs_avail[@]}"
+		
+	    fi
+	    
+	    printf "$mps_umount\n"
+
 	    exit 0
 	    ;;
 
@@ -289,16 +368,10 @@ fzf_choose() {
 mount_info() {
 
     printf "$source_dev $dev_type $size $label mounted to ${BLUE}$mount_to${NOC}\n"
-    #printf "$line mounted to ${BLUE}$mount_to${NOC}\n"
 }
 
 
 umount_info() {
-
-    #local source_dev=$(printf "$line" | awk '{print $1}')
-    #local size=$(printf "$line" | awk '{print $2}')
-    #local label=$(printf "$line" | awk '{print $3}')
-    #local type=$(\lsblk -nrp -o "name,type" | grep $source_dev | awk '{print $2}')
 
     printf "$source_dev $dev_type $size $label umounted from ${BLUE}$mountpoint${NOC}\n"
 }
@@ -318,18 +391,25 @@ dev_is_luks() {
 
 get_device_data() {
 
-    # get device data
-    source_dev=$(printf "$line" | awk '{print $1}')
-    dev_type=$(\lsblk -nrp -o "name,type" | grep -w $source_dev | awk '{print $2}')
-    size=$(printf "$line" | awk '{print $3}')
-    label=$(printf "$line" | awk '{print $4}')
+    source_dev=$(printf "$line" | cut -d ' ' -f 1)
+    dev_type=$(\lsblk -nrp -o "name,type" | grep -w "$source_dev" | cut -d ' ' -f 2)
+    size=$(printf "$line" | cut -d ' ' -f 3)
+    label=$(printf "$line" | cut -d ' ' -f 4)
+
+    # CAUTION!
+    ## when coming from findmnt:
+    ## if dev has no label: label contains mountpoint
+
     mountpoint=$(printf "$line" | awk '{print $NF}')
 }
 
 
 convert_data_no_label() {
 
-    # if device has no label then correct messed up fields
+    # CAUTION!
+    ## when coming from findmnt:
+    ## if dev has no label: label contains mountpoint
+    ## correct messed up fields here
 
     ## correct label
     if [[ "$label" == "$mountpoint" ]]; then
@@ -338,31 +418,26 @@ convert_data_no_label() {
 
     fi
 
-    ## correct size
-    if [[ "$size" == "$dev_type" ]]; then
+    # ## correct size
+    # if [[ "$size" == "$dev_type" ]]; then
 
-	size=$(printf "$line" | awk '{print $3}')
+    # 	size=$(printf "$line" | awk '{print $3}')
 
-    fi
+    # fi
 
-    ## correct mountpoint
-    if [[ "$mountpoint" == "$size" ]]; then
+    # ## correct mountpoint
+    # if [[ "$mountpoint" == "$size" ]]; then
 
-	# device has no label and is not mounted
-	mountpoint=''
+    # 	# device has no label and is not mounted
+    # 	mountpoint=''
 
-    fi
-		#printf "DEV source_dev: $source_dev\n"
-		#printf "DEV dev_type: $dev_type\n"
-		#printf "DEV size: $size\n"
-		#printf "DEV label: $label\n"
-		#printf "DEV mountpoint: $mountpoint\n"
+    # fi
 }
 
 
 dev_has_mountpoint() {
 
-    mountpoint -q $mountpoint >/dev/null 2>&1
+    mountpoint -q $mountpoint &> /dev/null
 }
 
 
@@ -414,23 +489,20 @@ validity_check() {
 
 
 process_devs_and_mps() {
-    while IFS= read -r -u 4 line; do
 
-	# check if mountpoint
-	#line_ff=$(printf "$line" | awk '{print $1}')
-	#line_ff=$(printf "$line" | awk '{print $4}')
+    # processing fzf selection
+    while IFS= read -r -u 4 line; do
 
 	dev_is_vlt_pass
 	get_device_data
 	convert_data_no_label
+	
 	dev_has_mountpoint
 
 	case $? in
 
 	    0)
 		action='umount'
-
-		#mountpoint=$(printf "$line" | awk '{print $4}')
 
 		validity_check
 
@@ -478,7 +550,6 @@ process_devs_and_mps() {
 	esac
 
     done 4<<< "$devs_and_mps"
-
 }
 
 
@@ -494,7 +565,6 @@ dev_is_vlt_pass() {
 	exit 0
 
     fi
-
 }
 
 
@@ -504,6 +574,7 @@ main() {
     get_sudo
 
     get_source_devs
+    #print_source_devs_avail
     get_mps_umount
     get_mps_mount
     devs_and_mps_param

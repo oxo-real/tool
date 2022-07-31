@@ -57,7 +57,7 @@
 % passr close
 % passr c
 
-% passr persist
+% passr persistent
 % passr p
 
 ## data extraction
@@ -103,14 +103,11 @@ license='gplv3'
 initial_release='2020'
 
 ## arguments
-### static variables
-#### these do not change throughout script session
 args=$@
-arg_object=$1
-arg_element=$2
-### dynamic variables
-object="$arg_object"
-element="$arg_element"
+object=$1
+element=$2
+arg_object="$object"
+arg_element="$element"
 
 ## .password-store
 
@@ -203,6 +200,8 @@ otp-strings can be stored i.e.: otp_mail_john.gpg
 get_object() {
 
     # passr $object $element
+    object=$arg_object
+    element=$arg_element
 
     case $object in
 
@@ -241,12 +240,6 @@ get_object() {
 	    object='close'
 	    log_out
 	    close
-	    ;;
-
-	persist | p)
-	    mode='persist'
-	    object=''
-	    change_menu
 	    ;;
 
 	grep | g)
@@ -630,6 +623,7 @@ generate_pw() {
 
     erase_line
 
+    #[DEV] process_reply $reply
     if printf "$reply" | grep -iq "^a"; then
 
     	continue
@@ -660,8 +654,7 @@ process_object() {
 
     if [[ $obj_exist -eq 1 ]]; then
 
-	case $object in
-	#case $arg_object in
+	case $arg_object in
 
 	    new | n)
 		printf "object ${MAGENTA}$object${NOC} exists\n"; exit 47
@@ -674,44 +667,25 @@ process_object() {
 
     else
 
-	if [[ "$mode" == "persist" ]]; then
+	case $arg_object in
 
-	    case $object in
+	    new | n)
+		check_new_obj_names
+		continue
+		;;
 
-		q | quit)
-		    printf "passr exit persistent state\n"
-		    exit 0
+	    '')
+		exit 0
+		;;
 
-	    esac
+	    *)
+        	printf "${MAGENTA}$arg_object${NOC} not found\n"
+		arg_object=''
+		get_object
+		;;
 
-	    get_object
+	esac
 
-	#esac
-	else
-
-	    case $object in
-		#case $arg_object in
-
-		new | n)
-		    check_new_obj_names
-		    continue
-		    ;;
-
-		'')
-		    exit 60
-		    ;;
-
-		*)
-        	    printf "${MAGENTA}$object${NOC} not found\n"
-        	    #printf "${MAGENTA}$arg_object${NOC} not found\n"
-		    #arg_object=''
-		    get_object
-		    ;;
-
-	    esac
-
-	fi
-	
     fi
 
     # otp object
@@ -957,25 +931,20 @@ process_element() {
 	    pass_element
 	    ;;
 
-    	copy)
-	    get_object_name
-	    human_info
+    	new)
+	    element='new'
+	    pass_new
 	    ;;
-
     	edit)
 	    element='edit'
 	    pass_element
 	    ;;
 
-    	new)
-	    element='new'
-	    pass_new
+    	copy)
+	    get_object_name
+	    human_info
 	    ;;
 
-	quit)
-	    exit 0
-	    ;;
-	
     	log_out)
 	    log_out
 	    ;;
@@ -987,40 +956,9 @@ process_element() {
     	*)
 	    get_element_value
 	    human_info
-	    #check_mode
 	    ;;
 
     esac
-
-}
-
-
-check_mode()
-{
-    # persist mode
-    ## reopen the menu
-    case $mode in
-
-	persist)
-	    # reset object and element
-	    object="$arg_object"
-	    element=''
-
-	    main
-	    ;;
-
-    esac
-}
-
-	    
-change_menu()
-{
-    # change menu item 'cancel' to 'quit'
-    for i in "${!element_menu[@]}"; do
-	if [[ ${element_menu[$i]} == "ESC cancel" ]]; then
-	    element_menu[$i]="Q quit"
-	fi
-    done
 }
 
 
@@ -1030,7 +968,6 @@ main() {
     process_object
     get_element
     process_element
-    check_mode
 }
 
 main
