@@ -10,7 +10,7 @@ emacs_active=$(systemctl status --user emacs.service | \
 
 case $emacs_active in
 
-    failed)
+    failed | inactive)
 	systemctl start --user emacs.service
 	;;
 

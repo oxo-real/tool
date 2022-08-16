@@ -70,14 +70,13 @@ config_fpcl()
 
 	## file process list definitions
 	fpcl_file="$XDG_CONFIG_HOME/.fpcl"
-	fpcl_rsync="$dest/.fpcl_rsync"
+	fpcl_rsync=$dest'/.config/.fpcl_rsync'
 
 	# convert fpcl for rsync
 	## create temporary file fpcl_rsync,
 	## based on fpcl_file
 	## (latter is also used in dotbu)
 	sed 's/^c //' $fpcl_file > $fpcl_rsync
-	printf ".fpcl_rsync\n" >> $fpcl_rsync
 
 	local src="$XDG_CONFIG_HOME"
 	local dst="$dest/.config/"
@@ -93,7 +92,7 @@ config_fpcl()
 		$options \
 		$src $dst
 
-	rm -rf $fpcl_rsync
+	#rm -rf $fpcl_rsync
 }
 
 

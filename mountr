@@ -21,6 +21,13 @@
 # dependencies: source functions, vault & fzf
 
 
+# mountr is a bash script to more easily:
+# 1. mount source devices (source_devs_avail)
+#    to commonly used mountpoints (common_mps)
+# and
+# 2. unmount mounted devices (mps_umount)
+# by simply selecting device and/or mountpoint
+
 # initial general definitions
 
 ## initialize hardcoded variables
@@ -49,17 +56,31 @@ get_sudo() {
 get_mps_mount() {
 
     # common mountpoints
-    common_mps+=(\
-	/boot \
-	$HOME/dock/1 \
-	$HOME/dock/2 \
-	$HOME/dock/3 \
-	$HOME/dock/4 \
-	$HOME/dock/transfer \
-	other\
-    )
+    common_mps=(\
+	 /boot \
+	 $HOME/dock/1 \
+	 $HOME/dock/2 \
+	 $HOME/dock/3 \
+	 $HOME/dock/4 \
+	 $HOME/dock/transfer \
+	 $HOME/dock/vlt/pass \
+	 other\
+	 )
+#    common_mps+=(\
+#	 /boot \
+#	 $HOME/dock/1 \
+#	 $HOME/dock/2 \
+#	 $HOME/dock/3 \
+#	 $HOME/dock/4 \
+#	 $HOME/dock/transfer \
+#	 $HOME/dock/vlt/pass \
+#	 other\
+#	 )
 
     # building mps_avail
+    # mps_avail: common_mps available for mounting to
+    mps_avail=()
+
     for mp in "${common_mps[@]}"; do
 
 	# check if mp is already a mountpoint
@@ -74,17 +95,44 @@ get_mps_mount() {
 
 	    *)
 		# mp is an available mountpoint
-		mps_avail+=( $mp )
+		mps_avail+=("$mp")
 		;;
 
 	esac
 
     done
+
+    # mapped vlt's mounted
+    # (not dock/vll/pass, which is already a common_mps)
+    # little bit of a mess SDMB make this better
+    number_vlt_not_vlt_pass=$(mount | grep '/dev/mapper/vlt_' | grep -v 'dock/vlt/pass' | wc -l)
+
+    # if number of elements in mps_avail is the same
+    # as the number of elements in common_mps,
+    # plus number of vlt not vlt pass, then
+    # none of the common_mps is mounted and
+    # no vlt is mounted, therefore
+    # there are no actionable mountpoints
+    number_mounted=`echo - | awk "{print ${#common_mps[@]} - ${#mps_avail[@]}} + $number_vlt_not_vlt_pass"`
+
+    if [[ $number_mounted -eq 0 ]]; then
+
+	printf "${BLUE}no actionable mountpoints${NOC}\n"
+	sleep 1
+
+    fi
+
+    if [[ -z ${source_devs_avail[@]} ]] && \
+	   [[ $number_mounted -eq 0 ]]; then
+
+   	exit 0
+
+    fi
 }
 
 
 get_mps_umount() {
-    
+
     ## umountable mountpoints
     mps_umount=$(findmnt --list -o SOURCE,SIZE,LABEL,TARGET | \
 	grep -e '/dev/sd' -e '/dev/mmcblk' -e '/dev/mapper/vlt_' | \
@@ -95,7 +143,7 @@ get_mps_umount() {
 
 
 remove_from_list () {
-    
+
     # remove designated lines from source_devs_avail_list
     # to prevent sed error: 'extra characters after command'
     # start the sed sting with '\' and use alternative delimiters ':'
@@ -117,10 +165,10 @@ get_source_devs() {
 	grep -e disk -e part | \
 	## size not 0B
 	grep -v 0B)
-    
+
 
     # correct for mounted devices in the list
-    
+
     while IFS= read -r line; do
 
 	field5=$(echo "$line" | cut -d ' ' -f 5)
@@ -129,39 +177,51 @@ get_source_devs() {
 	mountpoint $field5 &> /dev/null
 
 	if [[ $? == 0 ]]; then
-		
+
 	    # field5 is a mountpoint
 	    # device is mounted
 	    # remove current line from source_devs_avail_list
 	    remove_from_list $current_device
 
 	fi
-    
+
     done <<< "$source_devs_avail_list"
 
-    
+
     # devices that have partitions must not show device path itself
-    
+
     while IFS= read -r line; do
 
 	## check if device type is disk
 	## get device type from field2
 	field2=$(echo "$line" | cut -d ' ' -f 2)
-	
+
 	case $field2 in
 
 	    disk)
 		## device type is 'disk'
 		## number of lines that contain device path
 		current_device=$(echo "$line" | cut -d ' ' -f 1)
-		number_of_lines_contain_device=$(echo "$source_devs_avail_list" | grep "$field1" | wc -l)
+		number_of_lines_contain_device=$(echo "$source_devs_avail_list" | grep "$current_device" | wc -l)
 
 		if [[ $number_of_lines_contain_device -gt 1 ]]; then
-		    
+
 		    ## there exists i.e. a /dev/sda and a /dev/sda1
 		    ## current device (line) is /dev/sda (disk)
 		    ## so that can be removed from the list
 		    remove_from_list $current_device
+
+		fi
+
+		# case all partitions are mounted
+		# then also remove current device (unmountable disk)
+		if [[ $number_of_lines_contain_device -eq 1 ]];then
+
+		  if [[ -n $(mount | grep "$current_device") ]]; then
+
+		      remove_from_list $current_device
+
+		  fi
 
 		fi
 		;;
@@ -169,6 +229,7 @@ get_source_devs() {
 	esac
 
     done <<< "$source_devs_avail_list"
+
 
     # save current ifs, change to newline, create array, reset ifs
 
@@ -244,7 +305,7 @@ get_source_devs() {
 
 	get_device_data
 	convert_data_no_label
-	
+
 	dev_has_mountpoint
 
 	# remove device from array
@@ -273,14 +334,15 @@ get_source_devs() {
 
     # TODO if all is empty then exit
     # check queriing array source_devs_avail
-    if [[ -z $source_devs_avail ]] && [[ -z $mps_avail ]]; then
+    if [[ -z ${source_devs_avail[@]} ]]; then
 
-	printf "${BLUE}no mountable source devices detected${NOC}\n"
+	printf "${BLUE}no actionable source devices${NOC}\n"
+	sleep 1
 
     fi
 }
 
-    
+
 print_source_devs_avail()
 {
     #DEV
@@ -318,7 +380,7 @@ mount_to_select_param() {
 devs_and_mps_param() {
 
     # choose devices (mount) and or mountpoints (umount)
-    
+
     local fzf_input="$(printf "%s\n%s" "${source_devs_avail[@]}" "$mps_umount")"
 
     # for aesthetic reasons; remove empty line in fzf_input
@@ -328,7 +390,7 @@ devs_and_mps_param() {
 	local fzf_input="$(printf "%s%s" "${source_devs_avail[@]}" "$mps_umount")"
 
     fi
-    
+
     local fzf_prompt='(u)mount'
     local fzf_options='--height=20%'
 
@@ -347,16 +409,16 @@ fzf_choose() {
 	'')
 
 	    printf "${BOLD}source device\t\t\t\tmountpoint${NORMAL}\n"
-		
-	    # for aesthetic reasons; avoid empty line 
+
+	    # for aesthetic reasons; avoid empty line
 	    # TODO find a better way to do this
 	    if [[ -n "${source_devs_avail[@]}" ]]; then
 
 		printf "%s\n" "${source_devs_avail[@]}"
-		
+
 	    fi
-	    
-	    printf "$mps_umount\n"
+
+	    printf "$mps_umount"
 
 	    exit 0
 	    ;;
@@ -496,7 +558,7 @@ process_devs_and_mps() {
 	dev_is_vlt_pass
 	get_device_data
 	convert_data_no_label
-	
+
 	dev_has_mountpoint
 
 	case $? in

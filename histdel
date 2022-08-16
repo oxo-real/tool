@@ -39,6 +39,7 @@ case $reply in
 		echo
 		echo
 		# remove lines
+		# _TODO spaces in $last_cmd errors with extra characters after command
 		sed -i "/$last_cmd/d" $hist_file
 		printf "%"$l"s %s\n" "lines removed:" "$instances"
 		hist_lines=$(wc -l $hist_file)
