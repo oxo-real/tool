@@ -103,7 +103,7 @@ get_mps_mount() {
     done
 
     # mapped vlt's mounted
-    # (not dock/vll/pass, which is already a common_mps)
+    # (not dock/vlt/pass, which is already a common_mps)
     # little bit of a mess SDMB make this better
     number_vlt_not_vlt_pass=$(mount | grep '/dev/mapper/vlt_' | grep -v 'dock/vlt/pass' | wc -l)
 
@@ -113,7 +113,7 @@ get_mps_mount() {
     # none of the common_mps is mounted and
     # no vlt is mounted, therefore
     # there are no actionable mountpoints
-    number_mounted=`echo - | awk "{print ${#common_mps[@]} - ${#mps_avail[@]}} + $number_vlt_not_vlt_pass"`
+    number_mounted=$(echo | awk "{print ${#common_mps[@]} - ${#mps_avail[@]} + $number_vlt_not_vlt_pass}")
 
     if [[ $number_mounted -eq 0 ]]; then
 
@@ -122,6 +122,7 @@ get_mps_mount() {
 
     fi
 
+    # exit if there are no source devices and no actionable mountpoints
     if [[ -z ${source_devs_avail[@]} ]] && \
 	   [[ $number_mounted -eq 0 ]]; then
 
@@ -154,6 +155,8 @@ remove_from_list () {
 
 get_source_devs() {
 
+    # create a starting point
+
     source_devs_avail_list=$(\
 	\lsblk -nrp -o "name,type,size,label,mountpoint" | \
 	## \lsblk prevents an alias causing error:
@@ -167,9 +170,9 @@ get_source_devs() {
 	grep -v 0B)
 
 
-    # correct for mounted devices in the list
+    # filter out mounted devices from the list
 
-    while IFS= read -r line; do
+    while IFS= read -r -u 9 line; do
 
 	field5=$(echo "$line" | cut -d ' ' -f 5)
 	current_device=$(echo "$line" | cut -d ' ' -f 1)
@@ -185,12 +188,12 @@ get_source_devs() {
 
 	fi
 
-    done <<< "$source_devs_avail_list"
+    done 9<<< "$source_devs_avail_list"
 
 
-    # devices that have partitions must not show device path itself
+    # devices that are partitioned must not show device path itself
 
-    while IFS= read -r line; do
+    while IFS= read -r -u 6 line; do
 
 	## check if device type is disk
 	## get device type from field2
@@ -228,77 +231,39 @@ get_source_devs() {
 
 	esac
 
-    done <<< "$source_devs_avail_list"
+    done 6<<< "$source_devs_avail_list"
 
 
-    # save current ifs, change to newline, create array, reset ifs
+    # remove vlt-mappers from source_devs_avail_list
 
+    ## get vlt_mappers
+    vlt_mappers=()
+
+    while IFS= read -r -u 3 line; do
+
+        vlt_mappers+=("$line")
+
+    done 3<<< $(mount | grep vlt_ | cut -d ' ' -f 1)
+
+    for vlt_mapper in ${vlt_mappers[@]}; do
+
+    	## get mapper data for current vlt_mapper from vault status
+    	vscm=$(vault status $vlt_mapper)
+    	source_dev=$(printf "$vscm" | grep 'crypto source' | awk '{print $3}')
+
+    	## remove source_dev from source_devs_avail_list
+	remove_from_list $source_dev
+
+    done
+
+
+    # create array from list
+
+    ## save current ifs, change ifs to newline, create array, re-set ifs
     ifs_0=$IFS
     IFS=$'\n'
     source_devs_avail=("$source_devs_avail_list")
     IFS=$ifs_0
-
-
-    # remove mounted vlt-mappers from source_devs_avail
-
-    ## get mounted vlt_mappers
-    vlt_mappers=()
-    while IFS= read -r line; do
-
-        vlt_mappers+=("$line")
-
-    done <<< $(mount | grep vlt_ | cut -d ' ' -f 1)
-
-    ## create mapper_source associative array (vlt_mapper=source_dev)
-    declare -A mapper_source
-
-    for vlt_mapper in ${vlt_mappers[@]}; do
-
-	## get mapper data for current vlt_mapper from vault status
-	vscm=$(vault status $vlt_mapper)
-	source_dev=$(printf "$vscm" | grep 'crypto source' | awk '{print $3}')
-
-	## add vlt_mapper source_dev to mapper_source associative array
-	## key: vlt_mapper
-	## value: source_dev
-	mapper_source["$vlt_mapper"]="$source_dev"
-
-    done
-
-
-    ## loop through mapper_source keys (vlt_mappers)
-    ## and remove sources from source_devs_avail
-    ## these sources are already mounted
-    for mapper in "${!mapper_source[@]}"; do
-
-	## get the mapper_source device that is linked to mapper
-	## and remove it from source_devs_avail
-        target_source_dev="${mapper_source[$mapper]}"
-
-	for (( i=0; i<=${#source_devs_avail[*]}; i++ )); do
-
-	    sda_name="$(printf "%s\n" "${source_devs_avail[$i]}" | cut -d ' ' -f 1)"
-
-	    if [[ "$sda_name" == "$target_source_dev" ]]; then
-
-		unset 'source_devs_avail[i]'
-
-		# remove the gap
-		tmp_array=()
-		for i in "${!source_devs_avail[@]}"; do
-
-		    tmp_array+=( "${source_devs_avail[i]}" )
-
-		done
-
-		source_devs_avail=("${new_array[@]}")
-		unset tmp_array
-
-	    fi
-
-	done
-
-    done
 
 
     while IFS= read -r -u 4 line; do
@@ -334,26 +299,12 @@ get_source_devs() {
 
     # TODO if all is empty then exit
     # check queriing array source_devs_avail
-    if [[ -z ${source_devs_avail[@]} ]]; then
+    if [[ -z "${source_devs_avail[@]}" ]]; then
 
 	printf "${BLUE}no actionable source devices${NOC}\n"
 	sleep 1
 
     fi
-}
-
-
-print_source_devs_avail()
-{
-    #DEV
-    printf "DEV source_devs_avail:\n"
-    print_entire_array() {
-       declare -n __p="$1"
-    	for k in "${!__p[@]}"; do
-    	    printf "%s=%s\n" "$k" "${__p[$k]}"
-       done
-       }
-    print_entire_array source_devs_avail
 }
 
 
@@ -553,7 +504,7 @@ validity_check() {
 process_devs_and_mps() {
 
     # processing fzf selection
-    while IFS= read -r -u 4 line; do
+    while IFS= read -r -u 7 line; do
 
 	dev_is_vlt_pass
 	get_device_data
@@ -603,15 +554,15 @@ process_devs_and_mps() {
 			sudo mount $device $mount_to
 			mount_info
 			;;
+
     	    	esac
 
 	        refresh_mps_avail
-
 		;;
 
 	esac
 
-    done 4<<< "$devs_and_mps"
+    done 7<<< "$devs_and_mps"
 }
 
 
@@ -636,7 +587,6 @@ main() {
     get_sudo
 
     get_source_devs
-    #print_source_devs_avail
     get_mps_umount
     get_mps_mount
     devs_and_mps_param
