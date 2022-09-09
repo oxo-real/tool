@@ -98,7 +98,7 @@
 
 ## script
 script_name='passr'
-developer='cytopyge'
+developer='oxo'
 license='gplv3'
 initial_release='2020'
 
@@ -226,7 +226,7 @@ get_object() {
 	    log_in
 	    ;;
 
-	status | s)
+	status | s | info)
 	    object='status'
 	    show_status
 	    exit 0
@@ -319,6 +319,8 @@ get_object() {
 			   	         sed "s/.gpg//g" | \
 			   	         sort | \
 			   	         fzf --height=20% --prompt='object ')
+
+				    printf "${YELLOW}%s${NOC}" "$object"
 				    ;;
 
 			    esac
@@ -661,7 +663,6 @@ process_object() {
     if [[ $obj_exist -eq 1 ]]; then
 
 	case $object in
-	#case $arg_object in
 
 	    new | n)
 		printf "object ${MAGENTA}$object${NOC} exists\n"; exit 47
@@ -686,11 +687,9 @@ process_object() {
 
 	    get_object
 
-	#esac
 	else
 
 	    case $object in
-		#case $arg_object in
 
 		new | n)
 		    check_new_obj_names
@@ -698,20 +697,18 @@ process_object() {
 		    ;;
 
 		'')
-		    exit 60
+		    exit 0
 		    ;;
 
 		*)
         	    printf "${MAGENTA}$object${NOC} not found\n"
-        	    #printf "${MAGENTA}$arg_object${NOC} not found\n"
-		    #arg_object=''
 		    get_object
 		    ;;
 
 	    esac
 
 	fi
-	
+
     fi
 
     # otp object
@@ -975,7 +972,7 @@ process_element() {
 	quit)
 	    exit 0
 	    ;;
-	
+
     	log_out)
 	    log_out
 	    ;;
@@ -1012,7 +1009,7 @@ check_mode()
     esac
 }
 
-	    
+
 change_menu()
 {
     # change menu item 'cancel' to 'quit'

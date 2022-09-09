@@ -359,13 +359,14 @@ fzf_choose() {
 
 	'')
 
+	    # header line
 	    printf "${BOLD}source device\t\t\t\tmountpoint${NORMAL}\n"
 
 	    # for aesthetic reasons; avoid empty line
 	    # TODO find a better way to do this
 	    if [[ -n "${source_devs_avail[@]}" ]]; then
 
-		printf "%s\n" "${source_devs_avail[@]}"
+		printf '%s\n' "${source_devs_avail[@]}"
 
 	    fi
 

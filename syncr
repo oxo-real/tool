@@ -6,20 +6,19 @@
 ### \__ \ |_| | | | | (__| |
 ### |___/\__, |_| |_|\___|_|
 ###      |___/
-###  _ _|_ _ ._    _  _
-### (_\/|_(_)|_)\/(_|(/_
-###   /      |  /  _|
+###  _    _
+### (_)><(_)
 ###
 ### syncr
-### synchronize data
-### 2020 - 2022  |  cytopyge
+### synchronize data (uni-directional)
+### copyright (c) 2020 - 2022  |  oxo
 ###
 ### usage:
-### check the switches in main()!
+### NOTICE: check switches in main
 ###
 ### syncr <destination> [rsync_options]
 ###
-### # examples
+### examples:
 ###
 ### ## backup
 ### syncr $HOME/dock/transfer/tux/home/cytopyge \
@@ -209,7 +208,7 @@ password_store()
 
 	else
 
-		printf "${MAGENTA}error; no password_store found${NOC}\n"
+		printf "${MAGENTA}no password_store found${NOC}\n"
 
 	fi
 }
