@@ -473,11 +473,12 @@ create_vault() {
 
 open_luks() {
     echo
+    printf "open vault\n"
     sudo cryptsetup open --type luks2 $target $mapping_name
     # DEBUG
     #sudo cryptsetup open --type luks2 $target $mapping_name --debug
 
-    printf "decrypting $target\n"
+    printf "decrypting $target ... "
     printf "mapping $target to $vlt_mapper_id\n"
 }
 

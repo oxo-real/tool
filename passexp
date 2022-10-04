@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 
-# usage: passexp yyyymmdd_hhmmss_pass_data
+# requirements: open password-store
+# i.e. with: passr open
+
+# usage: passexp $filename
+# recommended: yyyymmdd_hhmmss_pass_data
 
 exp_file=$1
 vlt_pass="$HOME/.password-store"
@@ -10,18 +14,14 @@ mountpoint -q $vlt_pass
 # vault open $XDG_DATA_HOME/media/vault/pass ~/dock/vlt/pass
 
 # find all gpg files
-gpg_files=$(find $vlt_pass/ -type f -name '*.gpg')
+gpg_files=$(find $vlt_pass/ -type f -name '*.gpg' | sort)
 
-for file in $gpg_files
-do
+for file in $gpg_files; do
 
-	printf "$file\n" >> $exp_file
-	printf ">>>>> >>>>>\n" >> $exp_file
-	pass_file=$(printf $file | \
-		sed 's/\/home\/cytopyge\/.password-store\///' | \
-		sed 's/.gpg$//')
-	printf "$pass_file\n" >> $exp_file
+	pass_file=$(printf $file | sed "s|$vlt_pass/||" | sed 's|.gpg$||')
+	printf '%s\n' "$file" >> $exp_file
+	printf '%s\n' "-------------------------------------------------------------------------------" >> $exp_file
 	pass show $pass_file >> $exp_file
-	printf "<<<<< <<<<<\n" >> $exp_file
+	printf '%s\n\n' "===============================================================================" >> $exp_file
 
 done

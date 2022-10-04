@@ -185,6 +185,7 @@ retrievals are numbered and actions are lettered in the element menu
 gpg file contents
 ^^^^^^^^^^^^^^^^^
 example gpg file (mail_john.gpg) for passr to work properly:
+NOTICE: example passwords are weak!
 
 123456
 userid: john
@@ -204,41 +205,50 @@ get_object() {
 
     # passr $object $element
 
+    # on entry 'passr new_object_name' get_object is skipped
+
     case $object in
 
 	new | n)
-	    object='new'
+	    #object='new'
+	    action='new'
 	    pass_new
 	    ;;
 
 	edit | e)
 	    object='edit'
+	    action='edit'
 	    pass_edit
 	    ;;
 
 	open | o)
 	    object='open'
+	    action='open'
 	    vault_open
 	    ;;
 
 	login | i)
 	    object='login'
+	    action='login'
 	    log_in
 	    ;;
 
 	status | s | info)
 	    object='status'
+	    action='status'
 	    show_status
 	    exit 0
 	    ;;
 
 	logout | u)
 	    object='logout'
+	    action='logout'
 	    log_out
 	    ;;
 
 	close | c)
 	    object='close'
+	    action='close'
 	    log_out
 	    close
 	    ;;
@@ -251,11 +261,13 @@ get_object() {
 
 	grep | g)
 	    object='grep'
+	    action='grep'
 	    pass_grep
 	    ;;
 
 	search | z)
 	    object='search'
+	    action='search'
 	    pass_search
 	    ;;
 
@@ -379,6 +391,9 @@ check_new_obj_names()
 
 pass_new() {
 
+    # DEV: from get_object: action='new'
+    # correct entry
+    # 'passr new object_name' was entered
     object=$arg_element
     process_object
 
@@ -386,6 +401,7 @@ pass_new() {
 
     ## get object
     case $object in
+
 	'')
 	    printf "%"$align"s %s" "object: "
 	    read -r -e object
@@ -394,6 +410,7 @@ pass_new() {
 	*)
 	    printf "%"$align"s %s" "object: "
 	    printf "$object\n"
+	    ;;
 
     esac
 
@@ -418,8 +435,10 @@ pass_new() {
 	"$password" \
 	"userid: $userid" \
 	"url: $url" \
-	"comments:" "$comments" | \
-	wl-copy -o
+	"comments:" "$comments" > \
+	$store/$object.gpg
+	#"comments:" "$comments" | \
+	#wl-copy -o
 
     ## create new object gpg file
     pass edit $object
@@ -500,7 +519,7 @@ log_in() {
 log_out() {
 
     gpg-connect-agent -q reloadagent /bye >/dev/null
-    printf "${BLUE}logged out${NOC} bye!\n"
+    printf "${BLUE}logged out, bye!${NOC}\n"
 
     [[ "$object" == 'close' ]] || exit 0
 }
@@ -662,6 +681,7 @@ process_object() {
 
     if [[ $obj_exist -eq 1 ]]; then
 
+	# object exists
 	case $object in
 
 	    new | n)
@@ -674,12 +694,13 @@ process_object() {
 	esac
 
     else
+	# object does not exist
 
 	if [[ "$mode" == "persist" ]]; then
 
 	    case $object in
 
-		q | quit)
+		quit | q)
 		    printf "passr exit persistent state\n"
 		    exit 0
 
@@ -691,18 +712,65 @@ process_object() {
 
 	    case $object in
 
-		new | n)
-		    check_new_obj_names
-		    continue
-		    ;;
+		#new | n)
+		#    check_new_obj_names
+		#    #continue
+		#    break
+		#    ;;
 
 		'')
+		    printf "specify ${MAGENTA}object${NOC}\n"
 		    exit 0
 		    ;;
 
 		*)
+		    #case $element in
+
+		    #	new | n)
+		    #	    check_new_obj_names
+		    #	    continue
+		    #	    ;;
+
+		    #esac
+
         	    printf "${MAGENTA}$object${NOC} not found\n"
-		    get_object
+        	    printf "create? [y/N] "
+
+		    unset reply
+		    reply_single
+		    echo
+
+		    case $reply in
+
+			y)
+			    if [[ -z $arg_element ]]; then
+
+				# to invoke pass_new
+				arg_element="$object"
+				arg_object='new'
+				create_new_object=1
+
+				process_object
+				#printf "DEV 726 $arg_object $arg_element\n"
+				#sleep 10
+				#passr $arg_object $arg_element
+
+			    fi
+
+			    #passr $object $element
+			    #printf "DEV 718\n"
+			    #check_new_obj_names
+			    #passr new $object
+			    #get_object
+			    #continue
+			    ;;
+
+			*)
+			    exit 11
+			    #get_object
+			    ;;
+
+		    esac
 		    ;;
 
 	    esac
@@ -724,6 +792,14 @@ process_object() {
 
     	0)
 	    log_in
+	    ;;
+
+    esac
+
+    case $create_new_object in
+
+	1)
+	    passr $arg_object $arg_element
 	    ;;
 
     esac
@@ -847,7 +923,7 @@ human_info() {
 	    if [[ -n $error ]]; then
 
 		## print error message
-		printf "${MAGENTA}$object${NOC} $error\n"
+		printf "$object ${MAGENTA}$error${NOC}\n"
 
 	    else
 
@@ -860,11 +936,11 @@ human_info() {
 	    if [[ -n $error ]]; then
 
 		## print error message
-		printf "${MAGENTA}$object${NOC} $error\n"
+		printf "$object ${MAGENTA}$error${NOC}\n"
 
 	    else
 
-	    	printf "${BLUE}$object${NOC} $element\n"
+	    	printf "$object $element\n"
 
 	    fi
 

@@ -10,7 +10,7 @@
 ### (_)><(_)
 ###
 ### mountr
-### mount blockdevices ans mountpoints with fzf
+### manage mountpoints and blockdevices
 ###
 ### copyright (c) 2020 - 2022  |  oxo
 ###
@@ -27,6 +27,7 @@
 # and
 # 2. unmount mounted devices (mps_umount)
 # by simply selecting device and/or mountpoint
+# NOTICE: mount sets current owner and group
 
 # initial general definitions
 
@@ -552,7 +553,8 @@ process_devs_and_mps() {
     	    	        ;;
 
 		    *)
-			sudo mount $device $mount_to
+			sudo mount -o uid=$(id -u $USER),gid=$(id -g $USER) $device $mount_to
+			#sudo mount $device $mount_to
 			mount_info
 			;;
 

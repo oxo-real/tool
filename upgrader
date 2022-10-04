@@ -1,0 +1,648 @@
+#!/bin/bash
+#
+##
+###                                  _
+###  _   _ _ __   __ _ _ __ __ _  __| | ___ _ __
+### | | | | '_ \ / _` | '__/ _` |/ _` |/ _ \ '__|
+### | |_| | |_) | (_| | | | (_| | (_| |  __/ |
+###  \__,_| .__/ \__, |_|  \__,_|\__,_|\___|_|
+###       |_|    |___/
+###  _    _
+### (_)><(_)
+###
+### upgrader
+### arch linux upgrade script
+### (c) 2019 - 2022  |  oxo
+###
+##
+#
+
+
+# requirements:
+## sudo access, internet connection & boot device at mountpoint
+
+
+# dependencies:
+### text_appearance
+### reply_functions
+### splash_screen
+### get_sudo
+### from: https://codeberg.org/oxo/sources
+
+# usage:
+## sh upgrader
+
+
+# script specific constants
+
+developer="oxo"
+script_name="upgrader"
+node_name=$(uname -n)
+initial_release_year=2019
+git_code="$XDG_DATA_HOME/c/git/code"
+source_dir="$git_code/source/function"
+netconn="$git_code/netconn/netconn"
+get_newest_file="$git_code/tool/get_newest_file"
+update_dns_hosts_blocklist="$git_code/tool/update_dns_hosts_blocklist"
+log_location="$XDG_LOGS_HOME/upgrader/$node_name/package_lists"
+ip_check="9.9.9.9"
+country="Sweden" #,Germany,Denmark,Netherlands,Iceland,United States
+protocol="https"
+number_of_mirrors="5"
+age="12"	# 12 hours
+mirror_location="/etc/pacman.d"
+
+
+# general function definitions
+
+## define colors
+source $source_dir/text_appearance
+
+## reply functions
+source $source_dir/reply_functions
+
+## initial_screen
+source $source_dir/splash_screen
+
+## user authentication
+source $source_dir/get_sudo
+
+
+set_clock()
+{
+	# synchronize clocks
+	printf "${BOLD}timedatectl status${NORMAL}\n"
+    # enable network sync service
+	sudo timedatectl set-ntp true
+	sudo timedatectl status
+	echo
+	printf "${BOLD}timedatectl timesync-status${NORMAL}\n"
+	timedatectl timesync-status
+	echo
+	printf "${BOLD}hwclock --show${NORMAL}\n"
+	sudo hwclock --show
+	cat /etc/adjtime
+	echo
+	sleep 5
+}
+
+
+internet_conn_check()
+{
+	# check internet connection
+	ipex=$(host myip.opendns.com resolver2.opendns.com \
+		| tail -n 1 | rev | cut -d ' ' -f 1 | rev)
+
+	#ipex=$(dig @resolver1.opendns.com myip.opendns.com +dnssec +short)
+    #$(ping -q -w 2 -c 1 $ip_check > /dev/null)
+    #if [ $? != 0 ]; then
+		#printf "${MAGENTA}not able to check network connectivity (ipv4)${NOC}\n"
+
+	if [ -z $ipex ]; then
+
+		printf "${MAGENTA}unable to retrieve external ip address (ipv4)${NOC}\n"
+
+		printf "run netconn? (Y/n) "
+		    reply_read_single_hidden_timer
+		    echo
+
+		    if printf "$reply" | grep -iq "^n" ; then
+
+				printf "exiting\n"
+				exit
+
+			else
+
+				sh $netconn
+
+			fi
+
+	fi
+}
+
+
+package_lists_before()
+{
+	# backup package lists before upgrade
+    ## define variables
+    timestamp_0=`date "+%Y%m%d_%H%M%S"`
+	llt0="$log_location/$timestamp_0"
+
+    printf "writing package lists to log, before upgrade (0Q, 0e & 0p)\n"
+    echo
+
+    [ -d $log_location ] || mkdir -p $log_location
+
+    ## make file timestamp_0Q
+    touch $llt0'_0Q'
+    ## add file name to file timestamp_0Q
+    printf "$llt0"_0Q"\n" >> $llt0'_0Q'
+    ## add explanatory text to file timestamp_0Q
+    printf "package list before upgrade\n" >> $llt0'_0Q'
+    printf "yay -Q (query package database)\n\n" >> $llt0'_0Q'
+    ## add query package database to file timestamp_0Q
+    yay -Q >> $llt0'_0Q'
+
+    ## make file timestamp_0e
+    touch $llt0'_0e'
+    ## add file name to file timestamp_0e
+    printf "$llt0"_0e"\n" >> $llt0'_0e'
+    ## add explanatory text to file timestamp_0e
+    printf "package list before upgrade\n" >> $llt0'_0e'
+    printf "yay -Qe (query package database, explicitly installed)\n\n" >> $llt0'_0e'
+    ## add query package database, explicitly installed to file timestamp_0e
+    yay -Qe >> $llt0'_0e'
+
+    ## make file timestamp_0p
+    touch $llt0'_0p'
+    ## add file name to file timestamp_0p
+    printf "$llt0"_0p"\n" >> $llt0'_0p'
+    ## add explanatory text to file timestamp_0p
+    printf "list package directory before upgrade\n" >> $llt0'_0p'
+    printf "ls -ilatr /var/lib/pacman/local\n\n" >> $llt0'_0p'
+    ## add ls -ilatr /var/lib/pacman/local to file timestamp_0p
+    ls -ilatr /var/lib/pacman/local >> $llt0'_0p'
+}
+
+
+boot_usr_rw()
+{
+	# make partitions rw
+    ## remount existing /boot rw
+    if [ ! -z $(mount | grep /boot | awk {'print $1'}) ]; then
+		sudo mount -o remount,rw /boot
+		#findmnt | grep /boot | cut -c 7-
+		printf "mount -o remount,rw /boot\n"
+    else
+		printf "${MAGENTA}no device at /boot${NOC}\n"
+		printf "exiting\n"
+		exit
+    fi
+
+    ## remount /usr rw
+    sudo mount -o remount,rw  /usr
+    #findmnt | grep /usr | cut -c 7-
+	printf "mount -o remount,rw /usr\n"
+    echo
+}
+
+
+update_mirrors()
+{
+	# update mirrorlist
+    sudo cp $mirror_location/mirrorlist $mirror_location/mirrorlist.old
+    sudo reflector \
+		--verbose \
+		--protocol $protocol \
+		--country $country \
+		--age $age \
+		-l $number_of_mirrors \
+		--sort rate \
+		--save $mirror_location/mirrorlist
+    echo
+}
+
+
+show_package_info()
+{
+    yay -Ps
+
+    echo
+    printf "\e[4mpackage statistics\e[0m\n"
+    printf "%7s %s\n" "$(yay -Qe | wc -l)" "explicit"
+    printf "%7s %s\n" "$(yay -Qd | wc -l)" "dependend"
+    printf "\033[1m%7s %s\033[0m\n" "$(yay -Q | wc -l)" "total count"
+    # total count matches: -4 + $(ls -ila /var/lib/pacman/local | grep wc -l)
+    printf "%7s %s\n" "$(yay -Qn | wc -l)" "native"
+    printf "%7s %s\n" "$(yay -Qm | wc -l)" "foreign"
+    echo
+}
+
+show_file_info()
+{
+    printf "\e[4m   file statistics\e[0m\n"
+    printf "\033[1m%7s %s\033[0m\n" "$(yay -Ql | wc -l)" "total count"
+    printf "  top10 files per package\n"
+    yay -Ql | awk {'print $1'} | uniq -c | sort -k1,1nr | head
+    echo
+}
+
+
+show_news()
+{
+    printf "arch linux news (Pw)\n"
+
+	if [ -z "$(yay -Pw)" ]; then
+
+		printf "no recent entries\n"
+
+	else
+
+		yay -Pw
+		printf "Press any key to continue "
+		reply_single_hidden
+
+	fi
+
+    echo
+}
+
+
+upgrade_keyring()
+{
+	sudo pacman -Sy --needed archlinux-keyring
+}
+
+
+refresh_package_database()
+{
+	# refresh package database
+	printf "refresh (update) package database (Sy)\n"
+	echo
+
+    yay -Sy
+    #yay -Syv
+    echo
+}
+
+
+
+list_marked_upgrade()
+{
+	# list packages marked for upgrade
+    printf "writing package list marked to be upgraded (0u)\n"
+    echo
+
+    [ -d $log_location ] || mkdir -p $log_location
+
+    ## make file timestamp_0u
+    touch $llt0'_0u'
+    ## add file name to file timestamp_0u
+    printf "$llt0"_0u"\n" >> $llt0'_0u'
+    ## add explanatory text to file timestamp_0u
+    printf "list packages marked to be upgraded\n" >> $llt0'_0u'
+    printf "yay -Qu\n\n" >> $llt0'_0u'
+    ## add yay -Qu to file timestamp_0u
+	printf "$(yay -Qu | wc -l) package(s) marked for upgrade\n" >> $llt0'_0u'
+    yay -Qu >> $llt0'_0u'
+}
+
+
+upgrade_packages()
+{
+	# upgrade installed packages
+    printf "also upgrade developement packages? (y/N) "
+    reply_read_single_hidden_timer
+    echo
+
+    if printf "$reply" | grep -iq "^y" ; then
+
+		devel_packages="--devel"
+		timeupdate="--timeupdate"
+		printf "upgrade (Suv --devel)\n"
+		#printf "upgrade (Suv --devel --timeupdate --combinedupgrade)\n"
+		echo
+
+	else
+
+		printf "upgrade (Suv)\n"
+		#printf "upgrade (Suv --timeupdate --combinedupgrade)\n"
+		echo
+
+	fi
+
+    ## devel packages are optional
+    yay -Suv $devel_packages --sudoloop
+    #yay -Suv $devel_packages $timeupdate --combinedupgrade --sudoloop
+    echo
+}
+
+
+waybar_reload()
+{
+	printf "update desktop environment"
+	sway -v
+	sleep 1
+	pkill waybar
+	sleep 1
+	sway exec waybar
+}
+
+
+clean_up()
+{
+	# cleaning up
+    #printf "cleanup (Rns Qtdq)\n"
+    #yay -Rns $(yay -Qtdq) 2>/dev/null
+    #printf "done\n"
+
+    #printf "cleanup deps (c)\n"
+    #yay -c
+    #printf "done\n"
+
+	# removes old packages from the pacman cache directory
+    printf "cleanup paccache (rv)\n"
+    paccache -rv
+	#paccache -v -rk3 -ruk3
+    echo
+}
+
+
+show_missing()
+{
+	# show missing package files
+	## i3blocks is filtered out from results
+	printf "missing package files (Qk)\n"
+	yay -Qk | grep -v '0 m' || printf "no missing package files detected\n"
+	echo
+}
+
+
+update_db()
+{
+	# updatedb
+    ## in order to user locate (faster than find)
+    ## requires mlocate
+    printf "update locate db\n"
+    sudo updatedb
+    printf "done\n"
+    echo
+}
+
+
+boot_usr_ro()
+{
+	# make partitions ro
+    printf "revert mountpoint statuses\n"
+    sudo mount -v -o remount,ro /boot
+	printf "mount -o remount,ro /boot\n"
+    sudo mount -v -o remount,ro /usr
+	printf "mount -o remount,ro /usr\n"
+    echo
+}
+
+
+package_lists_after()
+{
+	# backup package lists after upgrade
+    ## define variables
+    timestamp_1=`date "+%Y%m%d_%H%M%S"`
+	llt1="$log_location/$timestamp_1"
+
+    printf "writing package lists to log, after upgrade (1Q, 1e & 1p)\n"
+    echo
+
+    [ -d $log_location ] || mkdir -p $log_location
+
+    ## make file timestamp_1Q
+    touch $llt1'_1Q'
+    ## add file name to file timestamp_1Q
+    printf "$llt1"_1Q"\n" >> $llt1'_1Q'
+    ## add explanatory text to file timestamp_1Q
+    printf "package list after upgrade\n" >> $llt1'_1Q'
+    printf "yay -Q (query package database)\n\n" >> $llt1'_1Q'
+    ## add query package database to file timestamp_1Q
+    yay -Q >> $llt1'_1Q'
+
+    ## make file timestamp_1e
+    touch $llt1'_1e'
+    ## add file name to file timestamp_1e
+    printf "$llt1"_1e"\n" >> $llt1'_1e'
+    ## add explanatory text to file timestamp_1e
+    printf "package list after upgrade\n" >> $llt1'_1e'
+    printf "yay -Qe (query package database, explicitly installed)\n\n" >> $llt1'_1e'
+    ## add query package database, explicitly installed to file timestamp_1e
+    yay -Qe >> $llt1'_1e'
+
+    ## make file timestamp_1p
+    touch $llt1'_1p'
+    ## add file name to file timestamp_1p
+    printf "$llt1"_1p"\n" >> $llt1'_1p'
+    ## add explanatory text to file timestamp_1p
+    printf "list package directory after upgrade\n" >> $llt1'_1p'
+    printf "ls -ilatr /var/lib/pacman/local\n\n" >> $llt1'_1p'
+    ## add ls -ilatr /var/lib/pacman/local to file timestamp_1p
+    ls -ilatr /var/lib/pacman/local >> $llt1'_1p'
+}
+
+
+package_lists_diffs()
+{
+	# package lists diffs after upgrade
+	printf "writing package lists before-after upgrade diffs to log (dQ, de & dp)\n"
+    echo
+
+    ## make file timestamp_dQ
+    touch $llt1'_dQ'
+    ## add file name to file timestamp_dQ
+    printf "$llt1'_dQ'" >> $llt1'_dQ'
+    ## add explanatory text to file timestamp_dQ
+    printf "diff $llt0'_0Q' $llt1'_1Q''" >> $llt1'_dQ'
+    diff $llt0'_0Q' $llt1'_1Q' > $llt1'_dQ'
+
+    ## make file timestamp_de
+    touch $llt1'_de'
+    ## add file name to file timestamp_de
+    printf "$llt1'_de'" >> $llt1'_de'
+    ## add explanatory text to file timestamp_de
+    printf "diff $llt0'_0e' $llt1'_1e''" >> $llt1'_de'
+    diff $llt0'_0e' $llt1'_1e' > $llt1'_de'
+
+    ## make file timestamp_dp
+    touch $llt1'_dp'
+    ## add file name to file timestamp_dp
+    printf "$llt1'_dp'" >> $llt1'_dp'
+    ## add explanatory text to file timestamp_dp
+    printf "diff $llt0'_0p' $llt1'_1p''" >> $llt1'_dp'
+    diff $llt0'_0p' $llt1'_1p' > $llt1'_dp'
+}
+
+
+statistics()
+{
+	## statistics
+	dQ_lines=$(cat $llt1'_dQ' | wc -l)
+	dQ_packages=$(( $(( dQ_lines - 6 )) / 4 ))
+
+	if [[ $dQ_packages == 0 ]]; then
+
+		printf "${BLUE}no package upgrades available${NOC}\n"
+
+	elif [[ $dQ_packages == 1 ]]; then
+
+		printf "${BLUE}1 package was upgrade succesfully${NOC}\n"
+
+	else
+
+		printf "${BLUE}$dQ_packages packages were upgraded succesfully${NOC}\n"
+
+	fi
+
+	printf "executing upgrader took "$SECONDS" seconds\n"
+        echo
+}
+
+
+package_upgrade_details()
+{
+    printf "package upgrade details\n"
+    < ${$(get_newest_file $log_location)%?}Q
+    #< ${$(get_newest_file $XDG_LOGS_HOME/updater/$HOST/package_lists/)%?}Q
+    #cat ${$(get_newest_file $XDG_LOGS_HOME/updater/$HOST/package_lists/)%?}Q
+    echo
+}
+
+
+arch_audit()
+{
+    arch-audit --show-cve --color --format "%s %n %t %c"
+}
+
+
+arch_audit_q()
+{
+    printf "check for package vulnerabilities? (Y/n) "
+    reply_read_single_hidden_timer
+    echo
+
+    if printf "$reply" | grep -iq "^n" ; then
+
+	printf "vulnerability check ${MAGENTA}user interrupt${NOC}\n"
+	echo
+
+    elif [[ -n $(printf "$reply") ]]; then
+
+	arch_audit
+
+    else
+
+	arch_audit
+
+    fi
+}
+
+
+call_dns_hosts_blocklist()
+{
+	sh $update_dns_hosts_blocklist
+}
+
+
+update_dns_hosts_blocklist()
+{
+    printf "update dns hosts blocklist? (Y/n) "
+    reply_read_single_hidden_timer
+    echo
+
+    if printf "$reply" | grep -iq "^n" ; then
+
+		printf "update dns hosts blocklist ${MAGENTA}user interrupt${NOC}\n"
+		echo
+
+    elif [[ -n $(printf "$reply") ]]; then
+
+		printf "updating dns hosts blocklist\n"
+		echo
+		call_dns_hosts_blocklist
+		echo
+
+    else
+
+		# confirmation timeout
+		echo
+		call_dns_hosts_blocklist
+		echo
+
+    fi
+}
+
+
+kernel_reboot_check()
+{
+    active_kernel=$(uname -r)
+    disk_kernel=$(file /boot/vmlinuz-linux | cut -d " " -f 9)
+
+    if [ "$active_kernel" != "$disk_kernel" ]; then
+
+		echo
+		printf "currently active kernel version: ${MAGENTA}$active_kernel${NOC}\n"
+		printf "upgraded disk kernel version:     ${BLUE}$disk_kernel${NOC}\n"
+		echo
+		printf "kernel needs reboot!\n"
+		echo
+		printf "reboot now? (y/N) "
+		reply_read_single_hidden_timer
+		echo
+
+		if printf "$reply" | grep -iq "^y" ; then
+
+			sudo -k
+			sudo systemctl reboot
+
+		fi
+
+	fi
+}
+
+
+systemd_reboot_check()
+{
+	alert_trigger="systemd"
+	target_diff_file=""$llt1"_dp"
+
+	if [[ -n $(grep -i $alert_trigger $target_diff_file) ]]; then
+
+		printf "systemd upgraded; reboot strongly adviced!\n"
+		echo
+		printf "reboot now? (y/N)\n"
+		reply_read_single_hidden_timer
+
+		if printf "$reply" | grep -iq "^y" ; then
+	    		sudo -k
+	    		sudo systemctl reboot
+		fi
+
+	fi
+}
+
+
+show_part_sizes()
+{
+	echo
+	printf "partition sizes\n"
+	lsblk -o fsuse%,name,fsused,size --raw --noheadings | grep '%' | sort -nr
+}
+
+
+main()
+{
+	#splash_screen
+	get_sudo
+	internet_conn_check
+	set_clock
+	boot_usr_rw
+	package_lists_before
+	update_mirrors
+	refresh_package_database
+	show_news
+	list_marked_upgrade
+	upgrade_keyring
+	upgrade_packages
+	clean_up
+	show_missing
+	update_db
+	package_lists_after
+	package_lists_diffs
+	show_package_info
+	show_file_info
+	statistics
+	#package_upgrade_details
+	boot_usr_ro
+	update_dns_hosts_blocklist
+	arch_audit_q
+	show_part_sizes
+	kernel_reboot_check
+	systemd_reboot_check
+}
+
+main
