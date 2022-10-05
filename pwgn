@@ -38,6 +38,13 @@
 
 ## usage
 #   pwgn
+# OR
+#  pwgn --optical
+
+
+## getargs
+args=$@
+arg_optical=$1
 
 
 # initial definitions
@@ -114,7 +121,24 @@ erase_line() {
 }
 
 
+input_type() {
+    # always keyboard input, unless --optical is given as arg1
+    case $arg_optical in
+
+	'--optical')
+	    optical_input
+	    ;;
+
+	*)
+	    keyboard_input
+	    ;;
+
+    esac
+}
+
+
 choose_input() {
+    # DEV old can be deleted after testing DEL
     # choose optical or manual input
 
     printf "decode video input (${YELLOW}Q${NOC}R-code) "
@@ -447,7 +471,8 @@ debugging() {
 
 sourcing
 get_sudo
-choose_input
+input_type
+#choose_input
 input_validation
 hash_1_input
 hash_3_input

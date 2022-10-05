@@ -84,6 +84,8 @@
 ## data manipulation
 
 ### add object data
+% passr [$object_non_existing]
+or (DEV: keep this?)
 % passr new [$object]
 % passr n [$object]
 
@@ -149,7 +151,6 @@ element_menu=(\
 	"C copy" \
 	"" \
 	"E edit" \
-	"N new" \
 	"" \
 	"ESC cancel")
 
@@ -309,7 +310,7 @@ get_object() {
 			    case $object in
 
 				'')
-				    # no object arg given; fzf prompt for it
+				    # no object arg given; fzf prompts for it
 				    object=$(find -L $store_l -type f -iname '*.gpg' | \
 			   	         # with sed we remove the leading path of $store_l
 			   	         # internal field separator is '|'
@@ -351,7 +352,7 @@ element_as_object() {
 
 check_new_obj_names()
 {
-    declare -a prohibited_oject_names=( \
+    declare -a prohibited_object_names=( \
 	url \
 	userid \
 	password \
@@ -364,7 +365,7 @@ check_new_obj_names()
 	copy \
 	)
 
-    for prohibited_name in "${prohibited_oject_names[@]}"; do
+    for prohibited_name in "${prohibited_object_names[@]}"; do
 
 	if [[ $object == $prohibited_name ]];then
 
@@ -379,8 +380,16 @@ check_new_obj_names()
 
 pass_new() {
 
-    object=$arg_element
-    process_object
+    # prevent 'passr non_existent_object' from being emptied out
+    case $object in
+
+	new | n)
+	    # coming from 'passr new'
+	    object=$arg_element
+	    process_object
+	    ;;
+
+    esac
 
     align=11
 
@@ -424,7 +433,8 @@ pass_new() {
     ## create new object gpg file
     pass edit $object
 
-    printf "${BLUE}$object${NOC} saved\n"
+    # pass already confirms
+    #DELprintf "${BLUE}$object${NOC} saved\n"
     exit 0
 }
 
@@ -656,6 +666,12 @@ get_element() {
 }
 
 
+check_obj_exist() {
+
+    [[ -f "$store/$object.gpg" ]] && obj_exist=1
+}
+
+
 process_object() {
 
     check_obj_exist
@@ -665,6 +681,7 @@ process_object() {
 	case $object in
 
 	    new | n)
+		## prevent creating existing object
 		printf "object ${MAGENTA}$object${NOC} exists\n"; exit 47
 		;;
 
@@ -682,6 +699,7 @@ process_object() {
 		q | quit)
 		    printf "passr exit persistent state\n"
 		    exit 0
+		    ;;
 
 	    esac
 
@@ -701,8 +719,24 @@ process_object() {
 		    ;;
 
 		*)
+		    # non-existent object
         	    printf "${MAGENTA}$object${NOC} not found\n"
-		    get_object
+
+		    # prompt create object
+		    printf "create [Y/n]? "
+		    reply_read_single
+		    echo
+
+		    case $reply in
+
+			n | N)
+			    exit
+			    ;;
+
+		    esac
+
+		    check_new_obj_names
+		    pass_new
 		    ;;
 
 	    esac
@@ -748,12 +782,6 @@ get_password() {
 }
 
 
-check_obj_exist() {
-
-    [[ -f "$store/$object.gpg" ]] && obj_exist=1
-}
-
-
 get_otp() {
 
     # redirection to the separate otp file
@@ -767,6 +795,7 @@ get_otp() {
     if [[ -f $store/$object.gpg ]]; then
 
     	pass otp $object | wl-copy -n -o
+	## alternative: sh $XDG_DATA_HOME/c/git/note/crypto/2fa/2fa_sha1_totp.sh $otp_secret
 
     fi
 
