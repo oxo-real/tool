@@ -285,22 +285,23 @@ check_target_status() {
 
 	    target_c_type="new_vault_file"
 
-	    printf "$target does not exist, create new vault file? (y/N) "
+	    #printf "$target does not exist, create new vault file? (y/N) "
 
-	    reply_read_single_hidden_timer
+	    #reply_read_single_hidden_timer
 
-	    echo
+	    #echo
 
-	    if printf "$reply" | grep -iq "^y"; then
+	    #if printf "$reply" | grep -iq "^y"; then
 
-		create_new_vault_file
+	    #	create_new_vault_file
 
-	    else
+	    #else
 
-		exit 21
+	    #	exit 21
 
-	    fi
+	    #fi
 
+	    create_new_vault_file
 
 	    ############################
 
@@ -804,7 +805,7 @@ show_spec_info() {
 
 	fi
 
-	echo
+	#echo
 
     fi
 }

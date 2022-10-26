@@ -17,6 +17,7 @@
 ###
 ### usage:	rm [-options] <location>
 ###		trash empty
+###		trash size
 ###		trash
 ##
 #
@@ -35,9 +36,14 @@ reset_sudo()
 
 define_trashcan()
 {
+    # prevent trash ending up in root
+    if [[ -n "$XDG_CACHE_HOME" ]]; then
+
 	# definition of a trashcan
 	trash="$XDG_CACHE_HOME/trash"
 	[[ -d $trash ]] || mkdir -p $trash
+
+    fi
 }
 
 
@@ -89,17 +95,23 @@ process_args_array()
 		## because $0 gives back 'trash' also when rm was used
 		## so if 'trash empty' is invoked we trigger
 		## on the element with value 'empty':
-		if [[ "${items[0]}" == "empty" ]]; then
+	    if [[ "${items[0]}" == "empty" ]] || \
+	       [[ "${items[0]}" == "clear" ]]; then
 
-			trash_empty
+		trash_empty
 
-		fi
+	    elif [[ "${items[0]}" == "size" ]]; then
+
+		trash_size
+		printf "$size\n"
+		exit 0
+
+	    fi
 
 	else
 
 	    # no arguments given
-	    trash_size
-	    printf "$size\n"
+	    printf "$trash\n"
 
 	fi
 }
@@ -110,7 +122,7 @@ permanently_delete()
 	## permanently remove item
 	## with use of native rm
 	\rm -rf "${items[@]}"
-	exit
+	exit 0
 }
 
 
@@ -164,7 +176,7 @@ trash_empty()
 	## empty trashcan
 	trash_size
 	rm -rf $trash && \
-		printf "$size trash cleared\n" && \
+		printf "trash cleared $size\n" && \
 		exit 0
 }
 

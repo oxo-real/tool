@@ -98,7 +98,7 @@ keyboard_input() {
 	    ;;
 
 	*)
-	    printf "🔐  [no_echo!]"
+	    printf "🔐  [echo_off]"
 	    read -e -r -s -n 1 char1
 	    tput cuu1
 	    erase_line
