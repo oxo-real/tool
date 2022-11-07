@@ -30,7 +30,7 @@ epoch="$(date +%s)"
 
 reset_sudo()
 {
-	sudo -k
+    sudo -k
 }
 
 
@@ -49,71 +49,71 @@ define_trashcan()
 
 process_args_array()
 {
-	## rm is aliased to trash
-	## if rm options are given (in $1)
-	## (i.e. -rf); then skip these
-	## and move the following items to trash
+    ## rm is aliased to trash
+    ## if rm options are given (in $1)
+    ## (i.e. -rf); then skip these
+    ## and move the following items to trash
 
-	## if there is more than one argument given
-	## i.e. when 'rm -rf directory' is entered then
-	## argument1 = '-rf' and argument2 = 'directory'
-	## the arguments become elements in the array
-	## first argument is items[0] in the array
+    ## if there is more than one argument given
+    ## i.e. when 'rm -rf directory' is entered then
+    ## argument1 = '-rf' and argument2 = 'directory'
+    ## the arguments become elements in the array
+    ## first argument is items[0] in the array
 
-	## check if first argument starts with an '-',
-	## then it's probably meant as an option for rm
+    ## check if first argument starts with an '-',
+    ## then it's probably meant as an option for rm
 
-	## if there is more than one element in the array
-	if [[ "${#items[@]}" -gt 1 ]]; then
+    ## if there is more than one element in the array
+    if [[ "${#items[@]}" -gt 1 ]]; then
 
-		## set elem1
-		## printf -- to prevent taking items[0] as printf argument
-		elem1="$(printf -- "${items[0]}")"
+	## set elem1
+	## printf -- to prevent taking items[0] as printf argument
+	elem1="$(printf -- "${items[0]}")"
 
-		## elem1 starts with a dash
-		if [[ "$(printf -- "$elem1" | head -c 1)" == "-" ]]; then
+	## elem1 starts with a dash
+	if [[ "$(printf -- "$elem1" | head -c 1)" == "-" ]]; then
 
-			## elem1 is no existing file
-			[[ ! -f "$elem1" ]] && \
-			## elem1 is no existing directory
-			[[ ! -d "$elem1" ]] && \
-			## elem1 is no existing symlink
-			[[ ! -L "$elem1" ]] && \
-			## then: remove elem1 which is only meant as flag for rm
-			rm_flag="${items[0]}"
+	    ## elem1 is no existing file
+	    [[ ! -f "$elem1" ]] && \
+		## elem1 is no existing directory
+		[[ ! -d "$elem1" ]] && \
+		    ## elem1 is no existing symlink
+		[[ ! -L "$elem1" ]] && \
+		    ## then: remove elem1 which is only meant as flag for rm
+		rm_flag="${items[0]}"
 
-			#unset 'items[0]'
-			items=("${items[@]:1}")
-
-		fi
-
-	## if there is one element in the array
-	elif [[ "${#items[@]}" -eq 1 ]]; then
-
-		## rm is aliased to trash
-		## we cannot see which command invoked trash
-		## because $0 gives back 'trash' also when rm was used
-		## so if 'trash empty' is invoked we trigger
-		## on the element with value 'empty':
-	    if [[ "${items[0]}" == "empty" ]] || \
-	       [[ "${items[0]}" == "clear" ]]; then
-
-		trash_empty
-
-	    elif [[ "${items[0]}" == "size" ]]; then
-
-		trash_size
-		printf "$size\n"
-		exit 0
-
-	    fi
-
-	else
-
-	    # no arguments given
-	    printf "$trash\n"
+	    #unset 'items[0]'
+	    items=("${items[@]:1}")
 
 	fi
+
+    ## if there is one element in the array
+    elif [[ "${#items[@]}" -eq 1 ]]; then
+
+	## rm is aliased to trash
+	## we cannot see which command invoked trash
+	## because $0 gives back 'trash' also when rm was used
+	## so if 'trash empty' is invoked we trigger
+	## on the element with value 'empty':
+	if [[ "${items[0]}" == "empty" ]] || \
+	       [[ "${items[0]}" == "clear" ]]; then
+
+	    trash_empty
+
+	elif [[ "${items[0]}" == "size" ]]; then
+
+	    trash_size
+	    printf "$trash $size\n"
+	    exit 0
+
+	fi
+
+    else
+
+	# no arguments given
+	printf "$trash\n"
+
+    fi
 }
 
 
@@ -128,40 +128,43 @@ permanently_delete()
 
 process_arguments()
 {
-	## if rm is invoked inside the trash directory
-	if [[ "$PWD" == "$trash" ]]; then
+    ## if rm is invoked inside the trash directory
+    if [[ "$PWD" == "$trash" ]]; then
 
-		#[TODO] add warning
-		permanently_delete
+	#[TODO] add warning
+	permanently_delete
+
+    fi
+
+    for item in "${items[@]}"; do
+
+	#item=$(realpath $item)
+	dest=$(printf "$trash/$item")
+
+	# remove possible // from dest
+	dest=$(printf "$dest" | sed 's/\/\//\//')
+
+	# remove whitespaces
+	#item_wow=$(printf "$item" | sed -e 's/^[ \t]*//')
+
+	# check if item is already file or directory in $trash
+	if [[ -f "$dest" ]] || [[ -d "$dest" ]]; then
+
+	    # dest + epoch
+	    dest="${dest}_$epoch"
+	    #trash=$trash/$item'_'$epoch
 
 	fi
 
+	if [[ -d $item ]]; then
 
-	for item in "${items[@]}"; do
+	    mkdir -p "$dest"
 
-		# remove whitespaces
-		#item_wow=$(printf "$item" | sed -e 's/^[ \t]*//')
+	fi
 
-		# check if item is already file in $trash
-		if [[ -f "$trash/$item" ]]; then
+	trash_now
 
-			# trash + epoch
-			trash=$trash/$item'_'$epoch
-
-		# check if item is already directory in $trash
-		elif [[ -d "$trash/$item" ]]; then
-
-			# trash + epoch
-			trash=$trash/$item'_'$epoch
-
-		fi
-
-		# remove possible // from trash
-		trash=$(printf "$trash" | sed 's/\/\//\//')
-
-		trash_now
-
-	done
+    done
 }
 
 
@@ -183,7 +186,7 @@ trash_empty()
 
 trash_now()
 {
-	mv -f -- "$item" $trash
+	mv -f -- "$item" $dest
 }
 
 
