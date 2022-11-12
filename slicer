@@ -69,7 +69,8 @@ to_start=$(\
 
 slice=$(printf "$target" | grep "$from_string" | cut -c $from_end-$to_start)
 
-printf "$slice" | wl-copy
+printf '%s' "$slice"
+#printf "$slice" | wl-copy
 
 ### feedback to user
 #if [[ -n $slice ]]; then
