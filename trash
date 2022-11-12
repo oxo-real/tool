@@ -28,14 +28,14 @@ items=( "$@" )
 epoch="$(date +%s)"
 
 
-reset_sudo()
-{
+reset_sudo() {
+
     sudo -k
 }
 
 
-define_trashcan()
-{
+define_trashcan() {
+
     # prevent trash ending up in root
     if [[ -n "$XDG_CACHE_HOME" ]]; then
 
@@ -47,8 +47,8 @@ define_trashcan()
 }
 
 
-process_args_array()
-{
+process_args_array() {
+
     ## rm is aliased to trash
     ## if rm options are given (in $1)
     ## (i.e. -rf); then skip these
@@ -103,7 +103,7 @@ process_args_array()
 	elif [[ "${items[0]}" == "size" ]]; then
 
 	    trash_size
-	    printf "$trash $size\n"
+	    printf "trash; $dirs dirs, $files files, $size\n"
 	    exit 0
 
 	fi
@@ -117,48 +117,86 @@ process_args_array()
 }
 
 
-permanently_delete()
-{
-	## permanently remove item
-	## with use of native rm
-	\rm -rf "${items[@]}"
-	exit 0
+correct_real_dest() {
+
+    # navigated outside of trash directory
+
+    char=0
+    chars=$(printf "$real_dest" | wc -c)
+
+    # get chars from real_dest
+    for (( i=1; i<=$chars; i++ )); do
+
+	real_dest_char=$(echo ${real_dest:$i:1})
+	trash_char=$(echo ${trash:$i:1})
+
+	# from the char that real_dest and trash differ:
+	if [[ $real_dest_char != $trash_char ]]; then
+
+	    # correct real_dest
+	    real_dest_corr=$(echo ${trash}/${real_dest:$i})
+
+	    real_dest=$real_dest_corr
+
+	    break
+
+	fi
+
+    done
 }
 
 
-process_arguments()
-{
-    ## if rm is invoked inside the trash directory
-    if [[ "$PWD" == "$trash" ]]; then
-
-	#[TODO] add warning
-	permanently_delete
-
-    fi
+process_arguments() {
 
     for item in "${items[@]}"; do
 
-	#item=$(realpath $item)
+	# skip non existent items
+	[[ ! -f $item ]] && [[ ! -d $item ]] && \
+	    printf "$item not found\n" && \
+	    continue
+
+	# define dest
 	dest=$(printf "$trash/$item")
 
 	# remove possible // from dest
 	dest=$(printf "$dest" | sed 's/\/\//\//')
 
 	# remove whitespaces
-	#item_wow=$(printf "$item" | sed -e 's/^[ \t]*//')
+	# cannot be done in this script, because separator is space
+	# see catalog under the find command to recursively replace
+	# file whitespaces with underscores
+
+	# make temp_dest for realpath to work
+	# TODO: this is not so nice...
+	if [[ -n $(echo $item | grep '/') ]]; then
+
+	    temp_dest=$dest
+	    [[ ! -d $temp_dest ]] && [[ ! -f $temp_dest ]] && \
+		mkdir -p $temp_dest && \
+		temp_dest_exists=1
+
+	fi
+
+	# define real_dest
+	real_dest=$(realpath $dest)
+
+	if [[ $real_dest != $trash* ]]; then
+
+	    correct_real_dest
+
+	fi
+
+	# redefine dest
+	dest=$real_dest
+
+	# remove temp_dest if it exists
+	[[ -n $temp_dest_exists ]] && rmdir $temp_dest
 
 	# check if item is already file or directory in $trash
 	if [[ -f "$dest" ]] || [[ -d "$dest" ]]; then
 
 	    # dest + epoch
 	    dest="${dest}_$epoch"
-	    #trash=$trash/$item'_'$epoch
-
-	fi
-
-	if [[ -d $item ]]; then
-
-	    mkdir -p "$dest"
 
 	fi
 
@@ -168,34 +206,36 @@ process_arguments()
 }
 
 
-trash_size()
-{
-	size=$(sudo du -sh $XDG_CACHE_HOME/trash | awk '{print $1}')
+trash_size() {
+
+    dirs=$(find $XDG_CACHE_HOME/trash -type d | wc -l)
+    files=$(find $XDG_CACHE_HOME/trash -type f | wc -l)
+    size=$(sudo du -sh $XDG_CACHE_HOME/trash | awk '{print $1}')
 }
 
 
-trash_empty()
-{
-	## empty trashcan
-	trash_size
-	rm -rf $trash && \
-		printf "trash cleared $size\n" && \
-		exit 0
+trash_empty() {
+
+    ## empty trashcan
+    trash_size
+    \rm -rf $trash/* && \
+	printf "trash cleared; $dirs dirs, $files files, $size\n" && \
+	exit 0
 }
 
 
-trash_now()
-{
-	mv -f -- "$item" $dest
+trash_now() {
+
+    mv -f -- "$item" $dest
 }
 
 
-main()
-{
-	reset_sudo
-	define_trashcan
-	process_args_array
-	process_arguments
+main() {
+
+    reset_sudo
+    define_trashcan
+    process_args_array
+    process_arguments
 }
 
 main

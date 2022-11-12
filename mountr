@@ -554,7 +554,9 @@ process_devs_and_mps() {
 
 		    *)
 			sudo mount -o uid=$(id -u $USER),gid=$(id -g $USER) $device $mount_to
-			#sudo mount $device $mount_to
+			#TODO better solution on fs error (ext4 no matching uid or gid)
+			# on error run mount without options
+			[[ $? -eq 0 ]] || sudo mount $device $mount_to
 			mount_info
 			;;
 
