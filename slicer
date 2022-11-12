@@ -6,12 +6,11 @@
 ### / __\ \ | |/ __/ _ \ '__|
 ### \__ \\ \| | (_|  __/ |
 ### |___/ \_\_|\___\___|_|
+###  _    _
+### (_)><(_)
 ###
-###  _ _|_ _ ._    _  _
-### (_\/|_(_)|_)\/(_|(/_
-###   /      |  /  _|
-###
-### slicer (c) 2020 - 2021 cytopyge
+### slicer
+### (c) 2020 - 2022 oxo
 ###
 ### returns slice from target
 ### target can be either from file or standard output stream
