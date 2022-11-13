@@ -599,7 +599,7 @@ gpg_decrypt() {
     get_sudo
 
     erase_line
-    printf "${YELLOW}${BOLD} O--, ${NORMAL}${NOC}"
+    printf "\n${YELLOW}%s${NOC}" 'OpenPGP O--,'
 
     echo
     generate_pw

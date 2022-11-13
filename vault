@@ -473,8 +473,9 @@ create_vault() {
 
 
 open_luks() {
-    echo
-    printf "open vault\n"
+    #echo
+    #printf "open vault\n"
+    printf "\n${YELLOW}%s${NOC}\n" 'open vault'
     sudo cryptsetup open --type luks2 $target $mapping_name
     # DEBUG
     #sudo cryptsetup open --type luks2 $target $mapping_name --debug
@@ -733,8 +734,20 @@ get_vault_data() {
 
 	    # remove losetup result (error message)
 	    tput rc
-	    tput cuu1
 	    #tput cuu1
+
+	    # aestetic line removal
+	    case $action in
+
+		open)
+		    tput cuu1
+		    tput cuu1
+		    tput cuu1
+		    tput cuu1
+		    ;;
+
+	    esac
+
 	    tput ed
 
 	    luks_container=$(sudo cryptsetup status $vlt_mapper_id | grep device | \
@@ -744,8 +757,20 @@ get_vault_data() {
 
 	    # remove losetup result
 	    tput rc
-	    tput cuu1
 	    #tput cuu1
+
+	    # aestetic line removal
+	    case $action in
+
+		open)
+		    tput cuu1
+		    tput cuu1
+		    tput cuu1
+		    tput cuu1
+		    ;;
+
+	    esac
+
 	    tput ed
 
 	    luks_container=$(losetup $loop_device | cut -d "(" -f2 | \
