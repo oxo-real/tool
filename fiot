@@ -1,16 +1,23 @@
 #!/bin/bash
 #
 ##
-###
 ###   __ _       _
 ###  / _(_) ___ | |_
 ### | |_| |/ _ \| __|
 ### |  _| | (_) | |_
 ### |_| |_|\___/ \__|
+###  _    _
+### (_)><(_)
 ###
+### fiot
 ### find items of type
+###
+### copyright (c) 2019 - 2022  |  oxo
+###
 ### usage: fiot <item_type> <directory> [depth>1]
 ### dependencies: fd rg (optional but faster)
+##
+#
 
 item_type=$1
 source_folder=$2

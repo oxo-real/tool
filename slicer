@@ -10,7 +10,7 @@
 ### (_)><(_)
 ###
 ### slicer
-### (c) 2020 - 2022 oxo
+### copyright (c) 2020 - 2022  |  oxo
 ###
 ### returns slice from target
 ### target can be either from file or standard output stream

@@ -1,46 +1,48 @@
 #!/usr/bin/env bash
 #
 ##
-###      _       _   _
-###   __| | ___ | |_| |__  _   _
-###  / _` |/ _ \| __| '_ \| | | |
-### | (_| | (_) | |_| |_) | |_| |
-###  \__,_|\___/ \__|_.__/ \__,_|
+###      _       _    __ _
+###   __| | ___ | |_ / _| |__  _   _
+###  / _` |/ _ \| __| |_| '_ \| | | |
+### | (_| | (_) | |_|  _| |_) | |_| |
+###  \__,_|\___/ \__|_| |_.__/ \__,_|
 ###  _    _
 ### (_)><(_)
 ###
+### dotfbu
+### public backup of configuration files
 ### copyright (c) 2020 - 2022  |  oxo
 ###
-###	usage:	dotbu backup  [<bu_src> <bu_dest>]
-###		dotbu restore [<rs_src> <rs_dest>]
+### usage: dotfbu backup  [<bu_src> <bu_dest>]
+###	   dotfbu restore [<rs_src> <rs_dest>]
 ###
-###	i.e.:	dotbu backup $XDG_CONFIG_HOME $XDG_DATA_HOME/c/git/dotf
-###		dotbu restore $XDG_DATA_HOME/c/git/dotf $XDG_CONFIG_HOME
+### i.e.: dotfbu backup $XDG_CONFIG_HOME $XDG_DATA_HOME/c/git/dotf
+###	  dotfbu restore $XDG_DATA_HOME/c/git/dotf $XDG_CONFIG_HOME
 ##
 #
 
 
 # dependencies
 
-##	openssl, source/functions
+## openssl, source/functions, file process list (fpcl)
 
 
 # functionality
 
 ## backup
-##	1.	copy directories from source to destination directory
-##	2.	encrypt files or directories
+##	1. copy directories from source to destination directory
+##	2. encrypt files or directories
 
 ## restore
-##	1.	copy directories from source to destination directory
-##	2.	decrypt files or directories
+##	1. copy directories from source to destination directory
+##	2. decrypt files or directories
 
 
 # arguments
 
-mode=$1		# 'backup' or 'restore'
-src=$2		# source directory
-dest=$3		# destination directory
+mode=$1	# 'backup' or 'restore'
+src=$2	# source directory
+dest=$3	# destination directory
 
 
 sourcing()
