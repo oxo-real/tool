@@ -480,8 +480,11 @@ open_luks() {
     # DEBUG
     #sudo cryptsetup open --type luks2 $target $mapping_name --debug
 
-    printf "decrypting $target ... "
-    printf "mapping $target to $vlt_mapper_id\n"
+    printf "%20s %s\n" "decrypting" $target
+    sleep 1
+#    printf '\n%s\n' "mapping $target to $vlt_mapper_id"
+    printf "%20s %s\n" "mapping to" $vlt_mapper_id
+    sleep 1
 }
 
 
@@ -737,16 +740,16 @@ get_vault_data() {
 	    #tput cuu1
 
 	    # aestetic line removal
-	    case $action in
+	    #case $action in
 
-		open)
-		    tput cuu1
-		    tput cuu1
-		    tput cuu1
-		    tput cuu1
-		    ;;
+	    #	open)
+	    #	    tput cuu1
+	    #	    tput cuu1
+	    #	    tput cuu1
+	    #	    tput cuu1
+	    #	    ;;
 
-	    esac
+	    #esac
 
 	    tput ed
 
@@ -760,16 +763,16 @@ get_vault_data() {
 	    #tput cuu1
 
 	    # aestetic line removal
-	    case $action in
+	    #case $action in
 
-		open)
-		    tput cuu1
-		    tput cuu1
-		    tput cuu1
-		    tput cuu1
-		    ;;
+	    #	open)
+	    #	    tput cuu1
+	    #	    tput cuu1
+	    #	    tput cuu1
+	    #	    tput cuu1
+	    #	    ;;
 
-	    esac
+	    #esac
 
 	    tput ed
 
@@ -798,35 +801,35 @@ show_spec_info() {
 
     else
 
-	printf "\n%22s${BLUE} %s${NOC}\n" "specific info for:" "$target_type $target"
+	printf "\n%20s${BLUE} %s${NOC}\n" "specific info for:" "$target_type $target"
 
 	echo
-	printf "%22s %s\n" "luks_uuid:" $luks_uuid
-	printf "%22s %s\n" "crypto source:" $luks_container
+	printf "%20s %s\n" "luks_uuid:" $luks_uuid
+	printf "%20s %s\n" "crypto source:" $luks_container
 
 	echo
-	printf "%22s %s\n" "loop_uuid:" $loop_uuid
-	printf "%22s %s\n" "up since:" $loop_ctime
-	printf "%22s %s\n" "loop device:" $loop_device
+	printf "%20s %s\n" "loop_uuid:" $loop_uuid
+	printf "%20s %s\n" "up since:" $loop_ctime
+	printf "%20s %s\n" "loop device:" $loop_device
 
 	echo
 	if [ $vlt_mapper_id != "n/a" ]; then
 
-	    printf "%22s %s\n" "vlt_mapper_id:" $vlt_mapper_id
+	    printf "%20s %s\n" "vlt_mapper_id:" $vlt_mapper_id
 
 	else
 
-	    printf "%22s${MAGENTA} %s${NOC}\n" "vlt_mapper_id:" $vlt_mapper_id
+	    printf "%20s${MAGENTA} %s${NOC}\n" "vlt_mapper_id:" $vlt_mapper_id
 
 	fi
 
 	if [ $mountpoint != "n/a" ]; then
 
-	    printf "%22s %s\n" "mountpoint:" $mountpoint
+	    printf "%20s %s\n" "mountpoint:" $mountpoint
 
 	else
 
-	    printf "%22s${MAGENTA} %s${NOC}\n" "mountpoint:" $mountpoint
+	    printf "%20s${MAGENTA} %s${NOC}\n" "mountpoint:" $mountpoint
 
 	fi
 
