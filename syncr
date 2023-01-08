@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+set -o errexit
+set -o nounset
+set -o pipefail
 #
 ##
 ###  ___ _   _ _ __   ___ _ __
@@ -11,7 +14,7 @@
 ###
 ### syncr
 ### synchronize data (uni-directional)
-### copyright (c) 2020 - 2022  |  oxo
+### copyright (c) 2020 - 2023  |  oxo
 ###
 ### usage:
 ### NOTICE: check switches in main
@@ -21,12 +24,18 @@
 ### examples:
 ###
 ### ## backup
-### syncr $HOME/dock/transfer/tux/home/cytopyge \
-###	    --dry-run --links --delete
+### syncr $HOME/dock/transfer/tux/home/oxo \
+    ###	    --dry-run --links --delete
 ###
 ### ## archive
-### syncr $HOME/dock/transfer/tux/home/cytopyge \
-###	    --dry-run --links
+### syncr $HOME/dock/transfer/tux/home/oxo \
+    ###	    --dry-run --links
+###
+### ## with integrated logfile
+### syncr $HOME/dock/transfer/x1c/home/oxo --delete --links \
+    ###         --log-file=$XDG_LOGS_HOME/syncr/$(now) | \
+    ###         tee -a $XDG_LOGS_HOME/syncr/$(now)
+###
 ##
 #
 
@@ -50,7 +59,9 @@ source $source_dir/text_appearance
 ## destination
 ### under $dest .config is created
 dest=$1; shift
-[[ ! -d $dest ]] && printf "${MAGENTA}destination not found${NOC}\n" && exit 3
+[[ ! -d $dest ]] && \
+    printf "${MAGENTA}destination not found${NOC}\n" && \
+    exit 3
 
 ## added rsync options
 options="$*"
@@ -58,58 +69,60 @@ options="$*"
 ## rsync options
 # -a		is equivalent to -rlptgoD
 # --dirs	will create directories specified in the list on the destination
-# --links	prevent rsync error: 'skipping non-regular file'
+# --links	copy symlinks as symlinks
+#               this prevents rsync error: 'skipping non-regular file'
 
 
 config_fpcl()
 {
-	# synchronize .config			(config_fpcl)
+    # synchronize .config			(config_fpcl)
 
-	printf "\n${BLUE}%s${NOC}\n" "synching config_fpcl"
+    printf "\n${BLUE}%s${NOC}\n" "synching config_fpcl"
 
-	## file process list definitions
-	fpcl_file="$XDG_CONFIG_HOME/.fpcl"
-	fpcl_rsync=$dest'/.config/.fpcl_rsync'
+    ## file process list definitions
+    fpcl_file="$XDG_CONFIG_HOME/.fpcl"
+    fpcl_rsync=$dest'/.config/.fpcl_rsync'
 
-	# convert fpcl for rsync
-	## create temporary file fpcl_rsync,
-	## based on fpcl_file
-	## (latter is also used in dotbu)
-	sed 's/^c //' $fpcl_file > $fpcl_rsync
+    # convert fpcl for rsync
+    ## create temporary file fpcl_rsync,
+    ## based on fpcl_file
+    ## (latter is also used in dotbu)
+    sed 's/^c //' $fpcl_file > $fpcl_rsync
 
-	local src="$XDG_CONFIG_HOME"
-	local dst="$dest/.config/"
+    local src="$XDG_CONFIG_HOME"
+    local dst="$dest/.config/"
 
-	[[ -d $dst ]] || mkdir -p $dst
+    [[ -d $dst ]] || mkdir -p $dst
 
-	## when --files-from is specified,
-	## -r (recursive) is not implied within -a (--archive) option
-	## therefore -r is explicitly added as option
-	rsync -aAXv -r \
-		--info=ALL \
-		--files-from=$fpcl_rsync \
-		$options \
-		$src $dst
+    ## NOTICE: on -r
+    ## when --files-from is specified,
+    ## -r (recursive) is not implied within -a (--archive) option
+    ## therefore -r is explicitly added as option
+    rsync -aAXv -r \
+	  --files-from=$fpcl_rsync \
+	  --info=ALL \
+	  $options \
+	  $src $dst
 
-	#rm -rf $fpcl_rsync
+    #rm -rf $fpcl_rsync
 }
 
 
 logs()
 {
-	# synchronize .logs				(logs)
+    # synchronize .logs				(logs)
 
-	printf "\n${BLUE}%s${NOC}\n" "synching logs"
+    printf "\n${BLUE}%s${NOC}\n" "synching logs"
 
-	local src="$XDG_LOGS_HOME"
-	local dst="$dest"
+    local src="$XDG_LOGS_HOME"
+    local dst="$dest"
 
-	[[ -d $dst ]] || mkdir -p $dst
+    [[ -d $dst ]] || mkdir -p $dst
 
-	rsync -aAXv \
-		--info=ALL \
-		$options \
-		$src $dst
+    rsync -aAXv \
+	  --info=ALL \
+	  $options \
+	  $src $dst
 }
 
 
@@ -139,9 +152,9 @@ local_share_archive()
     fi
 
     rsync -aAXv \
-	--info=ALL \
-	$options_wo_delete \
-	$src $dst
+	  --info=ALL \
+	  $options_wo_delete \
+	  $src $dst
 
     if [[ $delete_option -eq 1 ]]; then
 
@@ -153,64 +166,64 @@ local_share_archive()
 
 local_share_backup()
 {
-	# synchronize .local/share/b	(backup)
+    # synchronize .local/share/b	(backup)
 
-	printf "\n${BLUE}%s${NOC}\n" "synching backup"
+    printf "\n${BLUE}%s${NOC}\n" "synching backup"
 
-	local src="$XDG_DATA_HOME/b"
-	local dst="$dest/.local/share/"
+    local src="$XDG_DATA_HOME/b"
+    local dst="$dest/.local/share/"
 
-	[[ -d $dst ]] || mkdir -p $dst
+    [[ -d $dst ]] || mkdir -p $dst
 
-	rsync -aAXv \
-		--info=ALL \
-		$options \
-		$src $dst
+    rsync -aAXv \
+	  --info=ALL \
+	  $options \
+	  $src $dst
 }
 
 
 local_share_current()
 {
-	# synchronize .local/share/c	(share_current)
+    # synchronize .local/share/c	(share_current)
 
-	printf "\n${BLUE}%s${NOC}\n" "synching current"
+    printf "\n${BLUE}%s${NOC}\n" "synching current"
 
-	local src="$XDG_DATA_HOME/c"
-	local dst="$dest/.local/share/"
+    local src="$XDG_DATA_HOME/c"
+    local dst="$dest/.local/share/"
 
-	[[ -d $dst ]] || mkdir -p $dst
+    [[ -d $dst ]] || mkdir -p $dst
 
-	rsync -aAXv \
-		--info=ALL \
-		$options \
-		$src $dst
+    rsync -aAXv \
+	  --info=ALL \
+	  $options \
+	  $src $dst
 }
 
 
 password_store()
 {
-	# synchronize password-store	(password_store)
+    # synchronize password-store	(password_store)
 
-	printf "\n${BLUE}%s${NOC}\n" "synching password_store"
+    printf "\n${BLUE}%s${NOC}\n" "synching password_store"
 
-	if [[ -d $HOME/dock/vlt/pass ]] && \
-		mountpoint -q $HOME/dock/vlt/pass; then
+    if [[ -d $HOME/dock/vlt/pass ]] && \
+	   mountpoint -q $HOME/dock/vlt/pass; then
 
-		local src="$HOME/dock/vlt"
-		local dst="$dest/"
+	local src="$HOME/dock/vlt"
+	local dst="$dest/"
 
-		[[ -d $dst ]] || mkdir -p $dst
+	[[ -d $dst ]] || mkdir -p $dst
 
-		rsync -aAXv \
-			--info=ALL \
-			$options \
-			$src $dst
+	rsync -aAXv \
+	      --info=ALL \
+	      $options \
+	      $src $dst
 
-	else
+    else
 
-		printf "${MAGENTA}no password_store found${NOC}\n"
+	printf "${MAGENTA}no password_store found${NOC}\n"
 
-	fi
+    fi
 }
 
 
@@ -223,122 +236,122 @@ recovery()
 
 repo()
 {
-	# synchronize offline repo		(repo)
+    # synchronize offline repo		(repo)
 
-	[[ -d $repo_mount ]] && repo_mounted=1
+    [[ -d $repo_mount ]] && repo_mounted=1
 
-	case $repo_mounted in
+    case $repo_mounted in
 
-		1)
-			printf "\n${BLUE}%s${NOC}" "updating offline recovery repo ... "
+	1)
+	    printf "\n${BLUE}%s${NOC}" "updating offline recovery repo ... "
 
-			sh $make_offl_repo >/dev/null 2>&1
+	    sh $make_offl_repo >/dev/null 2>&1
 
-			printf "${BLUE}%s${NOC}\n" "complete"
+	    printf "${BLUE}%s${NOC}\n" "complete"
 
-			printf "\n${BLUE}%s${NOC}\n" "synching offline recovery repo"
+	    printf "\n${BLUE}%s${NOC}\n" "synching offline recovery repo"
 
-			local src="$repo_mount"
-			local dst="$dest/repo/"
+	    local src="$repo_mount"
+	    local dst="$dest/repo/"
 
-			[[ -d $dst ]] || mkdir -p $dst
+	    [[ -d $dst ]] || mkdir -p $dst
 
-			rsync -aAXv \
-				--info=ALL \
-				$options \
-				$src $dst
-			;;
+	    rsync -aAXv \
+		  --info=ALL \
+		  $options \
+		  $src $dst
+	    ;;
 
-		*)
-			printf "\n${YELLOW}no offline repo found${NOC}\n"
-			;;
+	*)
+	    printf "\n${YELLOW}no offline repo found${NOC}\n"
+	    ;;
 
-	esac
+    esac
 }
 
 
 code()
 {
-	# synchronize offline code		(code)
+    # synchronize offline code		(code)
 
-	[[ -d $code_mount ]] && code_mounted=1
+    [[ -d $code_mount ]] && code_mounted=1
 
-	case $code_mounted in
+    case $code_mounted in
 
-		1)
-			printf "\n${BLUE}%s${NOC}\n" "synching offline recovery code"
+	1)
+	    printf "\n${BLUE}%s${NOC}\n" "synching offline recovery code"
 
-			local src="$code_mount"
-			local dst="$dest/code/"
+	    local src="$code_mount"
+	    local dst="$dest/code/"
 
-			[[ -d $dst ]] || mkdir -p $dst
+	    [[ -d $dst ]] || mkdir -p $dst
 
-			rsync -aAXv \
-				--info=ALL \
-				$options \
-				$src $dst
-			;;
+	    rsync -aAXv \
+		  --info=ALL \
+		  $options \
+		  $src $dst
+	    ;;
 
-		*)
-			printf "\n${YELLOW}error; no offline repo found${NOC}\n"
-			;;
+	*)
+	    printf "\n${YELLOW}error; no offline repo found${NOC}\n"
+	    ;;
 
-	esac
+    esac
 }
 
 
 config_all()
 {
-	# synchronize .config			(config_all)
+    # synchronize .config			(config_all)
 
-	printf "\n${BLUE}%s${NOC}\n" "synching config_all"
+    printf "\n${BLUE}%s${NOC}\n" "synching config_all"
 
-	local src="$XDG_CONFIG_HOME"
-	local dst="$dest/.config/"
+    local src="$XDG_CONFIG_HOME"
+    local dst="$dest/.config/"
 
-	[[ -d $dst ]] || mkdir -p $dst
+    [[ -d $dst ]] || mkdir -p $dst
 
-	rsync -aAXv \
-		--info=ALL \
-		$options \
-		$src $dst
+    rsync -aAXv \
+	  --info=ALL \
+	  $options \
+	  $src $dst
 }
 
 
 local_share_all()
 {
-	# synchronize .local/share		(share_all)
+    # synchronize .local/share		(share_all)
 
-	printf "\n${BLUE}%s${NOC}\n" "synching local_share_all"
+    printf "\n${BLUE}%s${NOC}\n" "synching local_share_all"
 
-	local src="$XDG_DATA_HOME"
-	local dst="$dest/.local/share/"
+    local src="$XDG_DATA_HOME"
+    local dst="$dest/.local/share/"
 
-	[[ -d $dst ]] || mkdir -p $dst
+    [[ -d $dst ]] || mkdir -p $dst
 
-	rsync -aAXv \
-		--info=ALL \
-		$options \
-		$src $dst
+    rsync -aAXv \
+	  --info=ALL \
+	  $options \
+	  $src $dst
 }
 
 
 
 main()
 {
-	config_fpcl
+    config_fpcl
 
-	logs
+    logs
 
-	local_share_archive
-	local_share_backup
-	local_share_current
+    local_share_archive
+    local_share_backup
+    local_share_current
 
-	password_store
-	#recovery
+    password_store
+    #recovery
 
-	## ## config_all
-	## ## local_share_all
+    ## ## config_all
+    ## ## local_share_all
 }
 
 main

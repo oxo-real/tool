@@ -1,10 +1,11 @@
 #!/bin/env zsh
+set -o errexit -o nounset -o pipefail
 
 # usage: diffdir dir1 dir2 [rsync_options]
 
 if [[ -z $2 ]] ; then
 
-	echo "USAGE: $0 dir1 dir2 [rsync_options]"
+    echo "USAGE: $0 dir1 dir2 [rsync_options]"
     exit 1
 
 fi
@@ -18,12 +19,11 @@ dst_dir=$1; shift
 args="$*"
 
 
-## files in src not in dst
-rsync $args -rin --ignore-existing "$src_dir"/ "$dst_dir"/|sed -e 's/^[^ ]* /-->   /'
+## -->   files in src not in dst
+#rsync $args -rin --ignore-existing "$src_dir"/ "$dst_dir"/ | sed -e 's/^[^ ]* /-->    /'
 
-## files in dst not in src
-rsync $args -rin --ignore-existing "$dst_dir"/ "$src_dir"/|sed -e 's/^[^ ]* /  <-- /'
+##    <-- files in dst not in src
+rsync $args -rin --ignore-existing "$dst_dir"/ "$src_dir"/ | sed -e 's/^[^ ]* /   <-- /'
 
-## files in dst and in src, but they differ
-rsync $args -rin --existing "$src_dir"/ "$dst_dir"/|sed -e 's/^/--X-- /'
-
+## --><-- files in dst and in src, but they differ
+#rsync $args -rin --existing "$src_dir"/ "$dst_dir"/ | sed -e 's/^/--><-- /'

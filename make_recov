@@ -6,7 +6,7 @@
 ###
 ### make offline recovery
 ###
-### (c) 2022  |  cytopyge
+### (c) 2023  |  oxo
 ###
 ### usage:
 ### make_recov [rsync_options]
