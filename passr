@@ -1,4 +1,7 @@
 #!/usr/bin/env sh
+#set -o errexit
+#set -o nounset
+#set -o pipefail
 #
 ##
 ###  _ __   __ _ ___ ___ _ __
@@ -11,7 +14,7 @@
 ###
 ### passr
 ### fzf cli wrapper for pass
-### copyright (c) 2020 - 2022  |  oxo
+### copyright (c) 2020 - 2023  |  oxo
 ###
 ### GNU GPLv3 GENERAL PUBLIC LICENSE
 ### This program is free software: you can redistribute it and/or modify
