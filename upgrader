@@ -12,7 +12,7 @@
 ###
 ### upgrader
 ### arch linux upgrade script
-### (c) 2019 - 2022  |  oxo
+### (c) 2019 - 2023  |  oxo
 ###
 ##
 #
@@ -557,6 +557,13 @@ update_dns_hosts_blocklist()
 }
 
 
+ua_upgrade()
+{
+    chua
+    echo
+}
+
+
 kernel_reboot_check()
 {
     active_kernel=$(uname -r)
@@ -639,6 +646,7 @@ main()
 	#package_upgrade_details
 	boot_usr_ro
 	update_dns_hosts_blocklist
+	ua_upgrade
 	arch_audit_q
 	show_part_sizes
 	kernel_reboot_check

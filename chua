@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+set -o errexit
+#set -o nounset
+set -o pipefail
+
+# set useragent from an online updated list
+
+# usage
+# chua [--manual]
+
+# dependencies
+# https://www.useragents.me/api
+
+
+# getargs
+arg1=$1
+qb_conf="$XDG_CONFIG_HOME/qutebrowser/config.py"
+
+
+# set ua current logging
+lnuac="$XDG_LOGS_HOME/network/user_agent/current"
+
+
+# set timestamp
+timestamp=$(date +%s)
+
+
+# get api data
+api_data=$(curl https://www.useragents.me/api)
+
+
+# process api data
+if [[ "$arg1" == '--manual' ]]; then
+
+    ua_sel=$(printf '%s' $api_data | jq '.data[] | .ua' | fzf)
+
+else
+
+    ua_sel=$(printf '%s' $api_data | jq '.data[0] | .ua')
+
+fi
+
+ua=$(printf '%s' $ua_sel | sed -e 's/^"//' -e 's/"$//')
+
+
+# prepend timestamp and selected ua to lnuac
+sed -i "1i $timestamp" $lnuac
+sed -i "1i $ua" $lnuac
+
+
+# change qutebrowser settings
+qb_line_2_change=$(grep ^c.content.headers.user_agent $qb_conf)
+qb_string_2_change=$(printf "$qb_line_2_change" | awk -F "'" '{print $2}')
+sed -i "s|$qb_string_2_change|$ua|" $qb_conf
+
+
+# exiting
+printf '%s\n' "$ua"
