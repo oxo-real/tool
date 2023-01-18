@@ -559,6 +559,9 @@ update_dns_hosts_blocklist()
 
 ua_upgrade()
 {
+    printf '%s\n' "$USER_AGENT"
+    lnuac="$XDG_LOGS_HOME/network/user_agent/current"
+    sed -i "1i $(date +%s) upgrader" $lnuac
     chua
     echo
 }

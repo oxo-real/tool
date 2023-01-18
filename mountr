@@ -273,7 +273,7 @@ get_source_devs() {
     while IFS= read -r -u 4 line; do
 
 	get_device_data
-	convert_data_no_label
+	##DEL #convert_data_no_label
 
 	dev_has_mountpoint
 
@@ -323,8 +323,8 @@ refresh_mps_avail() {
 mount_to_select_param() {
 
     # choose mountpoint
-    local fzf_input=$(printf '%s\n' "${mps_avail[@]}")
-    local fzf_prompt="mountpoint: $line"
+    local fzf_input=$(printf '\t\t\t\t\t%s\n' "${mps_avail[@]}")
+    local fzf_prompt="set mountpoint for source: $line"
     local fzf_options='--height=20%'
 
     fzf_choose
@@ -356,7 +356,8 @@ devs_and_mps_param() {
 
 fzf_choose() {
 
-    fzf_select=$(printf "$fzf_input" | fzf -m --header="${BOLD}source device			      mountpoint${NORMAL}" --prompt="$fzf_prompt " $fzf_options)
+    # fzf selection without tabs (from mount_to_select_param)
+    fzf_select=$(printf "$fzf_input" | fzf -m --header="${BOLD}source device			      mountpoint${NORMAL}" --prompt="$fzf_prompt " $fzf_options | tr -d '\t')
 
     # no choice: print status of available source devices and umountable mountpoints
     case $fzf_select in
@@ -412,11 +413,12 @@ get_device_data() {
     source_dev=$(printf "$line" | cut -d ' ' -f 1)
     dev_type=$(\lsblk -nrp -o "name,type" | grep -w "$source_dev" | cut -d ' ' -f 2)
     size=$(printf "$line" | cut -d ' ' -f 3)
-    label=$(printf "$line" | cut -d ' ' -f 4)
+    ##DEL #label=$(printf "$line" | cut -d ' ' -f 4)
+    label=$(blkid "$source_dev" | tr -s ' ' '\n' | grep -w 'LABEL=' | cut -d '"' -f 2)
 
-    # CAUTION!
-    ## when coming from findmnt:
-    ## if dev has no label: label contains mountpoint
+    ##DEL # CAUTION!
+    ##DEL ## when coming from findmnt:
+    ##DEL ## if dev has no label: label contains mountpoint
 
     mountpoint=$(printf "$line" | awk '{print $NF}')
 }
@@ -424,32 +426,32 @@ get_device_data() {
 
 convert_data_no_label() {
 
-    # CAUTION!
-    ## when coming from findmnt:
-    ## if dev has no label: label contains mountpoint
-    ## correct messed up fields here
+    ##DEL # CAUTION!
+    ##DEL ## when coming from findmnt:
+    ##DEL ## if dev has no label: $label contains mountpoint
+    ##DEL ## correct messed up fields here
 
-    ## correct label
-    if [[ "$label" == "$mountpoint" ]]; then
+    ##DEL ## correct label
+    ##DEL if [[ "$label" == "$mountpoint" ]]; then
 
-	label='noLBL'
+    ##DEL 	label='noLBL'
 
-    fi
+    ##DEL fi
 
-    # ## correct size
-    # if [[ "$size" == "$dev_type" ]]; then
+    ##DEL # ## correct size
+    ##DEL # if [[ "$size" == "$dev_type" ]]; then
 
-    # 	size=$(printf "$line" | awk '{print $3}')
+    ##DEL # 	size=$(printf "$line" | awk '{print $3}')
 
-    # fi
+    ##DEL # fi
 
-    # ## correct mountpoint
-    # if [[ "$mountpoint" == "$size" ]]; then
+    ##DEL # ## correct mountpoint
+    ##DEL # if [[ "$mountpoint" == "$size" ]]; then
 
-    # 	# device has no label and is not mounted
-    # 	mountpoint=''
+    ##DEL # 	# device has no label and is not mounted
+    ##DEL # 	mountpoint=''
 
-    # fi
+    ##DEL # fi
 }
 
 
@@ -513,7 +515,7 @@ process_devs_and_mps() {
 
 	dev_is_vlt_pass
 	get_device_data
-	convert_data_no_label
+	##DEL #convert_data_no_label
 
 	dev_has_mountpoint
 

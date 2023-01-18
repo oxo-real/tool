@@ -11,7 +11,7 @@
 ###
 ### trash
 ### remove files to an intermediate location
-### copyright (c) 2020 - 2022  |  oxo
+### copyright (c) 2020 - 2023  |  oxo
 ###
 ### recommendation:	alias rm="trash"
 ###
@@ -111,7 +111,8 @@ process_args_array() {
     else
 
 	# no arguments given
-	printf "$trash\n"
+	size=$(du -sh $XDG_CACHE_HOME/trash 2>/dev/null | awk '{print $1}')
+	printf "$trash $size\n"
 
     fi
 }
@@ -208,8 +209,9 @@ process_arguments() {
 
 trash_size() {
 
-    dirs=$(find $XDG_CACHE_HOME/trash -type d | wc -l)
-    files=$(find $XDG_CACHE_HOME/trash -type f | wc -l)
+    dirs=$(sudo fd -t d -u $XDG_CACHE_HOME/trash | wc -l)
+    #dirs=$(sudo find $XDG_CACHE_HOME/trash -type d | wc -l)
+    files=$(sudo fd -t f -u $XDG_CACHE_HOME/trash | wc -l)
     size=$(sudo du -sh $XDG_CACHE_HOME/trash | awk '{print $1}')
 }
 
