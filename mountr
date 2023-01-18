@@ -273,8 +273,6 @@ get_source_devs() {
     while IFS= read -r -u 4 line; do
 
 	get_device_data
-	##DEL #convert_data_no_label
-
 	dev_has_mountpoint
 
 	# remove device from array
@@ -413,45 +411,8 @@ get_device_data() {
     source_dev=$(printf "$line" | cut -d ' ' -f 1)
     dev_type=$(\lsblk -nrp -o "name,type" | grep -w "$source_dev" | cut -d ' ' -f 2)
     size=$(printf "$line" | cut -d ' ' -f 3)
-    ##DEL #label=$(printf "$line" | cut -d ' ' -f 4)
     label=$(blkid "$source_dev" | tr -s ' ' '\n' | grep -w 'LABEL=' | cut -d '"' -f 2)
-
-    ##DEL # CAUTION!
-    ##DEL ## when coming from findmnt:
-    ##DEL ## if dev has no label: label contains mountpoint
-
     mountpoint=$(printf "$line" | awk '{print $NF}')
-}
-
-
-convert_data_no_label() {
-
-    ##DEL # CAUTION!
-    ##DEL ## when coming from findmnt:
-    ##DEL ## if dev has no label: $label contains mountpoint
-    ##DEL ## correct messed up fields here
-
-    ##DEL ## correct label
-    ##DEL if [[ "$label" == "$mountpoint" ]]; then
-
-    ##DEL 	label='noLBL'
-
-    ##DEL fi
-
-    ##DEL # ## correct size
-    ##DEL # if [[ "$size" == "$dev_type" ]]; then
-
-    ##DEL # 	size=$(printf "$line" | awk '{print $3}')
-
-    ##DEL # fi
-
-    ##DEL # ## correct mountpoint
-    ##DEL # if [[ "$mountpoint" == "$size" ]]; then
-
-    ##DEL # 	# device has no label and is not mounted
-    ##DEL # 	mountpoint=''
-
-    ##DEL # fi
 }
 
 
@@ -515,8 +476,6 @@ process_devs_and_mps() {
 
 	dev_is_vlt_pass
 	get_device_data
-	##DEL #convert_data_no_label
-
 	dev_has_mountpoint
 
 	case $? in
