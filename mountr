@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #set -o errexit
-set -o nounset
+#set -o nounset
 set -o pipefail
 #
 ##
@@ -139,8 +139,15 @@ get_mps_mount() {
 get_mps_umount() {
 
     ## umountable mountpoints
-    mps_umount=$(findmnt --list -o SOURCE,SIZE,LABEL,TARGET | \
+    mps_umount=$(findmnt --list -o SOURCE,FSTYPE,SIZE,LABEL,TARGET | \
+    #mps_umount=$(findmnt --list -o SOURCE,SIZE,LABEL,TARGET | \
 	grep -e '/dev/sd' -e '/dev/mmcblk' -e '/dev/mapper/vlt_' | \
+	# remove double spaces
+	tr -s ' ' | \
+	# replace last space with double tab (for aesthetic reasons)
+	## ([^ ]*)$ catches spaces & 'anything not being a space up to the end of line'
+	## \t\t\1 print tabs & the catched 'anything not being a space up to the end of line'
+	sed -r 's/([^ ]*)$/\t\t\1/' | \
 	sort)
 
     ## add eol to source_devs_avail
@@ -451,7 +458,7 @@ validity_check() {
 	    ## check mountpoint already mounted
 	    [[ -z $( mountpoint $mount_to | grep not ) ]] && \
 	        printf "${MAGENTA}$mount_to${NOC} is already a mountpoint\n" && \
-		    exit 44
+		exit 44
 
 	    ## check mountpoint dir empty
 	    [[ -n $(ls -A $mount_to) ]] && \

@@ -6,10 +6,10 @@
 ###
 ### copies pacman package cache to destination
 ###
-### (c) 2021 - 2022  |  cytopyge
+### (c) 2021 - 2023  |  oxo
 ###
 ### usage:
-### make_offl_repo <destination>
+### make_offl_repo <destination> [rsync options]
 ###
 ##
 #
@@ -36,10 +36,10 @@ timestamp=$(date +%s)
 rsync_all_packages()
 {
     rsync -aAXv \
-	--filter='protect aur' \
-	--delete \
 	$options \
 	$p_src/ $p_dst
+	#--filter='protect aur' \
+	#--delete \
 }
 
 
@@ -66,9 +66,10 @@ aur_packages()
 
     for package in "${aur_pkgs[@]}"; do
 
-    printf "$package\n"
-    cd "$dst_aur/$package"
-    makepkg -sc --needed
+	printf '\n==> %s\n' "$package"
+	cd "$dst_aur/$package"
+	makepkg -sc --needed
+	#makepkg -sc
 
     done
 }

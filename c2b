@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+
+
+# backup DATA_HOME/c and CONFIG_HOME
+
+
+# usage:
+## % c2b [rsync-options]
+
+
+# example:
+## % c2b --dry-run
+
+
+options=$@
+
+
+## copy $src1
+##
+## $XDG_DATA_HOME/c ($HOME/.local/share/c)
+src1="$XDG_DATA_HOME/c/"
+##
+## and $src2
+##
+## $XDG_CONFIG_HOME ($HOME/.config)
+src2="$XDG_CONFIG_HOME"
+##
+## to $dst the dynamic data backup
+##
+## $XDG_DATA_HOME/b ($HOME/.local/share/b)
+dst="$XDG_DATA_HOME/b"
+
+
+# make dynamic data backup writable
+sudo chattr -R -i $dst >/dev/null 2>&1
+
+
+# copy c to b
+# and create logging
+rsync -aAXv --delete --links --log-file=$XDG_LOGS_HOME/c2b/$(date +%s) --$options $src1 $dst | tee -a $XDG_LOGS_HOME/c2b/$(date +%s)
+
+
+# copy .config to b
+# and create logging
+rsync -aAXv --delete --links --log-file=$XDG_LOGS_HOME/c2b/$(date +%s) --$options $src2 $dst | tee -a $XDG_LOGS_HOME/c2b/$(date +%s)
+
+
+# protect dynamic data backup against writing
+sudo chattr -R +i $dst >/dev/null 2>&1
+
+
+# go back to where we came from
+cd - &> /dev/null

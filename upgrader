@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 ##
 ###                                  _
@@ -70,63 +70,63 @@ source $source_dir/get_sudo
 
 set_clock()
 {
-	# synchronize clocks
-	printf "${BOLD}timedatectl status${NORMAL}\n"
+    # synchronize clocks
+    printf "${BOLD}timedatectl status${NORMAL}\n"
     # enable network sync service
-	sudo timedatectl set-ntp true
-	sudo timedatectl status
-	echo
-	printf "${BOLD}timedatectl timesync-status${NORMAL}\n"
-	timedatectl timesync-status
-	echo
-	printf "${BOLD}hwclock --show${NORMAL}\n"
-	sudo hwclock --show
-	cat /etc/adjtime
-	echo
-	sleep 5
+    sudo timedatectl set-ntp true
+    sudo timedatectl status
+    echo
+    printf "${BOLD}timedatectl timesync-status${NORMAL}\n"
+    timedatectl timesync-status
+    echo
+    printf "${BOLD}hwclock --show${NORMAL}\n"
+    sudo hwclock --show
+    cat /etc/adjtime
+    echo
+    sleep 5
 }
 
 
 internet_conn_check()
 {
-	# check internet connection
-	ipex=$(host myip.opendns.com resolver2.opendns.com \
-		| tail -n 1 | rev | cut -d ' ' -f 1 | rev)
+    # check internet connection
+    ipex=$(host myip.opendns.com resolver2.opendns.com \
+	       | tail -n 1 | rev | cut -d ' ' -f 1 | rev)
 
-	#ipex=$(dig @resolver1.opendns.com myip.opendns.com +dnssec +short)
+    #ipex=$(dig @resolver1.opendns.com myip.opendns.com +dnssec +short)
     #$(ping -q -w 2 -c 1 $ip_check > /dev/null)
     #if [ $? != 0 ]; then
-		#printf "${MAGENTA}not able to check network connectivity (ipv4)${NOC}\n"
+    #printf "${MAGENTA}not able to check network connectivity (ipv4)${NOC}\n"
 
-	if [ -z $ipex ]; then
+    if [ -z $ipex ]; then
 
-		printf "${MAGENTA}unable to retrieve external ip address (ipv4)${NOC}\n"
+	printf "${MAGENTA}unable to retrieve external ip address (ipv4)${NOC}\n"
 
-		printf "run netconn? (Y/n) "
-		    reply_read_single_hidden_timer
-		    echo
+	printf "run netconn? (Y/n) "
+	reply_read_single_hidden_timer
+	echo
 
-		    if printf "$reply" | grep -iq "^n" ; then
+	if printf "$reply" | grep -iq "^n" ; then
 
-				printf "exiting\n"
-				exit
+	    printf "exiting\n"
+	    exit
 
-			else
+	else
 
-				sh $netconn
-
-			fi
+	    sh $netconn
 
 	fi
+
+    fi
 }
 
 
 package_lists_before()
 {
-	# backup package lists before upgrade
+    # backup package lists before upgrade
     ## define variables
     timestamp_0=`date "+%Y%m%d_%H%M%S"`
-	llt0="$log_location/$timestamp_0"
+    llt0="$log_location/$timestamp_0"
 
     printf "writing package lists to log, before upgrade (0Q, 0e & 0p)\n"
     echo
@@ -165,40 +165,53 @@ package_lists_before()
 }
 
 
+boot_usr_presence() {
+    #check /boot presence
+    mountpoint -q /boot
+    if [[ $? -ne 0 ]]; then
+	printf "no device at mountpoint ${MAGENTA}/boot${NOC}\n"
+	printf "exiting\n"
+	exit
+    fi
+
+    #check /usr presence
+    mountpoint -q /usr
+    if [[ $? -ne 0 ]]; then
+	printf "no device at mountpoint ${MAGENTA}/usr${NOC}\n"
+	printf "exiting\n"
+	exit
+    fi
+}
+
+
 boot_usr_rw()
 {
-	# make partitions rw
-    ## remount existing /boot rw
-    if [ ! -z $(mount | grep /boot | awk {'print $1'}) ]; then
-		sudo mount -o remount,rw /boot
-		#findmnt | grep /boot | cut -c 7-
-		printf "mount -o remount,rw /boot\n"
-    else
-		printf "${MAGENTA}no device at /boot${NOC}\n"
-		printf "exiting\n"
-		exit
-    fi
+    # make partitions rw
+
+    ## remount /boot rw
+    sudo mount -o remount,rw /boot
+    printf "mount -o remount,rw /boot\n"
 
     ## remount /usr rw
     sudo mount -o remount,rw  /usr
-    #findmnt | grep /usr | cut -c 7-
-	printf "mount -o remount,rw /usr\n"
+    printf "mount -o remount,rw /usr\n"
+
     echo
 }
 
 
 update_mirrors()
 {
-	# update mirrorlist
+    # update mirrorlist
     sudo cp $mirror_location/mirrorlist $mirror_location/mirrorlist.old
     sudo reflector \
-		--verbose \
-		--protocol $protocol \
-		--country $country \
-		--age $age \
-		-l $number_of_mirrors \
-		--sort rate \
-		--save $mirror_location/mirrorlist
+	 --verbose \
+	 --protocol $protocol \
+	 --country $country \
+	 --age $age \
+	 -l $number_of_mirrors \
+	 --sort rate \
+	 --save $mirror_location/mirrorlist
     echo
 }
 
@@ -232,17 +245,17 @@ show_news()
 {
     printf "arch linux news (Pw)\n"
 
-	if [ -z "$(yay -Pw)" ]; then
+    if [ -z "$(yay -Pw)" ]; then
 
-		printf "no recent entries\n"
+	printf "no recent entries\n"
 
-	else
+    else
 
-		yay -Pw
-		printf "Press any key to continue "
-		reply_single_hidden
+	yay -Pw
+	printf "Press any key to continue "
+	reply_single_hidden
 
-	fi
+    fi
 
     echo
 }
@@ -250,15 +263,15 @@ show_news()
 
 upgrade_keyring()
 {
-	sudo pacman -Sy --needed archlinux-keyring
+    sudo pacman -Sy --needed archlinux-keyring
 }
 
 
 refresh_package_database()
 {
-	# refresh package database
-	printf "refresh (update) package database (Sy)\n"
-	echo
+    # refresh package database
+    printf "refresh (update) package database (Sy)\n"
+    echo
 
     yay -Sy
     #yay -Syv
@@ -269,7 +282,7 @@ refresh_package_database()
 
 list_marked_upgrade()
 {
-	# list packages marked for upgrade
+    # list packages marked for upgrade
     printf "writing package list marked to be upgraded (0u)\n"
     echo
 
@@ -283,33 +296,33 @@ list_marked_upgrade()
     printf "list packages marked to be upgraded\n" >> $llt0'_0u'
     printf "yay -Qu\n\n" >> $llt0'_0u'
     ## add yay -Qu to file timestamp_0u
-	printf "$(yay -Qu | wc -l) package(s) marked for upgrade\n" >> $llt0'_0u'
+    printf "$(yay -Qu | wc -l) package(s) marked for upgrade\n" >> $llt0'_0u'
     yay -Qu >> $llt0'_0u'
 }
 
 
 upgrade_packages()
 {
-	# upgrade installed packages
+    # upgrade installed packages
     printf "also upgrade developement packages? (y/N) "
     reply_read_single_hidden_timer
     echo
 
     if printf "$reply" | grep -iq "^y" ; then
 
-		devel_packages="--devel"
-		timeupdate="--timeupdate"
-		printf "upgrade (Suv --devel)\n"
-		#printf "upgrade (Suv --devel --timeupdate --combinedupgrade)\n"
-		echo
+	devel_packages="--devel"
+	timeupdate="--timeupdate"
+	printf "upgrade (Suv --devel)\n"
+	#printf "upgrade (Suv --devel --timeupdate --combinedupgrade)\n"
+	echo
 
-	else
+    else
 
-		printf "upgrade (Suv)\n"
-		#printf "upgrade (Suv --timeupdate --combinedupgrade)\n"
-		echo
+	printf "upgrade (Suv)\n"
+	#printf "upgrade (Suv --timeupdate --combinedupgrade)\n"
+	echo
 
-	fi
+    fi
 
     ## devel packages are optional
     yay -Suv $devel_packages --sudoloop
@@ -320,18 +333,18 @@ upgrade_packages()
 
 waybar_reload()
 {
-	printf "update desktop environment"
-	sway -v
-	sleep 1
-	pkill waybar
-	sleep 1
-	sway exec waybar
+    printf "update desktop environment"
+    sway -v
+    sleep 1
+    pkill waybar
+    sleep 1
+    sway exec waybar
 }
 
 
 clean_up()
 {
-	# cleaning up
+    # cleaning up
     #printf "cleanup (Rns Qtdq)\n"
     #yay -Rns $(yay -Qtdq) 2>/dev/null
     #printf "done\n"
@@ -340,27 +353,27 @@ clean_up()
     #yay -c
     #printf "done\n"
 
-	# removes old packages from the pacman cache directory
+    # removes old packages from the pacman cache directory
     printf "cleanup paccache (rv)\n"
     paccache -rv
-	#paccache -v -rk3 -ruk3
+    #paccache -v -rk3 -ruk3
     echo
 }
 
 
 show_missing()
 {
-	# show missing package files
-	## i3blocks is filtered out from results
-	printf "missing package files (Qk)\n"
-	yay -Qk | grep -v '0 m' || printf "no missing package files detected\n"
-	echo
+    # show missing package files
+    ## i3blocks is filtered out from results
+    printf "missing package files (Qk)\n"
+    yay -Qk | grep -v '0 m' || printf "no missing package files detected\n"
+    echo
 }
 
 
 update_db()
 {
-	# updatedb
+    # updatedb
     ## in order to user locate (faster than find)
     ## requires mlocate
     printf "update locate db\n"
@@ -372,22 +385,22 @@ update_db()
 
 boot_usr_ro()
 {
-	# make partitions ro
+    # make partitions ro
     printf "revert mountpoint statuses\n"
     sudo mount -v -o remount,ro /boot
-	printf "mount -o remount,ro /boot\n"
+    printf "mount -o remount,ro /boot\n"
     sudo mount -v -o remount,ro /usr
-	printf "mount -o remount,ro /usr\n"
+    printf "mount -o remount,ro /usr\n"
     echo
 }
 
 
 package_lists_after()
 {
-	# backup package lists after upgrade
+    # backup package lists after upgrade
     ## define variables
     timestamp_1=`date "+%Y%m%d_%H%M%S"`
-	llt1="$log_location/$timestamp_1"
+    llt1="$log_location/$timestamp_1"
 
     printf "writing package lists to log, after upgrade (1Q, 1e & 1p)\n"
     echo
@@ -428,8 +441,8 @@ package_lists_after()
 
 package_lists_diffs()
 {
-	# package lists diffs after upgrade
-	printf "writing package lists before-after upgrade diffs to log (dQ, de & dp)\n"
+    # package lists diffs after upgrade
+    printf "writing package lists before-after upgrade diffs to log (dQ, de & dp)\n"
     echo
 
     ## make file timestamp_dQ
@@ -460,26 +473,26 @@ package_lists_diffs()
 
 statistics()
 {
-	## statistics
-	dQ_lines=$(cat $llt1'_dQ' | wc -l)
-	dQ_packages=$(( $(( dQ_lines - 6 )) / 4 ))
+    ## statistics
+    dQ_lines=$(cat $llt1'_dQ' | wc -l)
+    dQ_packages=$(( $(( dQ_lines - 6 )) / 4 ))
 
-	if [[ $dQ_packages == 0 ]]; then
+    if [[ $dQ_packages == 0 ]]; then
 
-		printf "${BLUE}no package upgrades available${NOC}\n"
+	printf "${BLUE}no package upgrades available${NOC}\n"
 
-	elif [[ $dQ_packages == 1 ]]; then
+    elif [[ $dQ_packages == 1 ]]; then
 
-		printf "${BLUE}1 package was upgrade succesfully${NOC}\n"
+	printf "${BLUE}1 package was upgrade succesfully${NOC}\n"
 
-	else
+    else
 
-		printf "${BLUE}$dQ_packages packages were upgraded succesfully${NOC}\n"
+	printf "${BLUE}$dQ_packages packages were upgraded succesfully${NOC}\n"
 
-	fi
+    fi
 
-	printf "executing upgrader took "$SECONDS" seconds\n"
-        echo
+    printf "executing upgrader took "$SECONDS" seconds\n"
+    echo
 }
 
 
@@ -524,7 +537,7 @@ arch_audit_q()
 
 call_dns_hosts_blocklist()
 {
-	sh $update_dns_hosts_blocklist
+    sh $update_dns_hosts_blocklist
 }
 
 
@@ -536,22 +549,22 @@ update_dns_hosts_blocklist()
 
     if printf "$reply" | grep -iq "^n" ; then
 
-		printf "update dns hosts blocklist ${MAGENTA}user interrupt${NOC}\n"
-		echo
+	printf "update dns hosts blocklist ${MAGENTA}user interrupt${NOC}\n"
+	echo
 
     elif [[ -n $(printf "$reply") ]]; then
 
-		printf "updating dns hosts blocklist\n"
-		echo
-		call_dns_hosts_blocklist
-		echo
+	printf "updating dns hosts blocklist\n"
+	echo
+	call_dns_hosts_blocklist
+	echo
 
     else
 
-		# confirmation timeout
-		echo
-		call_dns_hosts_blocklist
-		echo
+	# confirmation timeout
+	echo
+	call_dns_hosts_blocklist
+	echo
 
     fi
 }
@@ -574,86 +587,87 @@ kernel_reboot_check()
 
     if [ "$active_kernel" != "$disk_kernel" ]; then
 
-		echo
-		printf "currently active kernel version: ${MAGENTA}$active_kernel${NOC}\n"
-		printf "upgraded disk kernel version:     ${BLUE}$disk_kernel${NOC}\n"
-		echo
-		printf "kernel needs reboot!\n"
-		echo
-		printf "reboot now? (y/N) "
-		reply_read_single_hidden_timer
-		echo
+	echo
+	printf "currently active kernel version: ${MAGENTA}$active_kernel${NOC}\n"
+	printf "upgraded disk kernel version:     ${BLUE}$disk_kernel${NOC}\n"
+	echo
+	printf "kernel needs reboot!\n"
+	echo
+	printf "reboot now? (y/N) "
+	reply_read_single_hidden_timer
+	echo
 
-		if printf "$reply" | grep -iq "^y" ; then
+	if printf "$reply" | grep -iq "^y" ; then
 
-			sudo -k
-			sudo systemctl reboot
-
-		fi
+	    sudo -k
+	    sudo systemctl reboot
 
 	fi
+
+    fi
 }
 
 
 systemd_reboot_check()
 {
-	alert_trigger="systemd"
-	target_diff_file=""$llt1"_dp"
+    alert_trigger="systemd"
+    target_diff_file=""$llt1"_dp"
 
-	if [[ -n $(grep -i $alert_trigger $target_diff_file) ]]; then
+    if [[ -n $(grep -i $alert_trigger $target_diff_file) ]]; then
 
-		printf "systemd upgraded; reboot strongly adviced!\n"
-		echo
-		printf "reboot now? (y/N)\n"
-		reply_read_single_hidden_timer
+	printf "systemd upgraded; reboot strongly adviced!\n"
+	echo
+	printf "reboot now? (y/N)\n"
+	reply_read_single_hidden_timer
 
-		if printf "$reply" | grep -iq "^y" ; then
-	    		sudo -k
-	    		sudo systemctl reboot
-		fi
-
+	if printf "$reply" | grep -iq "^y" ; then
+	    sudo -k
+	    sudo systemctl reboot
 	fi
+
+    fi
 }
 
 
 show_part_sizes()
 {
-	echo
-	printf "partition sizes\n"
-	lsblk -o fsuse%,name,fsused,size --raw --noheadings | grep '%' | sort -nr
+    echo
+    printf "partition sizes\n"
+    lsblk -o fsuse%,name,fsused,size --raw --noheadings | grep '%' | sort -nr
 }
 
 
 main()
 {
-	#splash_screen
-	get_sudo
-	internet_conn_check
-	set_clock
-	boot_usr_rw
-	package_lists_before
-	update_mirrors
-	refresh_package_database
-	show_news
-	list_marked_upgrade
-	upgrade_keyring
-	upgrade_packages
-	clean_up
-	show_missing
-	update_db
-	package_lists_after
-	package_lists_diffs
-	show_package_info
-	show_file_info
-	statistics
-	#package_upgrade_details
-	boot_usr_ro
-	update_dns_hosts_blocklist
-	ua_upgrade
-	arch_audit_q
-	show_part_sizes
-	kernel_reboot_check
-	systemd_reboot_check
+    #splash_screen
+    get_sudo
+    boot_usr_presence
+    internet_conn_check
+    set_clock
+    boot_usr_rw
+    package_lists_before
+    update_mirrors
+    refresh_package_database
+    show_news
+    list_marked_upgrade
+    upgrade_keyring
+    upgrade_packages
+    clean_up
+    show_missing
+    update_db
+    package_lists_after
+    package_lists_diffs
+    show_package_info
+    show_file_info
+    statistics
+    #package_upgrade_details
+    boot_usr_ro
+    update_dns_hosts_blocklist
+    ua_upgrade
+    arch_audit_q
+    show_part_sizes
+    kernel_reboot_check
+    systemd_reboot_check
 }
 
 main
