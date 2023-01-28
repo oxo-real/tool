@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+# kill floating windows
+
+swaymsg -t get_tree | \
+    jq -r 'recurse(.nodes[], .floating_nodes[]) | select(.shell) | "\(.id) \(.pid) \(.app_id // .window_properties.class) \(.name)"' | \
+    grep float | \
+    cut -d ' ' -f 1 | \
+    xargs -I {} swaymsg '[con_id={}]' kill

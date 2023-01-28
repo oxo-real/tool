@@ -574,6 +574,7 @@ ua_upgrade()
 {
     printf '%s\n' "$USER_AGENT"
     lnuac="$XDG_LOGS_HOME/network/user_agent/current"
+    # in log print timestamp and designate entry is from upgrader
     sed -i "1i $(date +%s) upgrader" $lnuac
     chua
     echo
