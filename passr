@@ -1063,69 +1063,43 @@ change_menu()
 }
 
 
-list_otps() {
-
-    #clear
-
+list_otps()
+{
     otp_files=$(fd '^otp_*' $HOME/.password-store | sort)
 
+    printf "calculating time based codes ...\r"
+
     # loop through lines with otp_file.gpg
-    while IFS= read -r line; do
+    while IFS= read -r -u 4 line; do
 
 	# extract object name
 	object=$(printf "$line" | sed "s|$store_l\/||" | sed 's|.gpg||')
 
-	# user info
-	printf 'refreshing: %s\n' "$object"
-
 	current_otp=$(pass otp $object | sed 's/.\{3\}/& /')
 
-	current_list_line=$(printf "%40s %s\n" "$object" "$current_otp")
+	current_list_line=$(printf "%40s  %s\n" "$object" "$current_otp")
 
 	otp_list="$otp_list$current_list_line\n"
 
-	# clear screen
-	tput cuu1
-	tput ed
+    done 4<<< "$otp_files"
 
-    done <<< "$otp_files"
+    otp_selected=$(timeout --foreground -k 12 10 fzf <<< $(printf "$otp_list"))
 
-    list_line_select=$(printf "$otp_list" | fzf)
+    if [[ $? -eq 124 ]]; then
 
-    # otp select and wl-copy
-    # awk $NF returns number of fields
-    printf "$list_line_select" | awk -F ' ' '{print $(NF-1)$NF}' | wl-copy -n -o
+    	# timeout occurred
+	#unset otp_list
+    	otp_list='' && unset otp_list
+    	list_otps
 
-    element='otp'
-    printf "${BLUE}$object${NOC} $element\n"
+    else
 
-    exit
+	printf "$otp_selected" | awk -F ' ' '{print $(NF-1)$NF}' | wl-copy -n -o
+    	otp_list='' && unset otp_list
+    	otp_selected='' && unset otp_selected
+    	exit
 
-    #TODO refresh loop
-
-    #DEV refresh loop
-
-    #sleep 10
-    #kill $(pgrep fzf)
-    #list_otps
-
-    #fzf_otp_list=$(printf "$otp_list" | fzf)
-
-    #timeout 10s $(printf "$otp_list" | fzf)
-
-    #if [[ $? -eq 124 ]]; then
-
-    #	# timeout occurred
-    #	printf 'timeout fzf'
-    #	#clear
-    #	#list_otps
-
-    #else
-
-    #	:
-    #	#exit
-
-    #fi
+    fi
 }
 
 
