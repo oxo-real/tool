@@ -1067,7 +1067,7 @@ list_otps()
 {
     otp_files=$(fd '^otp_*' $HOME/.password-store | sort)
 
-    printf "calculating time based codes ...\r"
+    printf "calculating otp codes ...\r"
 
     # loop through lines with otp_file.gpg
     while IFS= read -r -u 4 line; do
