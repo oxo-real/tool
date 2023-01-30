@@ -84,6 +84,9 @@
 % passr grep [$string]
 % passr g [$string]
 
+### otp_list
+% passr otp_list
+
 ## data manipulation
 
 ### add object data
@@ -263,6 +266,11 @@ get_object() {
 	    pass_search
 	    ;;
 
+	otp_list)
+	    object='otp_list'
+	    list_otps
+	    ;;
+
 
 	# specific element given as object
 
@@ -436,8 +444,6 @@ pass_new() {
     ## create new object gpg file
     pass edit $object
 
-    # pass already confirms
-    #DELprintf "${BLUE}$object${NOC} saved\n"
     exit 0
 }
 
@@ -1046,10 +1052,80 @@ change_menu()
 {
     # change menu item 'cancel' to 'quit'
     for i in "${!element_menu[@]}"; do
+
 	if [[ ${element_menu[$i]} == "ESC cancel" ]]; then
+
 	    element_menu[$i]="Q quit"
+
 	fi
+
     done
+}
+
+
+list_otps() {
+
+    #clear
+
+    otp_files=$(fd '^otp_*' $HOME/.password-store | sort)
+
+    # loop through lines with otp_file.gpg
+    while IFS= read -r line; do
+
+	# extract object name
+	object=$(printf "$line" | sed "s|$store_l\/||" | sed 's|.gpg||')
+
+	# user info
+	printf 'refreshing: %s\n' "$object"
+
+	current_otp=$(pass otp $object | sed 's/.\{3\}/& /')
+
+	current_list_line=$(printf "%40s %s\n" "$object" "$current_otp")
+
+	otp_list="$otp_list$current_list_line\n"
+
+	# clear screen
+	tput cuu1
+	tput ed
+
+    done <<< "$otp_files"
+
+    list_line_select=$(printf "$otp_list" | fzf)
+
+    # otp select and wl-copy
+    # awk $NF returns number of fields
+    printf "$list_line_select" | awk -F ' ' '{print $(NF-1)$NF}' | wl-copy -n -o
+
+    element='otp'
+    printf "${BLUE}$object${NOC} $element\n"
+
+    exit
+
+    #TODO refresh loop
+
+    #DEV refresh loop
+
+    #sleep 10
+    #kill $(pgrep fzf)
+    #list_otps
+
+    #fzf_otp_list=$(printf "$otp_list" | fzf)
+
+    #timeout 10s $(printf "$otp_list" | fzf)
+
+    #if [[ $? -eq 124 ]]; then
+
+    #	# timeout occurred
+    #	printf 'timeout fzf'
+    #	#clear
+    #	#list_otps
+
+    #else
+
+    #	:
+    #	#exit
+
+    #fi
 }
 
 
