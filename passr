@@ -36,6 +36,9 @@
 ##
 #
 
+# TODO passr p keep object until element menu exit object is chosen
+# TODO filter protonmail-credentials from fzf input
+
 : '
 ## dependencies
 	pass, gpg, cryptsetup, fzf
@@ -119,6 +122,7 @@ arg_element=$2
 ### dynamic variables
 object="$arg_object"
 element="$arg_element"
+hold_status=0
 
 ## .password-store
 
@@ -253,6 +257,7 @@ get_object() {
 	persist | p)
 	    mode='persist'
 	    object=''
+	    #hold_status=0
 	    change_menu
 	    ;;
 
@@ -331,9 +336,18 @@ get_object() {
 			   	         sed "s/.gpg//g" | \
 			   	         sort | \
 			   	         fzf --height=20% --prompt='object ')
-
-				    printf "${YELLOW}%s${NOC}" "$object"
 				    ;;
+
+				*)
+				    # we have an $object
+				    case $hold_status in
+
+					1)
+					    # holding object
+					    object="$object_to_hold"
+					    ;;
+
+				    esac
 
 			    esac
 		   	    ;;
@@ -668,7 +682,7 @@ get_element() {
     if [[ -z $element ]]; then
 
     	element=$(printf '%s\n' "${element_menu[@]}" | \
-	    fzf --height=18 --prompt='element ' | \
+	    fzf --height=19 --prompt="$object element " | \
 	    awk '{print $2}')
 
     fi
@@ -712,7 +726,19 @@ process_object() {
 
 	    esac
 
-	    get_object
+	    case $hold_status in
+
+		1)
+		    # hold same object
+		    object=$object_to_hold
+		    #get_object
+		    ;;
+
+		*)
+		    ## get next object
+		    get_object
+		    ;;
+	    esac
 
 	else
 
@@ -1019,6 +1045,27 @@ process_element() {
 	    human_info
 	    ;;
 
+	hold | release)
+	    # toggle object hold status
+	    case $hold_status in
+
+		1)
+		    # toggle hold off
+		    hold_status=0
+		    unset object_to_hold
+		    get_object
+		    ;;
+
+		*)
+		    # toggle hold on
+		    hold_status=1
+		    object_to_hold="$object"
+		    get_object
+		    ;;
+
+	    esac
+	    ;;
+
     	*)
 	    get_element_value
 	    human_info
@@ -1050,7 +1097,9 @@ check_mode()
 
 change_menu()
 {
-    # change menu item 'cancel' to 'quit'
+    # passr started in persistent mode
+
+    ## change menu item 'cancel' to 'quit'
     for i in "${!element_menu[@]}"; do
 
 	if [[ ${element_menu[$i]} == "ESC cancel" ]]; then
@@ -1060,6 +1109,41 @@ change_menu()
 	fi
 
     done
+
+    ## define hold menu item
+    case $hold_status in
+
+	1)
+	    # hold=1
+	    hold_menu_item='H release'
+	    ;;
+
+	*)
+	    # hold=0
+	    hold_menu_item='H hold'
+	    ;;
+
+    esac
+
+    ## tweak the last menu item
+    last_menu_item="${element_menu[-1]}"
+
+    case $last_menu_item in
+
+	'Q quit')
+	    ### add hold menu item
+	    element_menu+=("$hold_menu_item")
+	    ;;
+
+	*)
+	    ### we need to change hold menu item
+	    ### delete last menu item
+	    unset 'element_menu[${#element_menu[@]}-1]'
+	    ### append other hold menu item
+	    element_menu+=("$hold_menu_item")
+	    ;;
+
+    esac
 }
 
 

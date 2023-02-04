@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 #
 ##
 ###  _                 _
@@ -13,12 +13,21 @@
 ### remove files to an intermediate location
 ### copyright (c) 2020 - 2023  |  oxo
 ###
-### recommendation:	alias rm="trash"
-###
-### usage:	rm [-options] <location>
-###		trash empty
-###		trash size
+### usage:
+### actions:
+###             trash [-options] $filepath
+###		trash empty|clear
+### information:
 ###		trash
+###		trash info (more info; requires sudo privileges)
+###		trash size (only size)
+###		trash status
+###		trash ls
+###
+### recommended:	alias rm="trash"
+###
+### known issues: trash /file_under_root
+###   is being moved to /file_under_root_$epoch
 ##
 #
 
@@ -26,6 +35,8 @@
 # items to trash array
 items=( "$@" )
 epoch="$(date +%s)"
+
+source $XDG_DATA_HOME/c/git/code/source/function/text_appearance
 
 
 reset_sudo() {
@@ -42,6 +53,7 @@ define_trashcan() {
 	# definition of a trashcan
 	trash="$XDG_CACHE_HOME/trash"
 	[[ -d $trash ]] || mkdir -p $trash
+	[[ "$TRASHDIR" != "$trash" ]] && exit 44
 
     fi
 }
@@ -102,8 +114,22 @@ process_args_array() {
 
 	elif [[ "${items[0]}" == "size" ]]; then
 
+	    ## no sudo privileges needed
 	    trash_size
-	    printf "trash; $dirs dirs, $files files, $size\n"
+	    report_size
+	    exit 0
+
+	elif [[ "${items[0]}" == "info" ]] || \
+	       [[ "${items[0]}" == "status" ]]; then
+
+	    ## sudo privileges needed
+	    trash_info
+	    report_info
+	    exit 0
+
+	elif [[ "${items[0]}" == "ls" ]]; then
+
+	    trash_ls
 	    exit 0
 
 	fi
@@ -111,8 +137,8 @@ process_args_array() {
     else
 
 	# no arguments given
-	size=$(du -sh $XDG_CACHE_HOME/trash 2>/dev/null | awk '{print $1}')
-	printf "$trash $size\n"
+	trash_size
+	report_size
 
     fi
 }
@@ -207,20 +233,39 @@ process_arguments() {
 }
 
 
-trash_size() {
+trash_info() {
 
-    dirs=$(sudo fd -t d -u $XDG_CACHE_HOME/trash | wc -l)
+    dirs=$(sudo fd . -t d -u $trash | wc -l)
     #dirs=$(sudo find $XDG_CACHE_HOME/trash -type d | wc -l)
-    files=$(sudo fd -t f -u $XDG_CACHE_HOME/trash | wc -l)
-    size=$(sudo du -sh $XDG_CACHE_HOME/trash | awk '{print $1}')
+    files=$(sudo fd . -t f -u $trash | wc -l)
+    size=$(sudo du -sh $trash | awk '{print $1}')
 }
 
+report_info() {
+
+    printf "%s; %s dirs %s files ${BLUE}%s${NOC}\n" $trash $dirs $files $size
+}
+
+trash_size() {
+
+    size=$(du -sh $trash 2>/dev/null | awk '{print $1}')
+}
+
+report_size() {
+
+    printf "%s ${BLUE}%s${NOC}\n" $trash $size
+}
+
+trash_ls() {
+
+    ls -ila $trash
+}
 
 trash_empty() {
 
     ## empty trashcan
     trash_size
-    \rm -rf $trash/* && \
+    \rm -rf $trash/{*,.*} && \
 	printf "trash cleared; $dirs dirs, $files files, $size\n" && \
 	exit 0
 }
