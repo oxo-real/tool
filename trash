@@ -177,6 +177,8 @@ process_arguments() {
 
     for item in "${items[@]}"; do
 
+	cannot_remove_myself
+
 	# skip non existent items
 	[[ ! -f $item ]] && [[ ! -d $item ]] && \
 	    printf "$item not found\n" && \
@@ -232,6 +234,30 @@ process_arguments() {
     done
 }
 
+
+cannot_remove_myself() {
+
+    # error if:
+    # $item is a directory and
+    # $PWD is inside or under the to be removed directory $item
+    rp_item=$(realpath $item)
+    rp_pwd=$(realpath $PWD)
+
+    [[ -d $item ]] && \
+
+	case $rp_pwd/ in
+
+	    $rp_item/*)
+		printf "${MAGENTA}%s${NOC} is a parent directory" "$item"
+		exit 52
+		;;
+
+	    *)
+		continue
+		;;
+
+	esac
+}
 
 trash_info() {
 
