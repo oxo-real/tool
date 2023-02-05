@@ -292,7 +292,7 @@ trash_empty() {
     ## empty trashcan
     trash_size
     \rm -rf $trash/{*,.*} && \
-	printf "trash cleared; $dirs dirs, $files files, $size\n" && \
+	printf "trash cleared; %s dirs %s files ${BLUE}%s${NOC}\n" $trash $dirs $files $size && \
 	exit 0
 }
 

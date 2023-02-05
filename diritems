@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+
+# dirsize
+# get total number of subdirs, files and size of a directory
+
+# usage: dirsize $target_directory
+
+# example: dirsize .
+
+args=$@
+arg1=$1
+
+target_dir=$arg1
+
+[[ -z $target_dir ]] && exit 15
+
+source $XDG_DATA_HOME/c/git/code/source/function/text_appearance
+
+# include subdirectories
+
+## include hidden files and directories
+all_dirs_incl_h_num=$(sudo fd . --no-ignore --hidden -t d $target_dir | wc -l)
+all_files_incl_h_num=$(sudo fd . --no-ignore --hidden -t f $target_dir | wc -l)
+all_links_incl_h_num=$(sudo fd . --no-ignore --hidden -t l $target_dir | wc -l)
+
+## do not include hidden files and directories
+all_dirs_num=$(sudo fd . --no-ignore -t d $target_dir | wc -l)
+all_files_num=$(sudo fd . --no-ignore -t f $target_dir | wc -l)
+all_links_num=$(sudo fd . --no-ignore -t l $target_dir | wc -l)
+
+## size
+all_total_size=$(du -sh $target_dir | awk '{print $1}')
+
+## calculate numbers
+all_total_items=$(( all_dirs_incl_h_num + all_files_incl_h_num + all_links_incl_h_num))
+
+all_files_non_hidden=$all_files_num
+all_files_hidden=$(( all_files_incl_h_num - all_files_num ))
+
+all_dirs_non_hidden=$all_dirs_num
+all_dirs_hidden=$(( all_dirs_incl_h_num - all_dirs_num ))
+
+all_links_non_hidden=$all_links_num
+all_links_hidden=$(( all_links_incl_h_num - all_links_num ))
+
+## print numbers
+printf "${BOLD}∑ %s ${NOC}${GREY_BG}${BLUE}${BOLD} %s.%s ${NOC} %s.%s ${GREY_BG}${CYAN}${BOLD} %s.%s ${NOC}${BOLD} %s ${NOC}\n" $all_total_items $all_dirs_non_hidden $all_dirs_hidden $all_files_non_hidden $all_files_hidden $all_links_non_hidden $all_links_hidden $all_total_size
+
+
+# do not include subdirectories
+# DEV should match cd block in zsh
+
+## include hidden files and directories
+dirs_incl_h_num=$(sudo fd . --max-depth 1 --no-ignore --hidden -t d $target_dir | wc -l)
+files_incl_h_num=$(sudo fd . --max-depth 1 --no-ignore --hidden -t f $target_dir | wc -l)
+links_incl_h_num=$(sudo fd . --max-depth 1 --no-ignore --hidden -t l $target_dir | wc -l)
+
+## do not include hidden files and directories
+dirs_num=$(sudo fd . --max-depth 1 --no-ignore -t d $target_dir | wc -l)
+files_num=$(sudo fd . --max-depth 1 --no-ignore -t f $target_dir | wc -l)
+links_num=$(sudo fd . --max-depth 1 --no-ignore -t l $target_dir | wc -l)
+
+## calculate numbers
+total_items=$(( dirs_incl_h_num + files_incl_h_num + links_incl_h_num))
+
+files_non_hidden=$files_num
+files_hidden=$(( files_incl_h_num - files_num ))
+
+dirs_non_hidden=$dirs_num
+dirs_hidden=$(( dirs_incl_h_num - dirs_num ))
+
+links_non_hidden=$links_num
+links_hidden=$(( links_incl_h_num - links_num ))
+
+## print numbers
+printf "${BOLD}∑ %s ${NOC}${GREY_BG}${BLUE}${BOLD} %s.%s ${NOC} %s.%s ${GREY_BG}${CYAN}${BOLD} %s.%s ${NOC}\n" $total_items $dirs_non_hidden $dirs_hidden $files_non_hidden $files_hidden $links_non_hidden $links_hidden

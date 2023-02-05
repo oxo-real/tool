@@ -10,6 +10,7 @@
 
 # example:
 ## % c2b --dry-run
+## % c2b --delete --links
 
 
 options=$@
@@ -37,12 +38,12 @@ sudo chattr -R -i $dst >/dev/null 2>&1
 
 # copy c to b
 # and create logging
-rsync -aAXv --delete --links --log-file=$XDG_LOGS_HOME/c2b/$(date +%s) --$options $src1 $dst | tee -a $XDG_LOGS_HOME/c2b/$(date +%s)
+rsync -aAXv --log-file=$XDG_LOGS_HOME/c2b/$(date +%s) $options $src1 $dst | tee -a $XDG_LOGS_HOME/c2b/$(date +%s)
 
 
 # copy .config to b
 # and create logging
-rsync -aAXv --delete --links --log-file=$XDG_LOGS_HOME/c2b/$(date +%s) --$options $src2 $dst | tee -a $XDG_LOGS_HOME/c2b/$(date +%s)
+rsync -aAXv --log-file=$XDG_LOGS_HOME/c2b/$(date +%s) $options $src2 $dst | tee -a $XDG_LOGS_HOME/c2b/$(date +%s)
 
 
 # protect dynamic data backup against writing
