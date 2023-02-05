@@ -328,12 +328,14 @@ get_object() {
 				'')
 				    # no object arg given; fzf prompts for it
 				    object=$(find -L $store_l -type f -iname '*.gpg' | \
-			   	         # with sed we remove the leading path of $store_l
+			   	         # remove $store_l leading path
 			   	         # internal field separator is '|'
 			   	         # because the path itself contains '/'
 			   	         sed "s|$store_l/||g" | \
-			   	         # with sed we remove the trailing .gpg extension
-			   	         sed "s/.gpg//g" | \
+					 # filter unwanted items
+					 sed '/credentials/d' | \
+			   	         # remove file .gpg extension
+			   	         sed 's|.gpg||g' | \
 			   	         sort | \
 			   	         fzf --height=20% --prompt='object ')
 				    ;;
