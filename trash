@@ -16,21 +16,21 @@
 ### usage:
 ### actions:
 ###             trash [-options] $filepath
-###		trash empty|clear
+###		trash rm|empty|clear
 ### information:
 ###		trash
-###		trash info (more info; requires sudo privileges)
+###		trash info|status (more info; requires sudo privileges)
 ###		trash size (only size)
-###		trash status
 ###		trash ls
 ###
 ### recommended:	alias rm="trash"
 ###
-### known issues: trash /file_under_root
-###   is being moved to /file_under_root_$epoch
 ##
 #
 
+### known issues: trash /file_under_root
+###  is being moved to /file_under_root_$epoch
+###  plus: source as sudo has sudos xdg_data_home
 
 # items to trash array
 items=( "$@" )
@@ -108,7 +108,8 @@ process_args_array() {
 	## so if 'trash empty' is invoked we trigger
 	## on the element with value 'empty':
 	if [[ "${items[0]}" == "empty" ]] || \
-	       [[ "${items[0]}" == "clear" ]]; then
+	       [[ "${items[0]}" == "clear" ]] || \
+	       [[ "${items[0]}" == "rm" ]]; then
 
 	    trash_empty
 
@@ -122,6 +123,8 @@ process_args_array() {
 	elif [[ "${items[0]}" == "info" ]] || \
 	       [[ "${items[0]}" == "status" ]]; then
 
+	    trash_size
+	    report_size
 	    ## sudo privileges needed
 	    trash_info
 	    report_info
@@ -129,6 +132,8 @@ process_args_array() {
 
 	elif [[ "${items[0]}" == "ls" ]]; then
 
+	    trash_size
+	    report_size
 	    trash_ls
 	    exit 0
 
