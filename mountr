@@ -67,7 +67,6 @@ get_mps_mount() {
 	 $HOME/dock/3 \
 	 $HOME/dock/4 \
 	 $HOME/dock/transfer \
-	 $HOME/dock/vlt/pass \
 	 other\
 	 )
 #    common_mps+=(\

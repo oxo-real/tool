@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+
+# fscu
+# cleaning up the filesystem
+
+source $XDG_DATA_HOME/c/git/code/source/function/text_appearance
+
+# filesystem cleanup
+get_reply() {
+    read -er -N 1 input
+    printf $input | grep -i 'y' > /dev/null 2>&1 || exit 16
+    unset input
+}
+
+run_c2b() {
+    # backup $XDG_DATA_HOME/c and $XDG_CONFIG_HOME
+    printf "\n${YELLOW}>>>${NOC} %s\n" 'c2b  (C-c exit)'
+    get_reply
+    c2b --links --dry-run
+}
+
+# TODO DEV zsh read
+#read -r -k 1 input
+#zsh -c 'read -q input'
+
+run_qb_cleanup() {
+    printf "\n${YELLOW}>>>${NOC} %s\n" 'qutebrowser cleanup  (C-c exit)'
+    get_reply
+    sh /home/oxo/.config/qutebrowser/cleanup
+}
+
+#TODO firefox restore default config dir
+
+run_env() {
+    ## XDG_CACHE_HOME
+    [[ $TEMPDIR ]] ||  export TEMPDIR="$XDG_CACHE_HOME/temp"
+    [[ $TESTDIR ]] ||  export TESTDIR="$XDG_CACHE_HOME/test"
+    [[ $TRASHDIR ]] || export TRASHDIR="$XDG_CACHE_HOME/trash"
+}
+
+# trash management
+run_trash() {
+    trash ls
+
+    printf "\n${YELLOW}>>>${NOC} %s\n" 'trash rm  (C-c exit)'
+    get_reply
+    trash rm
+}
+
+run_rm_cache() {
+    printf "\n${YELLOW}>>>${NOC} %s\n" 'rm -rf $XDG_CACHE_HOME  (C-c exit)'
+    get_reply
+    rm -rf $XDG_CACHE_HOME
+}
+
+run_dir_check() {
+    ## dir existence
+    printf "\n${YELLOW}>>>${NOC} %s\n" 'dir existence  (C-c exit)'
+    get_reply
+    dirs_2_check=(\
+		  $HOME/dock/1 \
+		      $HOME/dock/2 \
+		      $HOME/dock/3 \
+		      $HOME/dock/4 \
+		      $HOME/.cache/temp \
+		      $HOME/.cache/test \
+		      $HOME/.cache/trash \
+		      $HOME/.local/share/a \
+		      $HOME/.local/share/b \
+		      $HOME/.local/share/c\
+		      $HOME/.local/test/delme
+    )
+
+    for (( i = 0; i < ${#dirs_2_check[@]}; i++ )) do
+
+	[[ -d ${dirs_2_check[i]} ]] || mkdir -p ${dirs_2_check[i]}
+	printf "${dirs_2_check[i]}\n"
+
+    done
+}
+
+#TODO clean $HISTFILE with read -er from sensstrings
+main() {
+    run_c2b
+    run_qb_cleanup
+    run_env
+    run_trash
+    run_rm_cache
+    run_dir_check
+}
+
+main

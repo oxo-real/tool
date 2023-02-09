@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+
+# usage: notmuch_search [search_period] [search_term]
+
+args=$@
+
+arg1=$1
+arg2=$2
+
+search_period="$arg1"
+search_term="$arg2"
+
+
+case $search_period in
+
+    year)
+	search_period='date:year'
+	;;
+
+    month)
+	search_period='date:month'
+	;;
+
+    *)
+	search_period="'*'"
+	;;
+
+esac
+
+case $search_term in
+
+    '')
+	search_term="'*'"
+	;;
+
+esac
+
+
+## 1. select email address
+#notmuch address --deduplicate=address "$search_period" | fzf | wl-copy
+email_address=$(notmuch address --deduplicate=address '*' | sort | fzf)
+
+## 2. last years threads from recipient
+thread=$(notmuch search "$email_address" "$search_period" "$search_term" | fzf | awk '{print $1}')
+
+## 3. show specific thread content
+notmuch show "$thread"
