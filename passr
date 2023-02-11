@@ -390,6 +390,8 @@ check_new_obj_names()
 	autoentry \
 	show \
 	copy \
+	hold \
+	quit \
 	)
 
     for prohibited_name in "${prohibited_object_names[@]}"; do

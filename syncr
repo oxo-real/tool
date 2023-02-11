@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -o errexit
+#set -o errexit
 set -o nounset
 set -o pipefail
 #
@@ -82,6 +82,9 @@ config_fpcl()
     ## file process list definitions
     fpcl_file="$XDG_CONFIG_HOME/.fpcl"
     fpcl_rsync=$dest'/.config/.fpcl_rsync'
+
+    ## .config on $dest existence
+    [[ -d $dest'/.config' ]] || mkdir -p $dest'/.config'
 
     # convert fpcl for rsync
     ## create temporary file fpcl_rsync,
