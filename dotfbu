@@ -11,7 +11,7 @@
 ###
 ### dotfbu
 ### public backup of configuration files
-### copyright (c) 2020 - 2022  |  oxo
+### copyright (c) 2020 - 2023  |  oxo
 ###
 ### usage: dotfbu backup  [<bu_src> <bu_dest>]
 ###	   dotfbu restore [<rs_src> <rs_dest>]
@@ -237,6 +237,7 @@ validate_destination()
     esac
 
     # no empty $dest
+    : '
     if [[ ! -z $(ls -A $dest 2>/dev/null) ]]; then
 
 	printf "${YELLOW}destination${NOC} directory is ${BOLD}NOT${NORMAL} empty${NOC}\n\n"
@@ -312,6 +313,7 @@ validate_destination()
 	#fi
 
     fi
+    # '
 }
 
 

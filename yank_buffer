@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+
+# capture current buffer
+
+# dependencies: alacritty, ydotool
+args=$@
+arg1=$1
+
+
+yank_scrollback_buffer() {
+
+    # capture entire scrollback buffer
+    ## alacritty keysequence:
+    ## C-S-space v g y C-S space
+    ##  	 C-S-space		       v	 g	   y	     C-S-space
+    ##          |---------------------------| |-------| |-------| |-------| |---------------------------|
+    ydotool key 29:1 42:1 57:1 57:0 42:0 29:0 47:1 47:0 34:1 34:0 21:1 21:0 29:1 42:1 57:1 57:0 42:0 29:0
+}
+
+
+yank_visible_buffer() {
+
+    # capture visible buffer
+    # alacritty keysequence:
+    # C-S-space S-h v S-g y C-S space
+    ##  	 C-S-space		       S-h                 v	     S-g		 y	   C-S-space
+    ##          |---------------------------| |-----------------| |-------| |-----------------| |-------| |---------------------------|
+    ydotool key 29:1 42:1 57:1 57:0 42:0 29:0 42:1 35:1 35:0 42:0 47:1 47:0 42:1 34:1 34:0 42:0 21:1 21:0 29:1 42:1 57:1 57:0 42:0 29:0
+}
+
+yank() {
+
+    wl-copy -c
+
+    case $arg1 in
+
+	all)
+	    yank_scrollback_buffer
+	    ;;
+
+	*)
+	    yank_visible_buffer
+	    ;;
+
+    esac
+
+    raw_copy=$(wl-paste | grep .)
+}
+
+
+select_file_location() {
+
+    locations=$(printf '%s\n' "$raw_copy" | grep -o '/.*' | sort | uniq -u)
+
+    if [[ -n $locations ]]; then
+
+	printf '%s\n' $locations | fzf | wl-copy -n
+
+    fi
+}
+
+
+main() {
+
+    yank
+    select_file_location
+}
+
+main
