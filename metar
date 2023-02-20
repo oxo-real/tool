@@ -33,7 +33,7 @@
 
 ip_check="9.9.9.9"
 script_name="metar"
-source_web='https://www.aviationweather.gov/metar/data?ids=$ids&format=raw&hours=0&taf=on&layout=on'
+source_web='https://www.aviationweather.gov/metar/data'
 
 
 # read_flags
@@ -83,6 +83,9 @@ while getopts ":s:tnch" opt; do
 done
 
 
+source_qry="?ids=${ids}&format=raw&hours=0&taf=on&layout=on"
+
+
 internet_conn_check() {
 
     $(ping -q -w 2 -c 1 $ip_check > /dev/null 2>&1)
@@ -101,7 +104,7 @@ internet_conn_check() {
 getting_data() {
 
     ## download website
-    awc_metar_site=$(curl -s -i "$source_web")
+    awc_metar_site=$(curl -s -i "$source_web""$source_qry")
 
     ## throw html garbage away
     awc_metar_html=$(echo $awc_metar_site | awk -F '<!-- Data ends here --> ' '{print $1}' | awk -F '<!-- Data starts here --> ' '{print $2}' )
