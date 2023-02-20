@@ -33,12 +33,17 @@
 
 ip_check="9.9.9.9"
 script_name="metar"
+developer='oxo'
+initial_release='2020
+
+'
 source_web='https://www.aviationweather.gov/metar/data'
 
 
 # read_flags
 
 while getopts ":s:tnch" opt; do
+
 	case $opt in
 		s)
 		    ## compulsory argument with value
@@ -80,6 +85,7 @@ while getopts ":s:tnch" opt; do
 		    exit 1
 		    ;;
 	esac
+
 done
 
 
@@ -92,7 +98,7 @@ internet_conn_check() {
 
     if [ $? != 0 ]; then
 
-	exit 91
+	exit 101
 
     fi
 
@@ -144,16 +150,16 @@ calculations_for_i3blocks() {
     m_age=$(( ( 10#$hour_now * 60 ) + 10#$minute_now - ( 10#$m_hour * 60 + 10#$m_minute + 10#$dzt_minutes ) ))
 
     wind=$( echo $metar | awk -F " " '{print $3}' | cut -c -5 )
-    #cond=$( echo $metar | awk -F " " '{print $5}')
+    gusts=$( echo $metar | awk -F " " '{print $3}' | cut -c -5 )
 
     ## bash regular expressions matching (rematch)
-    ### cond
+    ### conditions
     re_cond="[A_Z]{5}"
     [[ $metar =~ $re_cond ]] && cond=${BASH_REMATCH[0]}
-    ### temp_dew
+    ### temperature and dewpoint
     re_temp="M?[0-9]{2}\/M?[0-9]{2}"
     [[ $metar =~ $re_temp ]] && temp_dew=${BASH_REMATCH[0]}
-    ### qnh
+    ### barometric pressure
     re_qnh="Q[0-9]{4}"
     [[ $metar =~ $re_qnh ]] && qnh=${BASH_REMATCH[0]}
     qnh=$(echo $qnh | cut -c 2-)
