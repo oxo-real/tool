@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 ##
 ###                 _
@@ -6,28 +6,34 @@
 ### | '_ ` _ \ / _ \ __/ _` | '__|
 ### | | | | | |  __/ || (_| | |
 ### |_| |_| |_|\___|\__\__,_|_|
-###
-###  _ _|_ _ ._    _  _
-### (_\/|_(_)|_)\/(_|(/_
-###   /      |  /  _|
+###  _    _
+### (_)><(_)
 ###
 ### metar
 ### get metar from all over the world
 ### include tafs optionally
 ### source: aviationweather.gov
 ###
-### (c) 2020 - 2022  |  cytopyge
+### (c) 2020 - 2023  |  oxo
 ###
 ##
 #
 
-# variable initialization
-
-## script is used as cli command and as source for i3blocks
+## script can be used as cli command and as source for i3blocks
 ### script call for i3 blocks:
 ### -nc -s eham
+
+# usage:
+# metar
+# metar -s eham
+# metar and taf
+# metar -t -s eham
+
+# variable initialization
+
 ip_check="9.9.9.9"
 script_name="metar"
+source_web='https://www.aviationweather.gov/metar/data?ids=$ids&format=raw&hours=0&taf=on&layout=on'
 
 
 # read_flags
@@ -82,7 +88,9 @@ internet_conn_check() {
     $(ping -q -w 2 -c 1 $ip_check > /dev/null 2>&1)
 
     if [ $? != 0 ]; then
-	exit
+
+	exit 91
+
     fi
 
 }
@@ -93,7 +101,7 @@ internet_conn_check() {
 getting_data() {
 
     ## download website
-    awc_metar_site=$(curl -s -i "https://www.aviationweather.gov/metar/data?ids=$ids&format=raw&hours=0&taf=on&layout=on")
+    awc_metar_site=$(curl -s -i "$source_web")
 
     ## throw html garbage away
     awc_metar_html=$(echo $awc_metar_site | awk -F '<!-- Data ends here --> ' '{print $1}' | awk -F '<!-- Data starts here --> ' '{print $2}' )
@@ -186,6 +194,11 @@ printing_data() {
 }
 
 
-internet_conn_check
-getting_data
-printing_data
+main() {
+
+    internet_conn_check
+    getting_data
+    printing_data
+}
+
+main
