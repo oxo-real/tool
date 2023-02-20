@@ -35,6 +35,7 @@
 ├── kill_proc
 ├── make_offl_repo
 ├── make_recov
+├── metar
 ├── mountr
 ├── netistat
 ├── nmconn
@@ -64,5 +65,5 @@
     ├── passr_old
     └── trashOLD
 
-3 directories, 61 files
+3 directories, 62 files
 ```
