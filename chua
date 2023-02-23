@@ -19,6 +19,7 @@ qb_conf="$XDG_CONFIG_HOME/qutebrowser/config.py"
 
 # sourcing
 source $XDG_DATA_HOME/c/git/code/source/function/text_appearance
+source_www='https://www.useragents.me/api'
 
 
 # set ua current logging
@@ -30,7 +31,8 @@ timestamp=$(date +%s)
 
 
 # get api data
-api_data=$(curl https://www.useragents.me/api)
+api_data=$(curl $source_www)
+#api_data=$(curl https://www.useragents.me/api)
 
 
 # process api data
