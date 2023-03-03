@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+
+hist_slash="$XDG_CACHE_HOME/temp/hist_slash"
+grep --only-matching --perl-regexp '.?\/?\$?\S+/\S+' "$HISTFILE" > $hist_slash
+
+hist_uniq_cnt="$XDG_CACHE_HOME/temp/hist_uniq_cnt"
+cat "$hist_slash" | sort | uniq -c | sort --numeric-sort > $hist_uniq_cnt
+
+hist_verified="$XDG_CACHE_HOME/temp/verified"
+touch $hist_verified
+
+# verify locations
+
+while read line; do
+
+    # first column of line is count
+    # second column of line is location
+    location=$(printf '%s\n' "$line" | awk -F ' ' '{print $2}')
+
+    # remove line from hist_uniq
+    if [[ ! -f $location ]] && [[ ! -d $location ]]; then
+
+	hist_uniq_cnt="$(printf '%s\n' "$hist_uniq_cnt" | sed "#$line#d")"
+
+    # add location to hist_verified
+    elif [[ -f $location ]] || [[ -d $location ]]; then
+
+	hist_verified="${hist_verified}"$'\n'"${location}"
+
+    fi
+
+    tput el
+    hu_count=$(printf '%s\n' "$hist_uniq_cnt" | wc -l)
+    hv_count=$(printf '%s\n' "$hist_verified" | wc -l)
+    printf '%s\r' "$hu_count huc $hv_count hvc $location"
+
+done <<< $hist_uniq_cnt
