@@ -20,9 +20,10 @@ p_src='/var/cache/pacman/pkg'
 db_name='offline'
 
 ## destination root
+## i.e. from make_recov
 p_dst=$1
 
-## rsync options (if any
+## rsync options
 shift
 options=$@
 
@@ -47,7 +48,17 @@ build_custom_pkg_db()
 {
     # build custom package database
     ## .zst and older .xz packages
-    repo-add -n -R $p_dst/$db_name.db.tar.zst $p_dst/*.pkg.tar.{zst,xz}
+    p_src_sort=$(ls $p_src | grep --invert-match '.sig$' | sort --numeric-sort)
+
+    while IFS= read -r p_curr; do
+
+	printf '\n--> %s\n' "$p_curr"
+
+	repo-add --new --remove $p_dst/$db_name.db.tar.zst $p_dst/$p_curr
+	#repo-add --remove --new $p_dst/$db_name.db.tar.zst $p_dst/$p_name-$p_version-$p_x86_64.pkg.tar.{zst,xz}
+	#repo-add --remove --new $p_dst/$db_name.db.tar.zst $p_src/$p_name-$p_version-$p_x86_64.pkg.tar.{zst,xz}
+
+    done <<< "$p_src_sort"
 }
 
 

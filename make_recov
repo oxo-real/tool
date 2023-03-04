@@ -47,6 +47,7 @@ repo()
     case $repo_mounted in
 
 	1)
+	    # options = rsync options
 	    $make_offl_repo "$repo_mount" "$options"
 	    ;;
 
