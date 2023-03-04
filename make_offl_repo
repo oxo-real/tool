@@ -52,7 +52,7 @@ build_custom_pkg_db()
 
     while IFS= read -r p_curr; do
 
-	printf '\n--> %s\n' "$p_curr"
+	printf '\n==> %s\n' "$p_curr"
 
 	repo-add --new --remove $p_dst/$db_name.db.tar.zst $p_dst/$p_curr
 
