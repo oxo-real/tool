@@ -54,7 +54,8 @@ build_custom_pkg_db()
 
 	printf '\n==> %s\n' "$p_curr"
 
-	repo-add --new --remove $p_dst/$db_name.db.tar.zst $p_dst/$p_curr
+	repo-add --new $p_dst/$db_name.db.tar.zst $p_dst/$p_curr
+	#repo-add --new --remove $p_dst/$db_name.db.tar.zst $p_dst/$p_curr
 
     done <<< "$p_src_sort"
 }

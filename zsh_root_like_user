@@ -2,14 +2,13 @@
 
 # run this script when logged in as superuser (i.e. sudo su)
 
-user_home_dir="/home/cytopyge"
+user_home_dir="$HOME"
 
 cd /root
 
-ln -s $user_home_dir/.vimrc .vimrc
-ln -s $user_home_dir/.zshrc .zshrc
-ln -s $user_home_dir/.dot/ .dot
-ln -s $user_home_dir/.dot/ .dot
+ln -s $user_home_dir/..config/nvim/.vimrc .vimrc
+ln -s $user_home_dir/.config/zsh/.zshrc .zshrc
+ln -s $user_home_dir/.config/ .conifg
 #mkdir -p /root/_data/journal/history/.history
 #ln -s $user_home_dir/_data/journal/history/.history /root/_data/journal/history/.history
 

@@ -109,11 +109,12 @@ internet_conn_check()
 	if printf "$reply" | grep -iq "^n" ; then
 
 	    printf "exiting\n"
-	    exit
+	    exit 112
 
 	else
 
 	    sh $netconn
+	    echo
 
 	fi
 
@@ -169,17 +170,21 @@ boot_usr_presence() {
     #check /boot presence
     mountpoint -q /boot
     if [[ $? -ne 0 ]]; then
+
 	printf "no device at mountpoint ${MAGENTA}/boot${NOC}\n"
 	printf "exiting\n"
-	exit
+	exit 175
+
     fi
 
     #check /usr presence
     mountpoint -q /usr
     if [[ $? -ne 0 ]]; then
+
 	printf "no device at mountpoint ${MAGENTA}/usr${NOC}\n"
 	printf "exiting\n"
-	exit
+	exit 183
+
     fi
 }
 
