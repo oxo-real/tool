@@ -932,7 +932,7 @@ human_info() {
 
 	    else
 
-	    	printf "${BLUE}$object${NOC} $element\n"
+	    	printf "$(date +%H%M%S) ${BLUE}$object${NOC} $element\n"
 
 	    fi
 

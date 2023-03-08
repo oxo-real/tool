@@ -621,14 +621,21 @@ systemd_reboot_check()
 
     if [[ -n $(grep -i $alert_trigger $target_diff_file) ]]; then
 
+	echo
 	printf "systemd upgraded; reboot strongly adviced!\n"
 	echo
-	printf "reboot now? (y/N)\n"
+	printf "reboot now? (y/N) "
 	reply_read_single_hidden_timer
 
 	if printf "$reply" | grep -iq "^y" ; then
+
 	    sudo -k
 	    sudo systemctl reboot
+
+	else
+
+	    echo
+
 	fi
 
     fi
