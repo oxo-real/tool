@@ -46,7 +46,7 @@ get_newest_file="$git_code/tool/get_newest_file"
 update_dns_hosts_blocklist="$git_code/tool/update_dns_hosts_blocklist"
 log_location="$XDG_LOGS_HOME/upgrader/$node_name/package_lists"
 ip_check="9.9.9.9"
-country="Sweden" #,Germany,Denmark,Netherlands,Iceland,United States
+country="Germany,Netherlands,Sweden" #,Germany,Denmark,Netherlands,Iceland,United States
 protocol="https"
 number_of_mirrors="5"
 age="12"	# 12 hours
@@ -134,6 +134,7 @@ package_lists_before()
 
     [ -d $log_location ] || mkdir -p $log_location
 
+    # generating logfile
     ## make file timestamp_0Q
     touch $llt0'_0Q'
     ## add file name to file timestamp_0Q
