@@ -347,12 +347,14 @@ create_lists()
 		    continue
 
 		## outcommented lines; skip
-		elif [[ "$(printf "$fpcl_location" | head -c 1)" == "#" ]]; then
+		elif [[ "$(printf "$fpcl_location" | head -c 1)" = "#" ]]; then
+		#elif [[ "$(printf "$fpcl_location" | head -c 1)" == "#" ]]; then
 
 		    continue
 
 		## lines starting with c; to all and crypt_list
-		elif [[ "$(printf "$fpcl_location" | head -c 2)" == "c " ]]; then
+		elif [[ "$(printf "$fpcl_location" | head -c 2)" = "c " ]]; then
+		#elif [[ "$(printf "$fpcl_location" | head -c 2)" == "c " ]]; then
 
 		    printf "$fpcl_location\n" | cut -c 3- | tee -a $all_files_list $crypt_list
 
@@ -482,7 +484,8 @@ crypt()
 		    continue
 
 		## outcommented lines; skip
-		elif [[ "$(printf "$file_2_crypt" | head -c 1)" == "#" ]]; then
+		elif [[ "$(printf "$file_2_crypt" | head -c 1)" = "#" ]]; then
+		#elif [[ "$(printf "$file_2_crypt" | head -c 1)" == "#" ]]; then
 
 		    continue
 
@@ -552,7 +555,8 @@ crypt()
 
 			    printf ".aes\n"
 
-			elif [[ "$tar_name_hash_new" == "$tar_name_hash_exist" ]]; then
+			elif [[ "$tar_name_hash_new" = "$tar_name_hash_exist" ]]; then
+			#elif [[ "$tar_name_hash_new" == "$tar_name_hash_exist" ]]; then
 
 			    ## remove the unencrypted tar archive
 			    destroy $tar_name
@@ -607,7 +611,8 @@ crypt()
 
 			    printf ".aes\n"
 
-			elif [[ "$file_name_hash_new" == "$file_name_hash_exist" ]]; then
+			elif [[ "$file_name_hash_new" = "$file_name_hash_exist" ]]; then
+			#elif [[ "$file_name_hash_new" == "$file_name_hash_exist" ]]; then
 
 			    ## remove the unencrypted tar archive
 			    destroy $file_name
@@ -643,7 +648,8 @@ crypt()
 
 
 		# don 't process ###' commented lines
-		if [[ "$(printf "$file_2_decrypt" | head -c 1)" == "#" ]]; then
+		if [[ "$(printf "$file_2_decrypt" | head -c 1)" = "#" ]]; then
+		#if [[ "$(printf "$file_2_decrypt" | head -c 1)" == "#" ]]; then
 
 		    continue
 
@@ -787,7 +793,8 @@ verify()
 	    no_aes_files_created=$(find $bu_dest -name '*.aes' | wc -l)
 	    no_c_lines_fpcl=$(grep '^c ' $fpcl_file | wc -l)
 
-	    if [[ "$no_aes_files_created" == "$no_c_lines_fpcl" ]]; then
+	    if [[ "$no_aes_files_created" = "$no_c_lines_fpcl" ]]; then
+	    #if [[ "$no_aes_files_created" == "$no_c_lines_fpcl" ]]; then
 
 		printf "encrypted:$no_aes_files_created=$no_c_lines_fpcl"
 		#exit 0
@@ -813,7 +820,8 @@ verify()
 		    continue
 
 		## outcommented lines; skip
-		elif [[ "$(printf "$fpcl_location" | head -c 1)" == "#" ]]; then
+		elif [[ "$(printf "$fpcl_location" | head -c 1)" = "#" ]]; then
+		#elif [[ "$(printf "$fpcl_location" | head -c 1)" == "#" ]]; then
 
 		    continue
 
