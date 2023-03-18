@@ -193,6 +193,9 @@ local_share_current()
 
     local src="$XDG_DATA_HOME/c"
     local dst="$dest/.local/share/"
+    local excl_file="$XDG_CONFIG_HOME/rsync/x1c_exclude_list"
+
+    local options="$options --exclude-from=$excl_file"
 
     [[ -d $dst ]] || mkdir -p $dst
 
@@ -339,6 +342,13 @@ local_share_all()
 }
 
 
+report_log_file()
+{
+
+    printf '\nlogged to: %s\n' "$(get_newest_file $XDG_LOGS_HOME/syncr)"
+
+}
+
 
 main()
 {
@@ -355,6 +365,8 @@ main()
 
     ## ## config_all
     ## ## local_share_all
+
+    report_log_file
 }
 
 main

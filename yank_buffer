@@ -20,6 +20,8 @@ check_service(){
 	    ;;
 
     esac
+
+    #sudo ydotoold &
 }
 
 
