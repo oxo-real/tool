@@ -11,15 +11,22 @@ check_service(){
 
     service_status=$(systemctl status ydotool.service | grep 'Active' | awk '{print $2}')
 
-    case $service_status in
+}
 
-	inactive)
-	    sudo systemctl start ydotool.service
-	    printf '%s\n' 'starting ydotool.service...'
-	    sleep 2
-	    ;;
 
-    esac
+start_service(){
+    export YDOTOOL_SOCKET=/tmp/ydotools
+    nohup ydotoold --socket-path /tmp/ydotools &
+
+    #case $service_status in
+
+    #	inactive)
+    #	    sudo systemctl start ydotool.service
+    #	    printf '%s\n' 'starting ydotool.service...'
+    #	    sleep 2
+    #	    ;;
+
+    #esac
 
     #sudo ydotoold &
 }
@@ -153,7 +160,8 @@ all_locations() {
 
 main() {
 
-    check_service
+#    check_service
+#    start_service
     yank
     select_file_location
     select_url_location
