@@ -559,7 +559,7 @@ dev_is_vlt_pass() {
 main() {
 
     text_appearance
-    get_sudo
+    #get_sudo
 
     get_source_devs
     get_mps_umount
