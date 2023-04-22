@@ -122,7 +122,7 @@ internet_conn_check()
 }
 
 
-package_lists_before()
+ackage_lists_before()
 {
     # backup package lists before upgrade
     ## define variables
@@ -300,10 +300,10 @@ list_marked_upgrade()
     printf "$llt0"_0u"\n" >> $llt0'_0u'
     ## add explanatory text to file timestamp_0u
     printf "list packages marked to be upgraded\n" >> $llt0'_0u'
-    printf "yay -Qu\n\n" >> $llt0'_0u'
+    printf "yay -Qu | sort | nl -w 2 -s ' '\n\n" >> $llt0'_0u'
     ## add yay -Qu to file timestamp_0u
-    printf "$(yay -Qu | wc -l) package(s) marked for upgrade\n" >> $llt0'_0u'
-    yay -Qu >> $llt0'_0u'
+    printf "$(yay -Qu | wc -l) package(s) marked for upgrade:\n" >> $llt0'_0u'
+    yay -Qu | sort | nl -w 2 -s ' ' >> $llt0'_0u'
 }
 
 
