@@ -440,7 +440,7 @@ create_vault() {
 
     ## aes-cbc-essiv:sha256 (plain)
 
-    :'
+    : '
     # 1 find first unused loopdevice
     	loop_device=$(sudo losetup -f)
 
@@ -463,8 +463,19 @@ create_vault() {
 
     ## aes-xts-plain64 (luks2)
 
-    #:'
+    #: '
+    ## convert pbkdf to argon2id (recommended!)
+    ## MAKE A COPY of your container ON A SEPARATE DEVICE!
+    ## get luks info
+    #sudo cryptsetup luksDump $target
+    ## if luks version is not 2
+    #sudo cryptsetup convert $target --type luks2
+    ## convert pbkdf to argon2id
+    #sudo cryptsetup luksConvertKey $target --pbkdf argon2id
+
+    ## default pbkdf (for new keys luks2 pbkdf defaults to argon2id)
     sudo cryptsetup luksFormat --type luks2 --verify-passphrase $target
+
     echo
     #'
 
