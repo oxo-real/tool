@@ -36,8 +36,8 @@
 ##
 #
 
-# TODO passr p keep object until element menu exit object is chosen
-# TODO filter protonmail-credentials from fzf input
+# NOTICE: to run without pwgn: export PWGN_OFF=1
+
 
 : '
 ## dependencies
@@ -119,6 +119,7 @@ initial_release='2020'
 args=$@
 arg_object=$1
 arg_element=$2
+pwgn="$XDG_DATA_HOME/c/git/code/tool/pwgn"
 ### dynamic variables
 object="$arg_object"
 element="$arg_element"
@@ -654,7 +655,7 @@ process_reply() {
 	    ;;
 
 	*)
-	    pwgn
+	    sh $pwgn
 	    ;;
 
     esac
@@ -663,19 +664,10 @@ process_reply() {
 
 generate_pw() {
 
-    printf "starting pwgn... ${YELLOW}A${NOC}bort "
+    ## run without pwgn: 'export PWGN_OFF=1'
+    if [[ -z "$PWGN_OFF" ]]; then
 
-    reply_read_single_hidden_timer
-
-    erase_line
-
-    if printf "$reply" | grep -iq "^a"; then
-
-    	continue
-
-    else
-
-    	pwgn
+    	sh $pwgn
 
     fi
 }

@@ -91,6 +91,8 @@ keyboard_input() {
     #read input
     askpass_exist=$(command -v askpass >/dev/null 2>&1; echo $?)
 
+    printf "pwgn "
+
     case $askpass_exist in
 
 	0)

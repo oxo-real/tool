@@ -48,13 +48,15 @@ build_custom_pkg_db()
 {
     # build custom package database
     ## .zst and older .xz packages
+    ## not .sig files
     p_src_sort=$(ls $p_src | grep --invert-match '.sig$' | sort --numeric-sort)
 
     while IFS= read -r p_curr; do
 
 	printf '\n==> %s\n' "$p_curr"
 
-	repo-add --new $p_dst/$db_name.db.tar.zst $p_dst/$p_curr
+	repo-add $p_dst/$db_name.db.tar.zst $p_dst/$p_curr
+	#repo-add --new $p_dst/$db_name.db.tar.zst $p_dst/$p_curr
 	#repo-add --new --remove $p_dst/$db_name.db.tar.zst $p_dst/$p_curr
 
     done <<< "$p_src_sort"

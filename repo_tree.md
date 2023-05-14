@@ -12,7 +12,6 @@
 ├── dedup_lines
 ├── dev
 │   ├── data_flow_mon
-│   ├── file_select
 │   ├── groff_compile
 │   ├── spin
 │   └── time_passed
@@ -21,6 +20,7 @@
 ├── dotfbu
 ├── dynamic_truncate
 ├── emacs_start
+├── file_select
 ├── fiot
 ├── fscu
 ├── fzf_tag_add

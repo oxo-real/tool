@@ -37,6 +37,8 @@ set -o pipefail
 ##
 #
 
+# NOTICE: to run without pwgn: export PWGN_OFF=1
+
 ## dependencies
 #   $source_dir, cryptsetup, fzf
 
@@ -78,7 +80,7 @@ developer='oxo'
 license='gplv3'
 initial_release='2019'
 
-## hardcoded variables
+## static variables
 XDG_DATA_HOME="$HOME/.local/share"
 source_dir="$XDG_DATA_HOME/c/git/code/source/function"
 pwgn="$XDG_DATA_HOME/c/git/code/tool/pwgn"
@@ -576,19 +578,10 @@ erase_line() {
 
 
 generate_pw() {
-    # choose generated or manual input
 
-    printf "starting pwgn... (${YELLOW}A${NOC}bort) "
+    ## run without pwgn: 'export PWGN_OFF=1'
+    if [[ -z "$PWGN_OFF" ]]; then
 
-    reply_read_single_hidden_timer
-
-    if printf "$reply" | grep -iq "^a"; then
-
-	:
-
-    else
-
-	erase_line
 	sh $pwgn
 
     fi
