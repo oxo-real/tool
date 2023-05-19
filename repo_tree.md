@@ -23,6 +23,7 @@
 ├── file_select
 ├── fiot
 ├── fscu
+├── fzf_file
 ├── fzf_tag_add
 ├── get_device_info
 ├── get_julian_date
@@ -66,5 +67,5 @@
     ├── passr_old
     └── trashOLD
 
-3 directories, 63 files
+3 directories, 64 files
 ```
