@@ -520,24 +520,24 @@ arch_audit()
 
 arch_audit_q()
 {
-    printf "check for package vulnerabilities? (Y/n) "
-    reply_read_single_hidden_timer
-    echo
-
-    if printf "$reply" | grep -iq "^n" ; then
-
-	printf "vulnerability check ${MAGENTA}user interrupt${NOC}\n"
-	echo
-
-    elif [[ -n $(printf "$reply") ]]; then
-
-	arch_audit
-
-    else
+#    printf "check for package vulnerabilities? (Y/n) "
+#    reply_read_single_hidden_timer
+#    echo
+#
+#    if printf "$reply" | grep -iq "^n" ; then
+#
+#	printf "vulnerability check ${MAGENTA}user interrupt${NOC}\n"
+#	echo
+#
+#    elif [[ -n $(printf "$reply") ]]; then
 
 	arch_audit
 
-    fi
+#    else
+#
+#	arch_audit
+#
+#    fi
 }
 
 
@@ -549,30 +549,30 @@ call_dns_hosts_blocklist()
 
 update_dns_hosts_blocklist()
 {
-    printf "update dns hosts blocklist? (Y/n) "
-    reply_read_single_hidden_timer
-    echo
-
-    if printf "$reply" | grep -iq "^n" ; then
-
-	printf "update dns hosts blocklist ${MAGENTA}user interrupt${NOC}\n"
-	echo
-
-    elif [[ -n $(printf "$reply") ]]; then
+#    printf "update dns hosts blocklist? (Y/n) "
+#    reply_read_single_hidden_timer
+#    echo
+#
+#    if printf "$reply" | grep -iq "^n" ; then
+#
+#	printf "update dns hosts blocklist ${MAGENTA}user interrupt${NOC}\n"
+#	echo
+#
+#    elif [[ -n $(printf "$reply") ]]; then
 
 	printf "updating dns hosts blocklist\n"
 	echo
 	call_dns_hosts_blocklist
-	echo
-
-    else
-
-	# confirmation timeout
-	echo
-	call_dns_hosts_blocklist
-	echo
-
-    fi
+#	echo
+#
+#    else
+#
+#	# confirmation timeout
+#	echo
+#	call_dns_hosts_blocklist
+#	echo
+#
+#    fi
 }
 
 

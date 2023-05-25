@@ -37,6 +37,7 @@ items=( "$@" )
 epoch="$(date +%s)"
 
 source $XDG_DATA_HOME/c/git/code/source/function/text_appearance
+source $XDG_DATA_HOME/c/git/code/source/function/reply_functions
 
 
 reset_sudo() {
@@ -267,8 +268,10 @@ cannot_remove_myself() {
 trash_info() {
 
     dirs=$(sudo fd . -t d -u $trash | wc -l)
+    dirs="${dirs:-0}"
     #dirs=$(sudo find $XDG_CACHE_HOME/trash -type d | wc -l)
     files=$(sudo fd . -t f -u $trash | wc -l)
+    files="${files:-0}"
     size=$(sudo du -sh $trash | awk '{print $1}')
 }
 
@@ -295,10 +298,28 @@ trash_ls() {
 trash_empty() {
 
     ## empty trashcan
-    trash_size
-    \rm -rf $trash/{*,.*} && \
-	printf "trash cleared; %s dirs %s files ${BLUE}%s${NOC}\n" $trash $dirs $files $size && \
-	exit 0
+    trash_info
+    #trash_size
+    report_info
+
+    printf "clear trash? (y/N) "
+    reply_single
+    echo
+
+    if printf "$reply" | grep -iq "^y"; then
+
+	printf "clearing %s ${BOLD}%s${NOC} dirs ${BOLD}%s${NOC} files ${BLUE}%s${NOC}\n" $trash $dirs $files $size
+
+	\rm -rf $trash && mkdir $trash && exit 0
+	#\rm -rf $trash/{*,.*} && \
+	#    printf "trash cleared; %s dirs %s files ${BLUE}%s${NOC}\n" $trash $dirs $files $size && \
+	#    exit 0
+
+    else
+
+	exit 60
+
+    fi
 }
 
 
