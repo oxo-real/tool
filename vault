@@ -584,6 +584,7 @@ generate_pw() {
 
 	sh $pwgn
 
+	tput cuu 1
     fi
 }
 
