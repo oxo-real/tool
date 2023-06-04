@@ -48,7 +48,3 @@ rsync -aAXv --log-file=$XDG_LOGS_HOME/c2b/$(date +%s) $options $src2 $dst | tee 
 
 # protect dynamic data backup against writing
 sudo chattr -R +i $dst >/dev/null 2>&1
-
-
-# go back to where we came from
-cd - &> /dev/null

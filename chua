@@ -19,6 +19,7 @@ qb_conf="$XDG_CONFIG_HOME/qutebrowser/config.py"
 
 # sourcing
 source $XDG_DATA_HOME/c/git/code/source/function/text_appearance
+source_html='https://www.useragents.me/#most-common-desktop-useragents-json-csv'
 source_www='https://www.useragents.me/api'
 
 
@@ -27,13 +28,16 @@ lnuac="$XDG_LOGS_HOME/network/user_agent/current"
 
 
 # set timestamp
-timestamp=$(date +%s)
+timestamp=$(date +%Y%m%d_%H%M%S)
+
+
+# set html file location
+html_file="$XDG_CACHE_HOME/temp/${timestamp}_chua.html"
 
 
 # get api data
-api_data=$(curl $source_www)
-#api_data=$(curl https://www.useragents.me/api)
-
+# #api_data=$(curl $source_www)
+curl $source_html > $html_file
 
 # process api data
 if [[ "$arg1" == '--manual' ]]; then
@@ -43,11 +47,14 @@ if [[ "$arg1" == '--manual' ]]; then
 
 else
 
-    ua_sel=$(printf '%s' $api_data | jq '.data[0] | .ua')
+    # #ua_sel=$(printf '%s' $api_data | jq '.data[0] | .ua')
+    ua_sel_html=$(grep -A 1 'most common desktop useragents list conveniently in TSV' $html_file | tail -n 1 | cut -d '>' -f 2 | awk 'NF{NF-=1};1')
 
 fi
 
 ua=$(printf '%s' $ua_sel | sed -e 's/^"//' -e 's/"$//')
+
+[[ -z $ua ]] && ua=$ua_sel_html
 
 
 # prepend timestamp and selected ua to ua log file (lnuac)

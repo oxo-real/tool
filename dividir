@@ -1,0 +1,115 @@
+#!/usr/bin/env sh
+
+# dividir
+
+# divide directory items by date
+
+# TODO daily/weekly listing
+
+# usage:
+## dir_divide [-s $source] [-d $destination] [-p period]
+
+# get options
+optstring=':s:d:p:h'
+
+while getopts $optstring option; do
+
+    case "$option" in
+
+	s)
+	    ##source directory
+	    src_dir=${OPTARG}
+	    ;;
+
+	d)
+	    ## destination directory
+	    dst_dir=${OPTARG}
+	    ;;
+
+	p)
+	    ## period length
+	    period=${OPTARG}
+	    ;;
+
+	h)
+	    ## -h display help text
+	    printf "$script_name usage: $script_usage"
+	    exit 26
+	    ;;
+
+	\?)
+	    printf "$script_name ${RED}invalid option: -${OPTARG}${NOC}"
+	    exit 31
+	    ;;
+
+	:)
+	    ## display help
+	    printf "$script_name: ${RED}option -${OPTARG} requires an argument${NOC}"
+	    exit 37
+	    ;;
+
+    esac
+
+done
+
+
+# initialize defaults
+[[ -z $src_dir ]] && src_dir=$PWD
+[[ -z $dst_dir ]] && dst_dir=$PWD
+[[ -z $period ]] && period=month
+
+## check dirs validity
+[[ -d $src_dir ]] || exit 61
+[[ -d $dst_dir ]] || mkdir -p $dst_dir
+
+## check period validity
+case $period in
+
+    year|month|day)
+	:
+	;;
+
+    *)
+	printf "invalid period\n"
+	exit 73
+	;;
+
+esac
+
+
+printf "%s to %s divided by %s\n" "$src_dir" "$dst_dir" "$period"
+
+
+# monthly
+## organize directory items into monthly folders
+src_dir_items=$(ls $src_dir)
+
+for c_item in $src_dir_items; do
+
+    item=$(realpath $src_dir/$c_item)
+    item_mtime=$(stat -c %Y $item | xargs -I {} date -d @{} +'%Y%m%d')
+
+    dir_y=$dst_dir/${item_mtime:0:4}
+    dir_m=$dir_y/${item_mtime:4:2}
+    dir_d=$dir_m/${item_mtime:6:2}
+
+    case $period in
+
+	year)
+	    [[ -d "$dir_y" ]] || mkdir -p "$dir_y"
+	    mv $item "$dir_y"
+	    ;;
+
+	month)
+	    [[ -d "$dir_m" ]] || mkdir -p "$dir_m"
+	    mv $item "$dir_m"
+	    ;;
+
+	day)
+	    [[ -d "$dir_d" ]] || mkdir -p "$dir_d"
+	    mv $item "$dir_d"
+	    ;;
+
+    esac
+
+done

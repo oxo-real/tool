@@ -8,7 +8,6 @@
 ├── chua
 ├── COPYING
 ├── cryptr
-├── date_dir
 ├── dedup_files
 ├── dedup_lines
 ├── dev
@@ -18,6 +17,7 @@
 │   └── time_passed
 ├── diffdir
 ├── diritems
+├── dividir
 ├── dotfbu
 ├── dynamic_truncate
 ├── emacs_start
