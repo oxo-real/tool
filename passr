@@ -907,11 +907,11 @@ human_info() {
 	    if [[ -n $error ]]; then
 
 		## print error message
-		printf "${MAGENTA}$object${NOC} $error\n"
+		printf "$(date +%H%M%S) ${MAGENTA}$object${NOC} $error\n"
 
 	    else
 
-	    	printf "$object\n"
+	    	printf "$(date +%H%M%S) $object\n"
 
 	    fi
 
@@ -920,7 +920,7 @@ human_info() {
 	    if [[ -n $error ]]; then
 
 		## print error message
-		printf "${MAGENTA}$object${NOC} $error\n"
+		printf "$(date +%H%M%S) ${MAGENTA}$object${NOC} $error\n"
 
 	    else
 
