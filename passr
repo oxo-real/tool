@@ -436,6 +436,9 @@ pass_new() {
 
     esac
 
+    ## get creation time
+    c_time=$(date +'%Y%m%d_%H%M%S_%s_%z_%Z_%V')
+
     ## get url
     printf "%"$align"s %s" "url: "
     read -r -e url
@@ -453,10 +456,11 @@ pass_new() {
     gen_sel_pw
 
     ## synthesize string
-    printf "%s\n%s\n%s\n%s\n%s\n" \
+    printf "%s\n%s\n%s\n%s\n%s\n%s\n" \
 	"$password" \
 	"userid: $userid" \
 	"url: $url" \
+	"created: $c_time" \
 	"comments:" "$comments" | \
 	wl-copy -o
 
@@ -473,6 +477,7 @@ pass_edit() {
     process_object
 
     pass edit $object
+
     exit 0
 }
 
