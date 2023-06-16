@@ -94,7 +94,7 @@
 
 ### add object data
 % passr [$object_non_existing]
-or (DEV: keep this?)
+or
 % passr new [$object]
 % passr n [$object]
 
@@ -351,6 +351,7 @@ get_object() {
 					    ;;
 
 				    esac
+				    ;;
 
 			    esac
 		   	    ;;
@@ -543,7 +544,8 @@ log_in() {
 log_out() {
 
     gpg-connect-agent -q reloadagent /bye >/dev/null
-    printf "${BLUE}logged out${NOC} bye!\n"
+
+    pass_element
 
     [[ "$object" == 'close' ]] || exit 0
 }
@@ -856,7 +858,18 @@ pass_element() {
 	*)
 	    # normal (not silent)
 	    human_info
-	    pass $element $object
+
+	    case $object in
+
+		logout|close)
+		    :
+		    ;;
+
+		*)
+		    pass $element $object
+		    ;;
+
+	    esac
 	    ;;
 
     esac
@@ -907,7 +920,10 @@ human_info() {
 
     if [[ -z $ae ]]; then
 
-    	if [[ "$object" == 'login' ]]; then
+	# not in autoentry modus
+    	if [[ "$object" == 'login' ]] || \
+	       [[ "$object" == 'logout' ]] || \
+	       [[ "$object" == 'close' ]]; then
 
 	    if [[ -n $error ]]; then
 
@@ -916,12 +932,14 @@ human_info() {
 
 	    else
 
+		## print common info (we have no error)
 	    	printf "$(date +%H%M%S) $object\n"
 
 	    fi
 
     	else
 
+	    ## all $object cases except login, -out and close
 	    if [[ -n $error ]]; then
 
 		## print error message
@@ -937,6 +955,7 @@ human_info() {
 
     elif [[ -n $ae ]]; then
 
+	# in autoentry modus
     	notify-send "$element"
     	sleep $t
 
