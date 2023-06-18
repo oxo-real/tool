@@ -541,6 +541,12 @@ log_in() {
 }
 
 
+pass_quit() {
+
+    exit 0
+}
+
+
 log_out() {
 
     gpg-connect-agent -q reloadagent /bye >/dev/null
@@ -720,14 +726,16 @@ process_object() {
 
 	if [[ "$mode" == "persist" ]]; then
 
-	    case $object in
+	    #case $object in
 
-		q | quit)
-		    printf "passr exit persistent state\n"
-		    exit 0
-		    ;;
+	    #	q | quit)
+	    #	    human_info
+	    #	    pass_quit
+	    #	    #printf "passr exit persistent state\n"
+	    #	    #exit 0
+	    #	    ;;
 
-	    esac
+	    #esac
 
 	    case $hold_status in
 
@@ -1054,7 +1062,11 @@ process_element() {
 	    ;;
 
 	quit)
-	    exit 0
+	    element='quit'
+	    human_info
+	    pass_quit
+
+	    #exit 0
 	    ;;
 
     	log_out)
