@@ -726,6 +726,7 @@ process_object() {
 
 	if [[ "$mode" == "persist" ]]; then
 
+	    # case can probably be reomved
 	    #case $object in
 
 	    #	q | quit)
