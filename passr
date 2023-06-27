@@ -1085,6 +1085,11 @@ process_element() {
 		1)
 		    # toggle hold off
 		    hold_status=0
+		    #///
+		    object="$object_to_hold"
+		    element='released'
+		    human_info
+		    #///
 		    unset object_to_hold
 		    get_object
 		    ;;
@@ -1092,6 +1097,10 @@ process_element() {
 		*)
 		    # toggle hold on
 		    hold_status=1
+		    #///
+		    element='hold'
+		    human_info
+		    #///
 		    object_to_hold="$object"
 		    get_object
 		    ;;
