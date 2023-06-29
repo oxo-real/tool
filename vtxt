@@ -1,0 +1,80 @@
+#!/usr/bin/env sh
+
+# voice-to-text
+# with vosk
+#
+# usage: vtx begin|end [$language]
+
+action=$1
+
+language=$2
+
+[[ -z $action ]] && exit 11
+
+## file locations
+vosk_dir='/home/oxo/.local/share/a/data/ai/language/model/vosk-api'
+vtx_app='/home/oxo/.cache/test/nerd-dictation/nerd-dictation'
+config_file='/home/oxo/.config/nerd-dictation/nerd-dictation.py'
+
+## nd options
+#sim_tool='STDOUT'
+sim_tool='YDOTOOL'
+# NOTICE: systemctl --user start ydotool.service
+numbers='--numbers-min-value 10 --numbers-as-digits --numbers-no-suffix'
+
+## specific language selection
+case $language in
+
+    en)
+	# english
+	config_file='/home/oxo/.config/nerd-dictation/specific/lang_en.py'
+	using='vosk-model-small-en-us-0.15'
+	model_dir="$vosk_dir/$language/$using"
+	;;
+
+    sv)
+	# swedish
+	config_file='/home/oxo/.config/nerd-dictation/specific/lang_sv.py'
+	using='vosk-model-small-sv-rhasspy-0.15'
+	model_dir="$vosk_dir/$language/$using"
+	;;
+
+    nl)
+	# dutch
+	config_file='/home/oxo/.config/nerd-dictation/specific/lang_nl.py'
+	using='vosk-model-nl-spraakherkenning-0.6-lgraph'
+	#using='vosk-model-small-nl-0.22'
+	model_dir="$vosk_dir/$language/$using"
+	;;
+
+    sh)
+	# shell language
+	config_file='/home/oxo/.config/nerd-dictation/specific/lang_sh.py'
+	using='vosk-model-small-en-us-0.15'
+	model_dir="$vosk_dir/$language/$using"
+	;;
+
+    *)
+	# default config
+	config_file='/home/oxo/.config/nerd-dictation/nerd-dictation.py'
+	using='vosk-model-small-en-us-0.15'
+	model_dir="$vosk_dir/$language/$using"
+	;;
+
+esac
+
+## bwgin and end vtx
+case $action in
+
+    begin)
+	[[ -z $language ]] && exit 47
+	systemctl --user status ydotool.service
+	[[ $? -eq 3 ]] && systemctl --user start ydotool.service && sleep 2
+	$vtx_app $action --config $config_file --simulate-input-tool $sim_tool $numbers --vosk-model-dir $model_dir
+	;;
+
+    end)
+	$vtx_app $action
+	;;
+
+esac

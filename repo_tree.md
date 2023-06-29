@@ -57,6 +57,7 @@
 ├── upgrader
 ├── vault
 ├── verbose
+├── vtxt
 ├── yank_buffer
 ├── zsh_root_like_user
 └── zzz_deprecated
@@ -68,5 +69,5 @@
     ├── passr_old
     └── trashOLD
 
-3 directories, 65 files
+3 directories, 66 files
 ```
