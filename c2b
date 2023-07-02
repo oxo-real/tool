@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 
-# backup DATA_HOME/c and CONFIG_HOME
+# backup DATA_HOME/c, CONFIG_HOME and history
 
 
 # usage:
@@ -14,6 +14,8 @@
 
 
 options=$@
+timestamp="$(date +%s)"
+log_file="$XDG_LOGS_HOME/c2b/$timestamp"
 
 
 ## copy $src1
@@ -26,25 +28,35 @@ src1="$XDG_DATA_HOME/c/"
 ## $XDG_CONFIG_HOME ($HOME/.config)
 src2="$XDG_CONFIG_HOME"
 ##
+## and $src3
+##
+## $XDG_CONFIG_HOME ($HOME/.logs/history/history)
+src3="$XDG_LOGS_HOME/history"
+##
 ## to $dst the dynamic data backup
 ##
 ## $XDG_DATA_HOME/b ($HOME/.local/share/b)
 dst="$XDG_DATA_HOME/b"
 
 
-# make dynamic data backup writable
+# ## make dynamic data backup writable
 sudo chattr -R -i $dst >/dev/null 2>&1
 
 
 # copy c to b
 # and create logging
-rsync -aAXv --log-file=$XDG_LOGS_HOME/c2b/$(date +%s) $options $src1 $dst | tee -a $XDG_LOGS_HOME/c2b/$(date +%s)
+rsync -aAXv --log-file=$logfile $options $src1 $dst | tee -a $logfile
 
 
 # copy .config to b
 # and create logging
-rsync -aAXv --log-file=$XDG_LOGS_HOME/c2b/$(date +%s) $options $src2 $dst | tee -a $XDG_LOGS_HOME/c2b/$(date +%s)
+rsync -aAXv --log-file=$logfile $options $src2 $dst | tee -a $logfile
 
 
-# protect dynamic data backup against writing
+# copy history to b
+# and create logging
+rsync -aAXv --log-file=$logfile $options $src3 $dst | tee -a $logfile
+
+
+# ## protect dynamic data backup against writing
 sudo chattr -R +i $dst >/dev/null 2>&1
