@@ -918,6 +918,10 @@ error_message() {
 
     	error='no element'
 
+    else
+
+	error=''
+
     fi
 }
 
