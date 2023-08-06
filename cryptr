@@ -1,4 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env sh
+set -o errexit
+set -o nounset
+set -o pipefail
+#
 #
 ##
 ###                        _
@@ -11,7 +15,7 @@
 ### (_)><(_)
 ###
 ### cryptr
-### crypto with optional cascade
+### crypto with optional cipher cascade
 ###
 ### copyright (c) 2021 - 2023  |  oxo
 ###
@@ -23,22 +27,22 @@
 ### -d decrypt a tarx file
 ### cryptr [-d] <src> [dest]
 ### --------------------------------
-### !! SECURITY WARNING!!
-### ^^^^^^^^^^^^^^^^^^^^^
-### risks in multi-user systems!
-### (writing of temporary files)
+###
+### WARNING! risk in multi-user systems!
+### because of writing temporary files
 ###
 ##
 #
 
+# TODO multiple input files or dirs
 
 # initial definitions
 ## select cipher suite
 cipher_suite="gnupg"
 #cipher_suite="openssl"
 
-gcd="$XDG_DATA_HOME/c/git/code"
-source_dir="$gcd/sources/functions"
+gc_dir="$XDG_DATA_HOME/c/git/code"
+source_dir="$gc_dir/source/function"
 
 
 args="$@"
@@ -46,797 +50,799 @@ args="$@"
 
 sourcing()
 {
-	## reply functions
-	source $source_dir/reply_functions
+    ## reply functions
+    source $source_dir/reply_functions
 
-	## text appearance
-	source $source_dir/text_appearance
+    ## text appearance
+    source $source_dir/text_appearance
 }
 
 
 initialize()
 {
-	sourcing
+    sourcing
 
-	timestamp="`date "+%Y%m%d_%H%M%S"`"
+    timestamp="`date "+%Y%m%d_%H%M%S"`"
 
-	tmp_dir="$XDG_CACHE_HOME/temp/cryptr/$timestamp"
-	[[ ! -d $tmp_dir ]] && mkdir -p $tmp_dir
+    tmp_dir="$XDG_CACHE_HOME/temp/cryptr/$timestamp"
+    [[ ! -d $tmp_dir ]] && mkdir -p $tmp_dir
 
-	pw_dir="$PWD"
+    pw_dir="$PWD"
 }
 
 
 arguments()
 {
-	opr_arg=$(printf -- "$args" | awk '{print $1}')
-	src_arg=$(printf -- "$args" | awk '{print $2}')
-	dst_arg=$(printf -- "$args" | awk '{print $3}')
 
-	operation
-	src_validate
-	dst_validate
+    opr_arg=$(printf -- "$args" | awk '{print $1}')
+    src_arg=$(printf -- "$args" | awk '{print $2}')
+    dst_arg=$(printf -- "$args" | awk '{print $3}')
+
+    operation
+    src_validate
+    dst_validate
 }
 
 
 operation()
 {
-	## encrypt or decrypt
-	case $opr_arg in
+    ## encrypt or decrypt
+    case $opr_arg in
 
-		-d)
-			opr="d"
-			oper="decr"
-			printf "\noper:		${INV}${BOLD} "$oper"ypting ${NOC}\n"
-			;;
+	-d)
+	    opr="d"
+	    oper="decr"
+	    printf "\noper:		${INV}${BOLD} "$oper"ypting ${NOC}\n"
+	    ;;
 
-		-e)
-			case $cipher_suite in
+	-e)
+	    case $cipher_suite in
 
-				gnupg)
+		gnupg)
 
-					## encrypt with symmetric cipher
-					opr="c"
-					;;
+		    ## encrypt with symmetric cipher
+		    opr="c"
+		    ;;
 
-				openssl)
+		openssl)
 
-					opr="e"
-					;;
+		    opr="e"
+		    ;;
 
-			esac
-			oper="encr"
-			printf "\noper:		${INV}${BOLD} "$oper"ypting ${NOC}\n"
-			;;
+	    esac
+	    oper="encr"
+	    printf "\noper:		${INV}${BOLD} "$oper"ypting ${NOC}\n"
+	    ;;
 
-		*)
-			# no -d or -e is given
+	*)
+	    # no -d or -e is given
 
-			## correcting variables
-			dst_arg="$src_arg"
-			src_arg="$opr_arg"
-			opr_arg="-e"
+	    ## correcting variables
+	    dst_arg="$src_arg"
+	    src_arg="$opr_arg"
+	    opr_arg="-e"
 
-			if [[ $(file $src_arg | grep 'tar archive') ]]; then
+	    if [[ $(file $src_arg | grep 'tar archive') ]]; then
 
-				[[ $(tar -tvf $src_arg | grep .crypt) ]] && \
-					[[ $(tar -tvf $src_arg | grep .csf) ]] && \
-						# src_arg is a .tarx file
-						opr_arg="-d"
+		[[ $(tar -tvf $src_arg | grep .crypt) ]] && \
+		    [[ $(tar -tvf $src_arg | grep .csf) ]] && \
+		    # src_arg is a .tarx file
+		    opr_arg="-d"
 
-			fi
+	    fi
 
-			## rerun with corrected variables
-			operation
-			;;
+	    ## rerun with corrected variables
+	    operation
+	    ;;
 
-	esac
+    esac
 }
 
 
 src_validate()
 {
-	## rewrite src (full path)
-	src="$(realpath $src_arg)"
+    ## rewrite src (full path)
+    src="$(realpath $src_arg)"
 
-	## src does not exist
-	if [[ ! -f $src ]] && [[ ! -d $src ]] ; then
+    ## src does not exist
+    if [[ ! -f $src ]] && [[ ! -d $src ]] ; then
 
-		printf "${MAGENTA}source file not found${NOC}\n"
-		exit 5
+	printf "${MAGENTA}source file not found${NOC}\n"
+	exit 5
 
-	elif [[ -z $src ]]; then
+    elif [[ -z $src ]]; then
 
-		printf "${MAGENTA}missing src & dest file${NOC}\n"
-		exit 5
+	printf "${MAGENTA}missing src & dest file${NOC}\n"
+	exit 5
 
-	fi
+    fi
 
-	case $oper in
+    case $oper in
 
-		encr)
-			src_sub_dir=$(dirname $src)
-			src_tar_get=$(basename $src)
-			;;
+	encr)
+	    src_sub_dir=$(dirname $src)
+	    src_tar_get=$(basename $src)
+	    ;;
 
-		decr)
-			src_txt="no src limitations for decr"
-			;;
+	decr)
+	    src_txt="no src limitations for decr"
+	    ;;
 
-	esac
+    esac
 
-	printf "source:		$src\n"
+    printf "source:		$src\n"
 }
 
 
 dst_validate()
 {
-	## dst is an optional argument
-	## if empty no arg 3 is given
-	## then dst defaults to pwd
-	if [[ -z $dst_arg ]]; then
-
-		case $oper in
-
-			encr)
-				## dst is always a file
-				## write dst to pwd
-				dst_sub_dir="$pw_dir"
-				dst_tar_get="$(basename $src).tarx"
-				;;
-
-			decr)
-				## [TODO] dst is a directory if inner tar contains dir or multiple files
-				## [TODO] dst is a file if inner tar contains only one file
-				## write dst to pwd
-				dst_sub_dir="$pw_dir"
-				dst_tar_get="$(basename $src)"
-
-				if [[ "$(printf "$dst_tar_get" | tail -c 5)" == ".tarx" ]]; then
-
-					dst_tar_get="${dst_tar_get::-5}"
-
-				fi
-				;;
-
-		esac
-
-		# rewrite dst_arg with default values
-		dst_arg="$dst_sub_dir/$dst_tar_get"
-
-	## dst arg 3 is given
-	elif [[ -n $dst_arg ]]; then
-
-		dst_sub_dir=$(dirname $dst_arg)
-		dst_tar_get=$(basename $dst_arg)
-
-		case $oper in
-
-			encr)
-				# dst_arg is a nonexistent file
-				# with an valid absolute filepath
-				# or a valid relative path to pwd
-				if [[ ! -f $dst_arg ]]; then
-
-					if [[ -d $(dirname $dst_arg) ]]; then
-
-						dst_arg="$(realpath $dst_arg)"
-
-					elif [[ -d $pwd/$dst_arg ]]; then
-
-						dst_arg="$pwd/$dst_arg"
-
-					fi
-
-					# dst_arg contains subdir(s)
-					if [[ "$dst_sub_dir" != "." ]]; then
-
-						# dst_sub_dir exist otherwise mkdir it
-						[[ -d $dst_sub_dir ]] || mkdir -p $dst_sub_dir
-
-					fi
-
-				fi
-				;;
-
-			decr)
-				# dst_arg is a directory
-				# dst_arg can not be a file
-
-				#if [[ -d $dst_arg ]] || [[ -f $dst_arg ]]; then
-
-				#	printf "${MAGENTA}destination already exists${NOC}\n"
-				#	printf "define alternate destination (arg 3)\n"
-				#	#exit 4
-				# [TODO] warn for existing file / directory (with color)
-
-				#fi
-				;;
-
-		esac
-
-		## rewrite variables
-		dst_sub_dir=$(dirname $dst_arg)
-		dst_tar_get=$(basename $dst_arg) # is a nonexistent directory!
-
-	fi
-
-	## rewrite dst (full path)
-	dst="$(realpath $dst_sub_dir/$dst_tar_get)"
+    ## dst is an optional argument
+    ## if empty no arg 3 is given
+    ## then dst defaults to pwd
+    if [[ -z $dst_arg ]]; then
 
 	case $oper in
 
-		decr)
+	    encr)
+		## dst is always a file
+		## write dst to pwd
+		dst_sub_dir="$pw_dir"
+		dst_tar_get="$(basename $src).tarx"
+		;;
 
-			[[ -d $dst ]] || [[ -f $dst ]] || mkdir -p $dst
-			;;
+	    decr)
+		## [TODO] dst is a directory if inner tar contains dir or multiple files
+		## [TODO] dst is a file if inner tar contains only one file
+		## write dst to pwd
+		dst_sub_dir="$pw_dir"
+		dst_tar_get="$(basename $src)"
+
+		if [[ "$(printf "$dst_tar_get" | tail -c 5)" == ".tarx" ]]; then
+
+		    dst_tar_get="${dst_tar_get::-5}"
+
+		fi
+		;;
 
 	esac
 
-	if [[ -d $dst ]] || [[ -f $dst ]]; then
+	# rewrite dst_arg with default values
+	dst_arg="$dst_sub_dir/$dst_tar_get"
 
-		printf "destination:	${MAGENTA}$dst${NOC}\n"
+	## dst arg 3 is given
+    elif [[ -n $dst_arg ]]; then
 
-	else
+	dst_sub_dir=$(dirname $dst_arg)
+	dst_tar_get=$(basename $dst_arg)
 
-		printf "destination:	$dst\n"
+	case $oper in
 
-	fi
+	    encr)
+		# dst_arg is a nonexistent file
+		# with an valid absolute filepath
+		# or a valid relative path to pwd
+		if [[ ! -f $dst_arg ]]; then
 
-	echo
+		    if [[ -d $(dirname $dst_arg) ]]; then
+
+			dst_arg="$(realpath $dst_arg)"
+
+		    elif [[ -d $pwd/$dst_arg ]]; then
+
+			dst_arg="$pwd/$dst_arg"
+
+		    fi
+
+		    # dst_arg contains subdir(s)
+		    if [[ "$dst_sub_dir" != "." ]]; then
+
+			# dst_sub_dir exist otherwise mkdir it
+			[[ -d $dst_sub_dir ]] || mkdir -p $dst_sub_dir
+
+		    fi
+
+		fi
+		;;
+
+	    decr)
+		# dst_arg is a directory
+		# dst_arg can not be a file
+
+		#if [[ -d $dst_arg ]] || [[ -f $dst_arg ]]; then
+
+		#	printf "${MAGENTA}destination already exists${NOC}\n"
+		#	printf "define alternate destination (arg 3)\n"
+		#	#exit 4
+		# [TODO] warn for existing file / directory (with color)
+
+		#fi
+		;;
+
+	esac
+
+	## rewrite variables
+	dst_sub_dir=$(dirname $dst_arg)
+	dst_tar_get=$(basename $dst_arg) # is a nonexistent directory!
+
+    fi
+
+    ## rewrite dst (full path)
+    dst="$(realpath $dst_sub_dir/$dst_tar_get)"
+
+    case $oper in
+
+	decr)
+
+	    [[ -d $dst ]] || [[ -f $dst ]] || mkdir -p $dst
+	    ;;
+
+    esac
+
+    if [[ -d $dst ]] || [[ -f $dst ]]; then
+
+	printf "destination:	${MAGENTA}$dst${NOC}\n"
+
+    else
+
+	printf "destination:	$dst\n"
+
+    fi
+
+    echo
 }
 
 
 tar_create()
 {
-	# (inner) tar file
-	# will be wrapped in tarx
-	tar_file=$tmp_dir/$src_tar_get.tar
-	mkdir -p $(dirname $tar_file)
+    # (inner) tar file
+    # will be wrapped in tarx
+    tar_file=$tmp_dir/$src_tar_get.tar
+    mkdir -p $(dirname $tar_file)
 
-	## create (inner) tar archive
-	tar -czf $tar_file -C $src_sub_dir $src_tar_get
+    ## create (inner) tar archive
+    tar -czf $tar_file -C $src_sub_dir $src_tar_get
 }
 
 
 select_cipher()
 {
-	case $cipher_suite in
+    case $cipher_suite in
 
-		gnupg)
+	gnupg)
 
-			## gnupg cipher select array
-			cipher_pool=$(\
-				gpg --version | \
-				grep -i -A 1 cipher | \
-				cut -d " " -f 2- | \
-				xargs | \
-				sed 's/ //'g | \
-				tr ',' '\n'\
-			)
+	    ## gnupg cipher select array
+	    cipher_pool=$(\
+			  gpg --version | \
+			      grep -i -A 1 cipher | \
+			      cut -d " " -f 2- | \
+			      xargs | \
+			      sed 's/ //'g | \
+			      tr ',' '\n'\
+		       )
 
-			cipher_select=( $(\
-				printf "$cipher_pool" | \
-				fzf -m\
-			) )
+	    cipher_select=( $(\
+			      printf "$cipher_pool" | \
+				  fzf -m\
+			    ) )
 
-			cipher_select_amount=${#cipher_select[@]}
-			;;
+	    cipher_select_amount=${#cipher_select[@]}
+	    ;;
 
-		openssl)
+	openssl)
 
-			## openssl cipher select array
-			cipher_pool=$(\
-				openssl enc -ciphers | \
-				awk 'NR > 1 {for(i=1;i<=NF;i++){print $i}}' | \
-				cut -c 2-\
-			)
+	    ## openssl cipher select array
+	    cipher_pool=$(\
+			  openssl enc -ciphers | \
+			      awk 'NR > 1 {for(i=1;i<=NF;i++){print $i}}' | \
+			      cut -c 2-\
+		       )
 
-			cipher_select=( $(\
-				printf "$cipher_pool" | \
-				fzf -m\
-			) )
+	    cipher_select=( $(\
+			      printf "$cipher_pool" | \
+				  fzf -m\
+			    ) )
 
-			cipher_select_amount=${#cipher_select[@]}
-			;;
+	    cipher_select_amount=${#cipher_select[@]}
+	    ;;
 
-	esac
+    esac
 }
 
 
 cipher_select_file()
 {
-	cipher_select_file="$tmp_dir/$(basename $src).csf"
-	printf "%s\n" ${cipher_select[@]} > "$cipher_select_file"
+    cipher_select_file="$tmp_dir/$(basename $src).csf"
+    printf "%s\n" ${cipher_select[@]} > "$cipher_select_file"
 
-	printf '%s\n' "cipher:		$(tr '\n' ' ' < $cipher_select_file)($cipher_select_amount)"
+    printf '%s\n' "cipher:		$(tr '\n' ' ' < $cipher_select_file)($cipher_select_amount)"
 }
 
 
 running_rounds()
 {
-	round=1
-	rounds=$cipher_select_amount
+    round=1
+    rounds=$cipher_select_amount
 
-	printf '\n%s' "encrypting:	"
+    printf '\n%s' "encrypting:	"
 
-	for cipher in ${cipher_select[@]}; do
+    for cipher in ${cipher_select[@]}; do
 
-		round_pass
+	round_pass
 
-		printf '%s' "$cipher "
-		case $round in
+	printf '%s' "$cipher "
+	case $round in
 
-			1)
+	    1)
 
-				case $rounds in
+		case $rounds in
 
-					1)
-						crypt_once
-						;;
+		    1)
+			crypt_once
+			;;
 
-					*)
-						crypt_first
-						;;
-
-				esac
-				;;
-
-			$rounds)
-
-				crypt_last
-				;;
-
-			*)
-
-				crypt_next
-				;;
+		    *)
+			crypt_first
+			;;
 
 		esac
+		;;
 
-		round=$(( $round + 1 ))
+	    $rounds)
 
-	done
+		crypt_last
+		;;
 
-	echo
+	    *)
+
+		crypt_next
+		;;
+
+	esac
+
+	round=$(( $round + 1 ))
+
+    done
+
+    echo
 }
 
 
 crypt_first()
 {
-	## first round of en- or decryption
-	case $oper in
+    ## first round of en- or decryption
+    case $oper in
 
-		encr)
+	encr)
 
-			## define file_in
-			file_in=$tar_file
+	    ## define file_in
+	    file_in=$tar_file
 
-			## define file_out
-			file_out=$tmp_dir/$(basename $file_in).$round
-			;;
+	    ## define file_out
+	    file_out=$tmp_dir/$(basename $file_in).$round
+	    ;;
 
-		decr)
+	decr)
 
-			## define file_in
-			file_in=$crypt_file
+	    ## define file_in
+	    file_in=$crypt_file
 
-			## define file_out
-			file_out=$tmp_dir/$(basename $file_in).$round
-			;;
+	    ## define file_out
+	    file_out=$tmp_dir/$(basename $file_in).$round
+	    ;;
 
-	esac
+    esac
 
-	crypt_now
+    crypt_now
 }
 
 
 crypt_next()
 {
-	## next round of en- or decryption
-	case $oper in
+    ## next round of en- or decryption
+    case $oper in
 
-		encr)
+	encr)
 
-			## define file_in
-			file_in=$file_out
+	    ## define file_in
+	    file_in=$file_out
 
-			## define file_out
-			### remove previous round number extension from file_in
-			### and replace it with current round number extension
-			round_pr=$(( round - 1 ))
-			file_out=$tmp_dir/$(basename $(printf $file_in | sed "s/$round_pr$/$round/"))
-			;;
+	    ## define file_out
+	    ### remove previous round number extension from file_in
+	    ### and replace it with current round number extension
+	    round_pr=$(( round - 1 ))
+	    file_out=$tmp_dir/$(basename $(printf $file_in | sed "s/$round_pr$/$round/"))
+	    ;;
 
-		decr)
+	decr)
 
-			## define file_in
-			file_in=$file_out
+	    ## define file_in
+	    file_in=$file_out
 
-			## define file_out
-			### remove previous round number extension from file_out
-			### and replace it with current round number extension
-			round_pr=$(( round - 1 ))
-			file_out=$tmp_dir/$(basename $(printf $file_in | sed "s/$round_pr$/$round/"))
-			;;
+	    ## define file_out
+	    ### remove previous round number extension from file_out
+	    ### and replace it with current round number extension
+	    round_pr=$(( round - 1 ))
+	    file_out=$tmp_dir/$(basename $(printf $file_in | sed "s/$round_pr$/$round/"))
+	    ;;
 
-	esac
+    esac
 
-	crypt_now
+    crypt_now
 }
 
 
 crypt_last()
 {
-	## last round of en- or decryption
-	case $oper in
+    ## last round of en- or decryption
+    case $oper in
 
-		encr)
+	encr)
 
-			file_in=$file_out
+	    file_in=$file_out
 
-			## define file_out
-			### remove previous round number extension from file_in
-			### and replace it with 'crypt' extension
-			round_pr=$(( round - 1 ))
-			file_out=$tmp_dir/$(basename $(printf $file_in | sed "s/$round_pr$/crypt/"))
-			;;
+	    ## define file_out
+	    ### remove previous round number extension from file_in
+	    ### and replace it with 'crypt' extension
+	    round_pr=$(( round - 1 ))
+	    file_out=$tmp_dir/$(basename $(printf $file_in | sed "s/$round_pr$/crypt/"))
+	    ;;
 
-		decr)
+	decr)
 
-			## define file_in
-			file_in=$file_out
+	    ## define file_in
+	    file_in=$file_out
 
-			## define file_out
-			file_out=$dst.plain
-			;;
+	    ## define file_out
+	    file_out=$dst.plain
+	    ;;
 
-	esac
+    esac
 
-	crypt_now
+    crypt_now
 }
 
 
 crypt_once()
 {
-	## only one round of en- or decryption
-	case $oper in
+    ## only one round of en- or decryption
+    case $oper in
 
-		encr)
+	encr)
 
-			file_in=$tar_file
-			file_out=$src.crypt
-			;;
+	    file_in=$tar_file
+	    file_out=$src.crypt
+	    ;;
 
-		decr)
+	decr)
 
-			file_in=$crypt_file
-			file_out=$dst.plain
-			;;
+	    file_in=$crypt_file
+	    file_out=$dst.plain
+	    ;;
 
-	esac
+    esac
 
-	crypt_now
+    crypt_now
 }
 
 
 crypt_now()
 {
-	case $cipher_suite in
+    case $cipher_suite in
 
-		gnupg)
+	gnupg)
 
-			#pass $pass_object | \
-			printf "$ropa" | \
-			gpg \
-				-$opr \
-				--armor \
-				--cipher-algo $cipher \
-				--pinentry-mode loopback \
-				--passphrase-fd 0 \
-				--batch \
-				--output $file_out \
-				$file_in
-				#--sign \
-			;;
+			    #pass $pass_object | \
+				printf "$ropa" | \
+				    gpg \
+					-$opr \
+					--armor \
+					--cipher-algo $cipher \
+					--pinentry-mode loopback \
+					--passphrase-fd 0 \
+					--batch \
+					--output $file_out \
+					$file_in
+				    #--sign \
+					;;
 
-		openssl)
+	openssl)
 
-			openssl enc \
-				-$opr \
-				-base64 \
-				-$cipher \
-				-salt \
-				-pbkdf2 \
-				-in $file_in \
-				-out $file_out \
-				-pass pass:`printf "$ropa"`
-				#-pass pass:`pass $pass_object`
-			;;
+	    openssl enc \
+		    -$opr \
+		    -base64 \
+		    -$cipher \
+		    -salt \
+		    -pbkdf2 \
+		    -in $file_in \
+		    -out $file_out \
+		    -pass pass:`printf "$ropa"`
+	    #-pass pass:`pass $pass_object`
+	    ;;
 
-	esac
+    esac
 }
 
 
 tar_extract()
 {
-	## extract tar archive
-	tar -xvf $file_out
-	## remove tarx.plain
-	\rm -rf $file_out
+    ## extract tar archive
+    tar -xvf $file_out
+    ## remove tarx.plain
+    \rm -rf $file_out
 }
 
 
 tar_destroy()
 {
-	tmp_dir_del=$(printf $tmp_dir | cut -d / -f -6)
-	# \ prevents using aliases
-	\rm -rf $tmp_dir_del
+    tmp_dir_del=$(printf $tmp_dir | cut -d / -f -6)
+    # \ prevents using aliases
+    \rm -rf $tmp_dir_del
 }
 
 
 tarx_define()
 {
-	## create tar box (tarx)
-	tarx_file=$dst
+    ## create tar box (tarx)
+    tarx_file=$dst
 
-	file_out=$(realpath $file_out)
-	sub_dir_fo=$(dirname $file_out)
+    file_out=$(realpath $file_out)
+    sub_dir_fo=$(dirname $file_out)
 
-	cipher_select_file=$(realpath $cipher_select_file)
-	sub_dir_csf=$(dirname $cipher_select_file)
+    cipher_select_file=$(realpath $cipher_select_file)
+    sub_dir_csf=$(dirname $cipher_select_file)
 }
 
 
 tarx_check()
 {
-	# check if tarx exists
-	## gpg fails on existence
-	## openssl overwrites without check
+    # check if tarx exists
+    ## gpg fails on existence
+    ## openssl overwrites without check
 
-	[[ -f $tarx_file ]] && tarx_exist=1
-
-
-	case $oper in
-
-		encr)
-
-			if [[ "$tarx_exist" == "1" ]]; then
-
-				printf "${YELLOW}%s${NOC}\n" "tarx file:	$tarx_file exists"
-				printf "overwrite? (y/N) "
-				reply_single
-
-				case $reply in
-
-					y)
-						echo
-						printf "please confirm? (y/N) "
-						reply_single
-
-							case $reply in
-
-								y)
-									echo
-									;;
-
-								*)
-									echo
-									printf "${MAGENTA}encryption aborted${NOC}\n"
-									exit 34
-									;;
-
-							esac
-						;;
-
-					*)
-						echo
-						printf "${MAGENTA}encryption aborted${NOC}\n"
-						exit 34
-						;;
-
-				esac
+    [[ -f $tarx_file ]] && tarx_exist=1
 
 
-			fi
+    case $oper in
 
+	encr)
+
+	    if [[ "$tarx_exist" == "1" ]]; then
+		#TODO error when no dest arg given
+
+		printf "${YELLOW}%s${NOC}\n" "tarx file:	$tarx_file exists"
+		printf "overwrite? (y/N) "
+		reply_single
+
+		case $reply in
+
+		    y)
+			echo
+			printf "please confirm? (y/N) "
+			reply_single
+
+			case $reply in
+
+			    y)
+				echo
+				;;
+
+			    *)
+				echo
+				printf "${MAGENTA}encryption aborted${NOC}\n"
+				exit 34
+				;;
+
+			esac
 			;;
 
-		decr)
+		    *)
+			echo
+			printf "${MAGENTA}encryption aborted${NOC}\n"
+			exit 34
+			;;
 
-			# src does exist (src_validate)
-			if [[ -n $(file -b $src | grep 'tar archive') ]]; then
+		esac
 
-				## src is a tar file with tarx extension
-				dev_txt="tarx file is tar archive"
 
-			fi
+	    fi
 
-			#else
+	    ;;
 
-			#	printf "${MAGENTA}no valid tar crypto box (.tarx) file found${NOC}\n"
-			#	exit
+	decr)
 
-			#fi
-	esac
+	    # src does exist (src_validate)
+	    if [[ -n $(file -b $src | grep 'tar archive') ]]; then
+
+		## src is a tar file with tarx extension
+		dev_txt="tarx file is tar archive"
+
+	    fi
+
+	    #else
+
+	    #	printf "${MAGENTA}no valid tar crypto box (.tarx) file found${NOC}\n"
+	    #	exit
+
+	    #fi
+    esac
 }
 
 
 tarx_create()
 {
-	## create tar archive
-	tar -cf $tarx_file -C $sub_dir_fo $(basename $file_out)
-	tar -rf $tarx_file -C $sub_dir_csf $(basename $cipher_select_file)
+    ## create tar archive
+    tar -cf $tarx_file -C $sub_dir_fo $(basename $file_out)
+    tar -rf $tarx_file -C $sub_dir_csf $(basename $cipher_select_file)
 }
 
 
 tarx_open()
 {
-	## extract tar box contents (2 files)
-	mkdir -p $tmp_dir
-	tar -xvf $src -C $tmp_dir
+    ## extract tar box contents (2 files)
+    mkdir -p $tmp_dir
+    tar -xvf $src -C $tmp_dir
 }
 
 
 get_crypto_data()
 {
-	## a tarx file always contains only 2 files;
-	## the cipher select file (csf) and
-	## the encrypted (tar) file
-	## so we can use the '! -name' construct
+    ## a tarx file always contains only 2 files;
+    ## the cipher select file (csf) and
+    ## the encrypted (tar) file
+    ## so we can use the '! -name' construct
 
-	## find encrypted (tar) file
-	crypt_file=$(find $tmp_dir -type f ! -name "*.csf")
+    ## find encrypted (tar) file
+    crypt_file=$(find $tmp_dir -type f ! -name "*.csf")
 
-	## find cypher select file
-	cipher_select_file=$(find $tmp_dir -name "*.csf")
+    ## find cypher select file
+    cipher_select_file=$(find $tmp_dir -name "*.csf")
 
-	## get cypher select details
-	cipher_select=($(tac $cipher_select_file))
-	cipher_select_amount=${#cipher_select[@]}
+    ## get cypher select details
+    cipher_select=($(tac $cipher_select_file))
+    cipher_select_amount=${#cipher_select[@]}
 }
 
 
 round_pass()
 {
-	## sha3-512 hash for every round
-	## every round has an unique round password (ropa)
-	case $oper in
+    ## sha3-512 hash for every round
+    ## every round has an unique round password (ropa)
+    case $oper in
 
-		encr)
+	encr)
 
-			ropa_round=$round
-			;;
+	    ropa_round=$round
+	    ;;
 
-		decr)
+	decr)
 
-			## invert round counter to match encr
-			ropa_round=$(( $rounds + 1 - $round ))
-			;;
+	    ## invert round counter to match encr
+	    ropa_round=$(( $rounds + 1 - $round ))
+	    ;;
 
-	esac
+    esac
 
-	ropa_string=$(printf '%s' "$ro_pass$cipher_suite$cipher$ropa_round")
+    ropa_string=$(printf '%s' "$ro_pass$cipher_suite$cipher$ropa_round")
 
-	case $cipher_suite in
+    case $cipher_suite in
 
-		gnupg)
-			ropa=$(\
-				printf '%s' "$ropa_string" | \
-				gpg --print-md sha3-512 | \
-				sed 's/ //'g | \
-				tr '[:upper:]' '[:lower:]'\
-			)
-			;;
+	gnupg)
+	    ropa=$(\
+		   printf '%s' "$ropa_string" | \
+		       gpg --print-md sha3-512 | \
+		       sed 's/ //'g | \
+		       tr '[:upper:]' '[:lower:]'\
+		)
+	    ;;
 
-		openssl)
-			ropa=$(\
-				printf '%s' "$ropa_string" | \
-				openssl dgst -sha3-512 | \
-				sed 's/^.*= //'\
-			)
-			;;
+	openssl)
+	    ropa=$(\
+		   printf '%s' "$ropa_string" | \
+		       openssl dgst -sha3-512 | \
+		       sed 's/^.*= //'\
+		)
+	    ;;
 
-	esac
+    esac
 }
 
 
 get_pass()
 {
-	read -s -p "pass:		" ro_pass
-	echo
+    read -s -p "pass:		" ro_pass
+    echo
 
-	case $oper in
+    case $oper in
 
-		encr)
-			# verifiy pass
-			ro_pass_sha3512=$(printf '%s' "$ro_pass" | gpg --print-md sha3-512)
-			read -s -p "verify:		" ro_pass
-			echo
+	encr)
+	    # verifiy pass
+	    ro_pass_sha3512=$(printf '%s' "$ro_pass" | gpg --print-md sha3-512)
+	    read -s -p "verify:		" ro_pass
+	    echo
 
-			if [[ "$ro_pass_sha3512" == $(printf '%s' "$ro_pass" | gpg --print-md sha3-512) ]]; then
+	    if [[ "$ro_pass_sha3512" == $(printf '%s' "$ro_pass" | gpg --print-md sha3-512) ]]; then
 
-				a=0
+		a=0
 
-			else
+	    else
 
-				printf "${MAGENTA}pass verification failed${NOC}\n"
-				exit 1
+		printf "${MAGENTA}pass verification failed${NOC}\n"
+		exit 1
 
-			fi
-			;;
+	    fi
+	    ;;
 
-	esac
+    esac
 }
 
 
 cleanup()
 {
-	case $oper in
+    case $oper in
 
-		encr)
+	encr)
 
-			tar_destroy
-			#[TODO] why in pwd? -> temp!
-			#[TODO] check these!
-			\rm -rf $file_out
-			;;
+	    tar_destroy
+	    #[TODO] why in pwd? -> temp!
+	    #[TODO] check these!
+	    \rm -rf $file_out
+	    ;;
 
-		decr)
+	decr)
 
-			tar_destroy
-			#\rm -rf $file_out
-			\rm -rf $cipher_select_file
-			;;
+	    tar_destroy
+	    #\rm -rf $file_out
+	    \rm -rf $cipher_select_file
+	    ;;
 
-	esac
+    esac
 }
 
 
 encrypt()
 {
-	select_cipher
-	cipher_select_file
-	get_pass
-	running_rounds
-	tarx_define
-	tarx_check
-	tarx_create
-	cleanup
+    select_cipher
+    cipher_select_file
+    get_pass
+    running_rounds
+    tarx_define
+    tarx_check
+    tarx_create
+    cleanup
 }
 
 
 decrypt()
 {
-	tarx_check
-	tarx_open
-	get_crypto_data
-	get_pass
-	running_rounds
-	cleanup
+    tarx_check
+    tarx_open
+    get_crypto_data
+    get_pass
+    running_rounds
+    cleanup
 }
 
 
 main()
 {
-	initialize
-	arguments
+    initialize
+    arguments
 
-	case $oper in
+    case $oper in
 
-		encr)
+	encr)
 
-			tar_create
-			encrypt
-			;;
+	    tar_create
+	    encrypt
+	    ;;
 
-		decr)
+	decr)
 
-			decrypt
-			tar_extract
-			;;
+	    decrypt
+	    tar_extract
+	    ;;
 
-	esac
+    esac
 }
 
 main
