@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 set -o errexit
-set -o nounset
+#set -o nounset
 set -o pipefail
 #
 #
@@ -79,6 +79,9 @@ arguments()
     dst_arg=$(printf -- "$args" | awk '{print $3}')
 
     operation
+    ## user feedback
+    printf "\noper:		${INV}${BOLD} "$oper"ypting ${NOC}\n"
+
     src_validate
     dst_validate
 }
@@ -92,7 +95,7 @@ operation()
 	-d)
 	    opr="d"
 	    oper="decr"
-	    printf "\noper:		${INV}${BOLD} "$oper"ypting ${NOC}\n"
+	    #printf "\noper:		${INV}${BOLD} "$oper"ypting ${NOC}\n"
 	    ;;
 
 	-e)
@@ -111,7 +114,7 @@ operation()
 
 	    esac
 	    oper="encr"
-	    printf "\noper:		${INV}${BOLD} "$oper"ypting ${NOC}\n"
+	    #printf "\noper:		${INV}${BOLD} "$oper"ypting ${NOC}\n"
 	    ;;
 
 	*)
@@ -120,6 +123,7 @@ operation()
 	    ## correcting variables
 	    dst_arg="$src_arg"
 	    src_arg="$opr_arg"
+	    ## default operation is encrypt
 	    opr_arg="-e"
 
 	    if [[ $(file $src_arg | grep 'tar archive') ]]; then
@@ -262,13 +266,19 @@ dst_validate()
 
 	## rewrite variables
 	dst_sub_dir=$(dirname $dst_arg)
-	dst_tar_get=$(basename $dst_arg) # is a nonexistent directory!
+	dst_tar_get=$(basename $dst_arg)
 
     fi
 
     ## rewrite dst (full path)
     dst="$(realpath $dst_sub_dir/$dst_tar_get)"
 
+    ## if $dst already exists
+    [[ -f $dst ]] && \
+	printf "destination:    ${MAGENTA}$dst${NOC} already exists\n" && \
+	exit 22
+
+    ## create directory if needed
     case $oper in
 
 	decr)
@@ -322,7 +332,9 @@ select_cipher()
 
 	    cipher_select=( $(\
 			      printf "$cipher_pool" | \
-				  fzf -m\
+				  fzf -m \
+				      --prompt='select gnupg cipher algorithm ' \
+				      --height=12\
 			    ) )
 
 	    cipher_select_amount=${#cipher_select[@]}
@@ -339,7 +351,9 @@ select_cipher()
 
 	    cipher_select=( $(\
 			      printf "$cipher_pool" | \
-				  fzf -m\
+				  fzf -m \
+				      --prompt='select openssl cipher algorithm ' \
+				      --height=12\
 			    ) )
 
 	    cipher_select_amount=${#cipher_select[@]}
@@ -531,19 +545,18 @@ crypt_now()
 
 	gnupg)
 
-			    #pass $pass_object | \
-				printf "$ropa" | \
-				    gpg \
-					-$opr \
-					--armor \
-					--cipher-algo $cipher \
-					--pinentry-mode loopback \
-					--passphrase-fd 0 \
-					--batch \
-					--output $file_out \
-					$file_in
-				    #--sign \
-					;;
+	    #pass $pass_object | \
+		printf "$ropa" | \
+		    gpg \
+			-$opr \
+			--armor \
+			--cipher-algo $cipher \
+			--pinentry-mode loopback \
+			--passphrase-fd 0 \
+			--batch \
+			--output $file_out \
+			$file_in
+		;;
 
 	openssl)
 
