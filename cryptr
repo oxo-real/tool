@@ -48,8 +48,8 @@ source_dir="$gc_dir/source/function"
 args="$@"
 
 
-sourcing()
-{
+sourcing() {
+
     ## reply functions
     source $source_dir/reply_functions
 
@@ -58,8 +58,8 @@ sourcing()
 }
 
 
-initialize()
-{
+initialize() {
+
     sourcing
 
     timestamp="`date "+%Y%m%d_%H%M%S"`"
@@ -71,12 +71,14 @@ initialize()
 }
 
 
-arguments()
-{
+arguments() {
 
     opr_arg=$(printf -- "$args" | awk '{print $1}')
     src_arg=$(printf -- "$args" | awk '{print $2}')
     dst_arg=$(printf -- "$args" | awk '{print $3}')
+
+    args_arr=( $args )
+
 
     operation
     ## user feedback
@@ -87,8 +89,8 @@ arguments()
 }
 
 
-operation()
-{
+operation() {
+
     ## encrypt or decrypt
     case $opr_arg in
 
@@ -143,8 +145,8 @@ operation()
 }
 
 
-src_validate()
-{
+src_validate() {
+
     ## rewrite src (full path)
     src="$(realpath $src_arg)"
 
@@ -178,8 +180,8 @@ src_validate()
 }
 
 
-dst_validate()
-{
+dst_validate() {
+
     ## dst is an optional argument
     ## if empty no arg 3 is given
     ## then dst defaults to pwd
@@ -302,8 +304,8 @@ dst_validate()
 }
 
 
-tar_create()
-{
+tar_create() {
+
     # (inner) tar file
     # will be wrapped in tarx
     tar_file=$tmp_dir/$src_tar_get.tar
@@ -314,8 +316,8 @@ tar_create()
 }
 
 
-select_cipher()
-{
+select_cipher() {
+
     case $cipher_suite in
 
 	gnupg)
@@ -363,8 +365,8 @@ select_cipher()
 }
 
 
-cipher_select_file()
-{
+cipher_select_file() {
+
     cipher_select_file="$tmp_dir/$(basename $src).csf"
     printf "%s\n" ${cipher_select[@]} > "$cipher_select_file"
 
@@ -372,8 +374,8 @@ cipher_select_file()
 }
 
 
-running_rounds()
-{
+running_rounds() {
+
     round=1
     rounds=$cipher_select_amount
 
@@ -421,8 +423,8 @@ running_rounds()
 }
 
 
-crypt_first()
-{
+crypt_first() {
+
     ## first round of en- or decryption
     case $oper in
 
@@ -450,8 +452,8 @@ crypt_first()
 }
 
 
-crypt_next()
-{
+crypt_next() {
+
     ## next round of en- or decryption
     case $oper in
 
@@ -485,8 +487,8 @@ crypt_next()
 }
 
 
-crypt_last()
-{
+crypt_last() {
+
     ## last round of en- or decryption
     case $oper in
 
@@ -516,8 +518,8 @@ crypt_last()
 }
 
 
-crypt_once()
-{
+crypt_once() {
+
     ## only one round of en- or decryption
     case $oper in
 
@@ -539,8 +541,8 @@ crypt_once()
 }
 
 
-crypt_now()
-{
+crypt_now() {
+
     case $cipher_suite in
 
 	gnupg)
@@ -576,8 +578,8 @@ crypt_now()
 }
 
 
-tar_extract()
-{
+tar_extract() {
+
     ## extract tar archive
     tar -xvf $file_out
     ## remove tarx.plain
@@ -585,16 +587,16 @@ tar_extract()
 }
 
 
-tar_destroy()
-{
+tar_destroy() {
+
     tmp_dir_del=$(printf $tmp_dir | cut -d / -f -6)
     # \ prevents using aliases
     \rm -rf $tmp_dir_del
 }
 
 
-tarx_define()
-{
+tarx_define() {
+
     ## create tar box (tarx)
     tarx_file=$dst
 
@@ -606,8 +608,8 @@ tarx_define()
 }
 
 
-tarx_check()
-{
+tarx_check() {
+
     # check if tarx exists
     ## gpg fails on existence
     ## openssl overwrites without check
@@ -681,24 +683,24 @@ tarx_check()
 }
 
 
-tarx_create()
-{
+tarx_create() {
+
     ## create tar archive
     tar -cf $tarx_file -C $sub_dir_fo $(basename $file_out)
     tar -rf $tarx_file -C $sub_dir_csf $(basename $cipher_select_file)
 }
 
 
-tarx_open()
-{
+tarx_open() {
+
     ## extract tar box contents (2 files)
     mkdir -p $tmp_dir
     tar -xvf $src -C $tmp_dir
 }
 
 
-get_crypto_data()
-{
+get_crypto_data() {
+
     ## a tarx file always contains only 2 files;
     ## the cipher select file (csf) and
     ## the encrypted (tar) file
@@ -716,8 +718,8 @@ get_crypto_data()
 }
 
 
-round_pass()
-{
+round_pass() {
+
     ## sha3-512 hash for every round
     ## every round has an unique round password (ropa)
     case $oper in
@@ -760,8 +762,8 @@ round_pass()
 }
 
 
-get_pass()
-{
+get_pass() {
+
     read -s -p "pass:		" ro_pass
     echo
 
@@ -789,8 +791,8 @@ get_pass()
 }
 
 
-cleanup()
-{
+cleanup() {
+
     case $oper in
 
 	encr)
@@ -812,8 +814,8 @@ cleanup()
 }
 
 
-encrypt()
-{
+encrypt() {
+
     select_cipher
     cipher_select_file
     get_pass
@@ -825,8 +827,8 @@ encrypt()
 }
 
 
-decrypt()
-{
+decrypt() {
+
     tarx_check
     tarx_open
     get_crypto_data
@@ -836,8 +838,8 @@ decrypt()
 }
 
 
-main()
-{
+main() {
+
     initialize
     arguments
 
