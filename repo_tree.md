@@ -9,6 +9,7 @@
 ├── chua
 ├── COPYING
 ├── cryptr
+├── cryptr2
 ├── dedup_files
 ├── dedup_lines
 ├── dev
@@ -70,5 +71,5 @@
     ├── passr_old
     └── trashOLD
 
-3 directories, 67 files
+3 directories, 68 files
 ```
