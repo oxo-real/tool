@@ -717,7 +717,7 @@ crypt_now() {
 		    --batch \
 		    --output $file_out \
 		    $file_in
-		    ;;
+	    ;;
 
 	openssl)
 
