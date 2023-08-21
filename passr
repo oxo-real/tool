@@ -304,49 +304,49 @@ get_object() {
 	    case $mp_status in
 
 		0)
-		    # pass_vlt not mounted
+		    ## pass_vlt not mounted
 		    object='login'
 		    pass_mount
 		    ;;
 
 		$store)
-		    # pass_vlt already mounted
+		    ## pass_vlt already mounted
 		    get_cache_status
 
 		    case $cache_status in
 
 			0)
-			    # no gpg_agent cache; need to login
+			    ## no gpg_agent cache; need to login
 			    log_in
 
 			    [[ -n $object ]] && get_object
 			    ;;
 
 			1)
-			    # have gpg_agent cache; no need to login
+			    ## have gpg_agent cache; no need to login
 			    case $object in
 
 				'')
-				    # no object arg given; fzf prompts for it
+				    ## no object arg given; fzf prompts for it
 				    object=$(find -L $store_l -type f -iname '*.gpg' | \
-			   	         # remove $store_l leading path
-			   	         # internal field separator is '|'
-			   	         # because the path itself contains '/'
+			   	         ## remove $store_l leading path
+			   	         ## internal field separator is '|'
+			   	         ## because the path itself contains '/'
 			   	         sed "s|$store_l/||g" | \
-					 # filter unwanted items
+					 ## filter unwanted items
 					 sed '/credentials/d' | \
-			   	         # remove file .gpg extension
+			   	         ## remove file .gpg extension
 			   	         sed 's|.gpg||g' | \
 			   	         sort | \
 			   	         fzf --height=20% --prompt='object ')
 				    ;;
 
 				*)
-				    # we have an $object
+				    ## we have an $object
 				    case $hold_status in
 
 					1)
-					    # holding object
+					    ## holding object
 					    object="$object_to_hold"
 					    ;;
 
@@ -411,11 +411,11 @@ check_new_obj_names()
 
 pass_new() {
 
-    # prevent 'passr non_existent_object' from being emptied out
+    ## prevent 'passr non_existent_object' from being emptied out
     case $object in
 
 	new | n)
-	    # coming from 'passr new'
+	    ## coming from 'passr new'
 	    object=$arg_element
 	    process_object
 	    ;;
@@ -434,6 +434,7 @@ pass_new() {
 	*)
 	    printf "%"$align"s %s" "object: "
 	    printf "$object\n"
+	    ;;
 
     esac
 
@@ -443,7 +444,6 @@ pass_new() {
     ## get url
     printf "%"$align"s %s" "url: "
     read -r -e url
-    #read -r -e -i 'https://' url
 
     ## get userid
     printf "%"$align"s %s" "userid: "
@@ -485,7 +485,7 @@ pass_edit() {
 
 pass_grep() {
 
-    # search object data
+    ## search object data
     grep_string="$(printf "$args" | cut -d ' ' -f 2-)"
 
     pass grep $grep_string
@@ -495,7 +495,7 @@ pass_grep() {
 
 pass_search() {
 
-    # search objects
+    ## search objects
     search_string="$element"
 
     pass search $search_string
@@ -580,7 +580,7 @@ get_mountpoint_status() {
 
 get_cache_status()
 {
-    # 1 | 0 (no cache)
+    ## 1 | 0 (no cache)
     cache_status=$(gpg-connect-agent 'keyinfo --list' /bye 2>/dev/null | \
 	awk 'BEGIN{CACHED=0} /^S/ {if($7==1){CACHED=1}} END\
 	{if($0!=""){print CACHED} else {print "none"}}')
@@ -589,9 +589,9 @@ get_cache_status()
 
 pass_mount() {
 
-    # pass crypto source location
+    ## pass crypto source location
 
-    # pass mount destination
+    ## pass mount destination
     ## via $LS_COLORS symlink color:
     ## vlt_pass not mounted => $HOME/.password-store is red
     ## vlt_pass mounted => $HOME/.password-store becomes pale
@@ -600,7 +600,7 @@ pass_mount() {
 
     get_sudo
 
-    # pass crypto source luksuuid
+    ## pass crypto source luksuuid
     luksuuid=$(sudo cryptsetup luksUUID $crypto_source)
     printf "$luksuuid" | wl-copy -n -o
 
@@ -623,7 +623,7 @@ pass_mount() {
     case $object in
 
 	open)
-	    # only mount vault, no login
+	    ## only mount vault, no login
 	    exit 0
 	    ;;
 
@@ -633,7 +633,7 @@ pass_mount() {
 
 gpg_decrypt() {
 
-    # always reset cached gpg password
+    ## always reset cached gpg password
     gpg-connect-agent -q reloadagent /bye >/dev/null
 
     ## for aesthetic reasons: first sudo then O--,
@@ -700,16 +700,32 @@ get_element() {
 
 check_obj_exist() {
 
-    [[ -f "$store/$object.gpg" ]] && obj_exist=1
+   [[ -f "${store}/${object}.gpg" ]] && obj_exist=1
+}
+
+
+object_is_quit() {
+
+    case $object in
+
+	quit)
+	    element='quit'
+	    human_info
+	    pass_quit
+	    ;;
+
+    esac
 }
 
 
 process_object() {
 
+    object_is_quit
     check_obj_exist
 
     if [[ $obj_exist -eq 1 ]]; then
 
+	## object does exist
 	case $object in
 
 	    new | n)
@@ -720,28 +736,18 @@ process_object() {
 	    *)
 		continue
 		;;
+
 	esac
 
     else
 
+	## object does not exist
 	if [[ "$mode" == "persist" ]]; then
-
-	    # case can probably be reomved
-	    #case $object in
-
-	    #	q | quit)
-	    #	    human_info
-	    #	    pass_quit
-	    #	    #printf "passr exit persistent state\n"
-	    #	    #exit 0
-	    #	    ;;
-
-	    #esac
 
 	    case $hold_status in
 
 		1)
-		    # hold same object
+		    ## hold same object
 		    object=$object_to_hold
 		    #get_object
 		    ;;
@@ -749,7 +755,9 @@ process_object() {
 		*)
 		    ## get next object
 		    get_object
+		    object_is_quit
 		    ;;
+
 	    esac
 
 	else
@@ -766,10 +774,10 @@ process_object() {
 		    ;;
 
 		*)
-		    # non-existent object
+		    ## non-existent object
         	    printf "${MAGENTA}$object${NOC} not found\n"
 
-		    # prompt create object
+		    ## prompt create object
 		    printf "create [Y/n]? "
 		    reply_read_single
 		    echo
@@ -777,7 +785,7 @@ process_object() {
 		    case $reply in
 
 			n | N)
-			    exit
+			    exit 0
 			    ;;
 
 		    esac
@@ -792,7 +800,7 @@ process_object() {
 
     fi
 
-    # otp object
+    ## otp object
     if [[ -n $(printf "$object" | grep ^otp) ]]; then
 
     	get_otp
@@ -831,14 +839,14 @@ get_password() {
 
 get_otp() {
 
-    # redirection to the separate otp file
+    ## redirection to the separate otp file
     if [[ "$(printf $object | head -c 4)" != "otp_" ]]; then
 
     	object="otp_$object"
 
     fi
 
-    #check_obj_exist && pass otp $object | wl-copy -n -o
+    ## check_obj_exist && pass otp $object | wl-copy -n -o
     if [[ -f $store/$object.gpg ]]; then
 
     	pass otp $object | wl-copy -n -o
@@ -846,26 +854,25 @@ get_otp() {
 
     fi
 
-    # reset object value for human info
+    ## reset object value for human info
     object=$(printf $object | cut -c 5-)
 }
 
 
 pass_element() {
 
-    # run pass natively with $element
+    ## run pass natively with $element
     case $from_log_in in
 
 	1)
-	    # silent (when logging in)
+	    ## silent (when logging in)
 	    ## this triggers the gpg passphrase question
 	    ## to unlock the openpgp secret key
 	    pass $element
-	    #pass $element $object /dev/null 2>&1
 	    ;;
 
 	*)
-	    # normal (not silent)
+	    ## normal (not silent)
 	    human_info
 
 	    case $object in
@@ -905,7 +912,7 @@ check_element_value() {
     ## autoentry
     if [[ -n $ae ]]; then
 
-    	[[ -z $element_value ]] && notify-send "$element no value" && exit
+    	[[ -z $element_value ]] && notify-send "$element no value" && exit 0
 
     fi
 }
@@ -928,12 +935,12 @@ error_message() {
 
 human_info() {
 
-    # get error message if applicable
+    ## get error message if applicable
     error_message
 
     if [[ -z $ae ]]; then
 
-	# not in autoentry modus
+	## not in autoentry modus
     	if [[ "$object" == 'login' ]] || \
 	       [[ "$object" == 'logout' ]] || \
 	       [[ "$object" == 'close' ]]; then
@@ -968,7 +975,7 @@ human_info() {
 
     elif [[ -n $ae ]]; then
 
-	# in autoentry modus
+	## in autoentry modus
     	notify-send "$element"
     	sleep $t
 
@@ -988,36 +995,40 @@ autoentry() {
     qutebrowser --target tab $element_value &
     t=$((t * 2))
     human_info
-    #notify-send "$element"
-    #sleep $((t * 2))
+    notify-send "$element"
+    sleep $((t * 2))
 
     element="userid"
     get_element_value
     t=$t
     human_info
-    #notify-send "$element"
-    #sleep $t
+    notify-send "$element"
+    sleep $t
 
     element="password"
     get_password 1> /dev/null #no stdout
     human_info
-    #notify-send "$element"
-    #sleep $t
+    notify-send "$element"
+    sleep $t
 
     element="otp"
     get_otp
     if [[ -z $otp ]]; then
+
     	human_info
-    	#notify-send "$element"
-    	#sleep $t
+    	notify-send "$element"
+    	sleep $t
+
     fi
 
     element="unlock"
     get_element_value
     if [[ -z $otp ]]; then
+
     	human_info
-    	#notify-send "$element"
-    	#sleep $t
+    	notify-send "$element"
+    	sleep $t
+
     fi
 }
 
@@ -1070,8 +1081,6 @@ process_element() {
 	    element='quit'
 	    human_info
 	    pass_quit
-
-	    #exit 0
 	    ;;
 
     	log_out)
@@ -1082,15 +1091,15 @@ process_element() {
 	    human_info
 	    ;;
 
-	hold | release)
-	    # toggle object hold status
+	hold_on | hold_off)
+	    ## toggle object hold status
 	    case $hold_status in
 
 		1)
-		    # toggle hold off
+		    ## toggle hold_off
 		    hold_status=0
 		    object="$object_to_hold"
-		    element='released'
+		    element='hold_off'
 
 		    human_info
 		    unset object_to_hold
@@ -1098,9 +1107,9 @@ process_element() {
 		    ;;
 
 		*)
-		    # toggle hold on
+		    ## toggle hold_on
 		    hold_status=1
-		    element='hold'
+		    element='hold_on'
 
 		    human_info
 		    object_to_hold="$object"
@@ -1113,7 +1122,6 @@ process_element() {
     	*)
 	    get_element_value
 	    human_info
-	    #check_mode
 	    ;;
 
     esac
@@ -1123,12 +1131,12 @@ process_element() {
 
 check_mode()
 {
-    # persist mode
+    ## persist mode
     ## reopen the menu
     case $mode in
 
 	persist)
-	    # reset object and element
+	    ## reset object and element
 	    object="$arg_object"
 	    element=''
 
@@ -1141,9 +1149,9 @@ check_mode()
 
 change_menu()
 {
-    # passr started in persistent mode
+    ## passr started in persistent mode
 
-    ## change menu item 'cancel' to 'quit'
+    ## change element menu item 'cancel' to 'quit'
     for i in "${!element_menu[@]}"; do
 
 	if [[ ${element_menu[$i]} == "ESC cancel" ]]; then
@@ -1158,13 +1166,13 @@ change_menu()
     case $hold_status in
 
 	1)
-	    # hold=1
-	    hold_menu_item='H release'
+	    ## hold=1
+	    hold_menu_item='H hold_off'
 	    ;;
 
 	*)
-	    # hold=0
-	    hold_menu_item='H hold'
+	    ## hold=0
+	    hold_menu_item='H hold_on'
 	    ;;
 
     esac
@@ -1175,15 +1183,15 @@ change_menu()
     case $last_menu_item in
 
 	'Q quit')
-	    ### add hold menu item
+	    ## add hold menu item
 	    element_menu+=("$hold_menu_item")
 	    ;;
 
 	*)
-	    ### we need to change hold menu item
-	    ### delete last menu item
+	    ## we need to change hold menu item
+	    ## delete last menu item
 	    unset 'element_menu[${#element_menu[@]}-1]'
-	    ### append other hold menu item
+	    ## append other hold menu item
 	    element_menu+=("$hold_menu_item")
 	    ;;
 
@@ -1197,10 +1205,10 @@ list_otps()
 
     printf "calculating otp codes ...\r"
 
-    # loop through lines with otp_file.gpg
+    ## loop through lines with otp_file.gpg
     while IFS= read -r -u 4 line; do
 
-	# extract object name
+	## extract object name
 	object=$(printf "$line" | sed "s|$store_l\/||" | sed 's|.gpg||')
 
 	current_otp=$(pass otp $object | sed 's/.\{3\}/& /')
@@ -1215,8 +1223,7 @@ list_otps()
 
     if [[ $? -eq 124 ]]; then
 
-    	# timeout occurred
-	#unset otp_list
+    	## timeout occurred
     	otp_list='' && unset otp_list
     	list_otps
 
@@ -1225,7 +1232,7 @@ list_otps()
 	printf "$otp_selected" | awk -F ' ' '{print $(NF-1)$NF}' | wl-copy -n -o
     	otp_list='' && unset otp_list
     	otp_selected='' && unset otp_selected
-    	exit
+    	exit 0
 
     fi
 }
