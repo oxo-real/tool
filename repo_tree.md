@@ -9,7 +9,6 @@
 ├── chua
 ├── COPYING
 ├── cryptr
-├── cryptr2
 ├── dedup_files
 ├── dedup_lines
 ├── dev
@@ -64,6 +63,7 @@
 ├── zsh_root_like_user
 └── zzz_deprecated
     ├── backup_dot
+    ├── cryptr_v01
     ├── data_to
     ├── dotbu
     ├── hclsmvp

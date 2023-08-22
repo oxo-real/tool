@@ -35,6 +35,7 @@ set -o pipefail
 #
 
 # TODO multiple input files or dirs
+# in progress ...
 
 # initial definitions
 ## select cipher suite
@@ -44,8 +45,13 @@ cipher_suite="gnupg"
 gc_dir="$XDG_DATA_HOME/c/git/code"
 source_dir="$gc_dir/source/function"
 
-
 args="$@"
+
+## read elements non-accociative array $args_arr
+## [SC2206 · koalaman/shellcheck Wiki · GitHub](https://github.com/koalaman/shellcheck/wiki/SC2206)
+IFS=" " read -r -a args_arr <<< "$args"
+args_arr_length="${#args_arr[@]}"
+last_element_index=$(( args_arr_length - 1 ))
 
 
 sourcing() {
@@ -62,7 +68,7 @@ initialize() {
 
     sourcing
 
-    timestamp="`date "+%Y%m%d_%H%M%S"`"
+    timestamp="$(date "+%Y%m%d_%H%M%S")"
 
     tmp_dir="$XDG_CACHE_HOME/temp/cryptr/$timestamp"
     [[ ! -d $tmp_dir ]] && mkdir -p $tmp_dir
@@ -71,152 +77,317 @@ initialize() {
 }
 
 
-arguments() {
-
-    opr_arg=$(printf -- "$args" | awk '{print $1}')
-    src_arg=$(printf -- "$args" | awk '{print $2}')
-    dst_arg=$(printf -- "$args" | awk '{print $3}')
-
-    args_arr=( $args )
-
-
-    operation
-    ## user feedback
-    printf "\noper:		${INV}${BOLD} "$oper"ypting ${NOC}\n"
-
-    src_validate
-    dst_validate
-}
-
-
 operation() {
 
-    ## encrypt or decrypt
-    case $opr_arg in
+    ## determine operation
+    case "$arg" in
 
 	-d)
-	    opr="d"
-	    oper="decr"
-	    #printf "\noper:		${INV}${BOLD} "$oper"ypting ${NOC}\n"
+	    case $cipher_suite in
+
+		gnupg)
+		    opr='d'
+		    ;;
+
+		openssl)
+		    opr='b'
+		    ;;
+
+	    esac
+
+	    arguments_continue=1
 	    ;;
 
 	-e)
 	    case $cipher_suite in
 
 		gnupg)
-
-		    ## encrypt with symmetric cipher
-		    opr="c"
+		    opr='e'
 		    ;;
 
 		openssl)
-
-		    opr="e"
+		    opr='c'
 		    ;;
 
 	    esac
-	    oper="encr"
-	    #printf "\noper:		${INV}${BOLD} "$oper"ypting ${NOC}\n"
+
+	    arguments_continue=1
 	    ;;
 
 	*)
-	    # no -d or -e is given
+	    if [[ -f "$arg" ]] || [[ -d "$arg" ]]; then
+		## $arg is an existent file or directory
 
-	    ## correcting variables
-	    dst_arg="$src_arg"
-	    src_arg="$opr_arg"
-	    ## default operation is encrypt
-	    opr_arg="-e"
+		file_type=$(file "$arg")
+		file_name=$(basename -- "$arg")
+		file_ext="${file_name##*.}"
 
-	    if [[ $(file $src_arg | grep 'tar archive') ]]; then
+		if [[ $(echo $file_type | grep 'tar archive') ]] && \
+		       [[ $file_ext == 'tarx' ]]; then
+		    ## $arg is a tarx file
+		    ## to be decrypted
 
-		[[ $(tar -tvf $src_arg | grep .crypt) ]] && \
-		    [[ $(tar -tvf $src_arg | grep .csf) ]] && \
-		    # src_arg is a .tarx file
-		    opr_arg="-d"
+		    case $cipher_suite in
+
+			gnupg)
+			    opr='d'
+			    ;;
+
+			openssl)
+			    opr='b'
+			    ;;
+
+		    esac
+
+		else
+		    ## $arg is a file or directory
+		    ## to be encrypted
+
+		    case $cipher_suite in
+
+			gnupg)
+			    opr='e'
+			    ;;
+
+			openssl)
+			    opr='c'
+			    ;;
+
+		    esac
+
+		fi
+
+	    else
+		## $arg is non-existent file or directory
+
+		case $cipher_suite in
+
+		    gnupg)
+			opr='e'
+			;;
+
+		    openssl)
+			opr='c'
+			;;
+
+		esac
 
 	    fi
-
-	    ## rerun with corrected variables
-	    operation
 	    ;;
 
     esac
+
+
+    ## derive $oper variable from $opr
+    if [[ "$opr" == 'e' ]] || [[ "$opr" == 'c' ]]; then
+
+	oper='encr'
+
+    elif [[ "$opr" == 'd' ]] || [[ "$opr" == 'b' ]]; then
+
+	oper='decr'
+
+    fi
+
+    ## user feedback
+    printf "\noper:		${INV}${BOLD} %sypting ${NOC}\n" "$oper"
+}
+
+
+get_args_arr_index() {
+
+    for i in "${!args_arr[@]}"; do
+
+	if [[ "${args_arr[$i]}" == "${arg}" ]]; then
+
+	    arg_index="${i}"
+
+	fi
+
+    done
+}
+
+
+arguments() {
+
+    declare -a src_arr=()
+    #declare -a src_arr
+    #src_arr=()
+
+    ## iterate over (non-associative) array
+    ## values are arguments
+    for arg in "${args_arr[@]}"; do
+
+	get_args_arr_index
+
+	unset arguments_continue
+
+	## determine operation if not already known
+	[[ -z "$opr" ]] && operation
+
+	[[ $arguments_continue == 1 ]] && continue
+	## if arg was -d or -e
+	## take the next argument from ${args_arr[@]} (continue)
+	## else continue with lines below
+
+	## populate $src_arr (source file list) ...
+
+	## ... for decrypting (gnupg d or openssl b)
+	if [[ "$opr" == 'd' ]] || [[ "$opr" == 'b' ]]; then
+
+	    if [[ -f "$arg" ]]; then
+
+		## element is an existent file to decrypt
+		## this can not be more than one file
+		## element value is source file or directory
+		src="$arg"
+
+	    fi
+
+	## ... for encrypting (gnupg e or openssl c)
+	elif [[ "$opr" == 'e' ]] || [[ "$opr" == 'c' ]]; then
+
+	    if [[ -f "$arg" ]] || [[ -d "$arg" ]]; then
+
+		## element is an existent file or directory to encrypt
+		## append element to (non-associative) array $src_arr
+		## $src_arr element values are source files or directories
+		src_validate
+		src_arr+=("$src")
+
+	    fi
+
+	else
+
+	    printf "operation error\n"
+	    exit 231
+
+	fi
+
+	## destination file
+	## in case of encryption
+	if [[ "$opr" == 'e' ]] || [[ "$opr" == 'c' ]]; then
+
+	    ## if element is the last element
+	    if [[ "$arg_index" == "$last_element_index" ]]; then
+
+		## if element is a non existent file or directory
+		if [[ ! -f "$arg" ]] && [[ ! -d "$arg" ]]; then
+
+		    ## declare $arg as destination
+		    dst_arg="$arg"
+
+		else
+
+		    ## no destination given
+		    ## first element value will be the name of the destination
+		    dst_arg="${args_arr[0]}.tarx"
+
+		fi
+
+	    fi
+
+	fi
+
+	## in case of decryption
+	if [[ "$opr" == 'd' ]] || [[ "$opr" == 'b' ]]; then
+
+	    ## if element is the last element
+	    if [[ "$arg_index" == "$last_element_index" ]]; then
+
+		## element is same as $src
+		if [[ "$arg" == "$src" ]]; then
+
+		    ## no destination is given
+		    ## decrypting in current directory
+		    dst_arg="$PWD"
+
+		## if element is a non existent directory
+		elif [[ ! -d "$arg" ]]; then
+
+		    ## make the directory
+		    mkdir -p "$arg"
+		    ## declare $arg as destination
+		    dst_arg="$arg"
+
+		## if element is an existent directory
+		elif [[ -d "$arg" ]]; then
+
+		    ## declare $arg as destination
+		    dst_arg="$arg"
+
+		fi
+
+	    fi
+
+	fi
+
+	dst_validate
+
+	## create inner tar file (encryption only)
+	if [[ "$opr" == 'e' ]] || [[ "$opr" == 'c' ]]; then
+
+	    case "$arg_index" in
+
+		0)
+		    tar_create
+		    ;;
+
+		*)
+		    tar_append
+		    ;;
+
+	    esac
+
+	fi
+
+    done
+
+    src_info
+    dst_info
 }
 
 
 src_validate() {
 
-    ## rewrite src (full path)
-    src="$(realpath $src_arg)"
+    ## write full src path
+    src="$(realpath "$arg")"
 
     ## src does not exist
     if [[ ! -f $src ]] && [[ ! -d $src ]] ; then
 
-	printf "${MAGENTA}source file not found${NOC}\n"
+	printf "${MAGENTA}%s${NOC} source file not found\n" "$src"
 	exit 5
 
     elif [[ -z $src ]]; then
 
-	printf "${MAGENTA}missing src & dest file${NOC}\n"
+	printf "${MAGENTA}source & destination${NOC} files missing\n"
 	exit 5
 
     fi
 
+    ## set source directory and target names
     case $oper in
+	## $oper catches both $opr for encryption and decryption
 
 	encr)
+	    ## catches both $opr values (e and c)
 	    src_sub_dir=$(dirname $src)
 	    src_tar_get=$(basename $src)
 	    ;;
 
 	decr)
+	    ## catches both $opr values (d and b)
 	    src_txt="no src limitations for decr"
 	    ;;
 
     esac
-
-    printf "source:		$src\n"
 }
 
 
 dst_validate() {
 
-    ## dst is an optional argument
-    ## if empty no arg 3 is given
-    ## then dst defaults to pwd
-    if [[ -z $dst_arg ]]; then
-
-	case $oper in
-
-	    encr)
-		## dst is always a file
-		## write dst to pwd
-		dst_sub_dir="$pw_dir"
-		dst_tar_get="$(basename $src).tarx"
-		;;
-
-	    decr)
-		## [TODO] dst is a directory if inner tar contains dir or multiple files
-		## [TODO] dst is a file if inner tar contains only one file
-		## write dst to pwd
-		dst_sub_dir="$pw_dir"
-		dst_tar_get="$(basename $src)"
-
-		if [[ "$(printf "$dst_tar_get" | tail -c 5)" == ".tarx" ]]; then
-
-		    dst_tar_get="${dst_tar_get::-5}"
-
-		fi
-		;;
-
-	esac
-
-	# rewrite dst_arg with default values
-	dst_arg="$dst_sub_dir/$dst_tar_get"
-
-	## dst arg 3 is given
-    elif [[ -n $dst_arg ]]; then
+    if [[ -n $dst_arg ]]; then
 
 	dst_sub_dir=$(dirname $dst_arg)
 	dst_tar_get=$(basename $dst_arg)
@@ -224,7 +395,7 @@ dst_validate() {
 	case $oper in
 
 	    encr)
-		# dst_arg is a nonexistent file
+		# dst_arg has to be a non-existent file
 		# with an valid absolute filepath
 		# or a valid relative path to pwd
 		if [[ ! -f $dst_arg ]]; then
@@ -251,17 +422,7 @@ dst_validate() {
 		;;
 
 	    decr)
-		# dst_arg is a directory
-		# dst_arg can not be a file
-
-		#if [[ -d $dst_arg ]] || [[ -f $dst_arg ]]; then
-
-		#	printf "${MAGENTA}destination already exists${NOC}\n"
-		#	printf "define alternate destination (arg 3)\n"
-		#	#exit 4
-		# [TODO] warn for existing file / directory (with color)
-
-		#fi
+		:
 		;;
 
 	esac
@@ -289,6 +450,10 @@ dst_validate() {
 	    ;;
 
     esac
+}
+
+
+dst_info() {
 
     if [[ -d $dst ]] || [[ -f $dst ]]; then
 
@@ -304,6 +469,13 @@ dst_validate() {
 }
 
 
+src_info() {
+
+    printf "source:	        ${src[*]}\n"
+
+}
+
+
 tar_create() {
 
     # (inner) tar file
@@ -312,7 +484,17 @@ tar_create() {
     mkdir -p $(dirname $tar_file)
 
     ## create (inner) tar archive
-    tar -czf $tar_file -C $src_sub_dir $src_tar_get
+    tar --create -f $tar_file -C $src_sub_dir $src_tar_get
+}
+
+
+tar_append() {
+
+    # (inner) tar file
+    # will be wrapped in tarx
+
+    ## append to (inner) tar archive
+    tar --append -f $tar_file -C $src_sub_dir $src_tar_get
 }
 
 
@@ -370,12 +552,13 @@ cipher_select_file() {
     cipher_select_file="$tmp_dir/$(basename $src).csf"
     printf "%s\n" ${cipher_select[@]} > "$cipher_select_file"
 
-    printf '%s\n' "cipher:		$(tr '\n' ' ' < $cipher_select_file)($cipher_select_amount)"
+    printf 'cipher:		%s\n' "$(tr '\n' ' ' < $cipher_select_file)($cipher_select_amount)"
 }
 
 
 running_rounds() {
 
+    ## execute encryption rounds
     round=1
     rounds=$cipher_select_amount
 
@@ -547,30 +730,34 @@ crypt_now() {
 
 	gnupg)
 
+	    [[ $opr == 'e' ]] && gnupg_opr='symmetric'
+	    [[ $opr == 'd' ]] && gnupg_opr='decrypt'
+
 	    #pass $pass_object | \
-		printf "$ropa" | \
-		    gpg \
-			-$opr \
-			--armor \
-			--cipher-algo $cipher \
-			--pinentry-mode loopback \
-			--passphrase-fd 0 \
-			--batch \
-			--output $file_out \
-			$file_in
-		;;
+	        printf "$ropa" | \
+	    	gpg \
+	    	    --$gnupg_opr \
+	    	    --armor \
+	    	    --cipher-algo $cipher \
+	    	    --pinentry-mode loopback \
+	    	    --passphrase-fd 0 \
+	    	    --batch \
+	    	    --output $file_out \
+	    	    $file_in
+	    ;;
 
 	openssl)
 
 	    openssl enc \
 		    -$opr \
 		    -base64 \
+		    -pbkdf2 \
 		    -$cipher \
 		    -salt \
-		    -pbkdf2 \
 		    -in $file_in \
 		    -out $file_out \
 		    -pass pass:`printf "$ropa"`
+		    #argon2id?
 	    #-pass pass:`pass $pass_object`
 	    ;;
 
@@ -624,15 +811,15 @@ tarx_check() {
 	    if [[ "$tarx_exist" == "1" ]]; then
 		#TODO error when no dest arg given
 
-		printf "${YELLOW}%s${NOC}\n" "tarx file:	$tarx_file exists"
-		printf "overwrite? (y/N) "
+		printf "tarx file:	${YELLOW}%s${NOC} exists\n" "$tarx_file"
+		printf 'overwrite? (y/N) '
 		reply_single
 
 		case $reply in
 
 		    y)
 			echo
-			printf "please confirm? (y/N) "
+			printf 'please confirm? (y/N) '
 			reply_single
 
 			case $reply in
@@ -660,25 +847,19 @@ tarx_check() {
 
 
 	    fi
-
 	    ;;
 
 	decr)
 
 	    # src does exist (src_validate)
-	    if [[ -n $(file -b $src | grep 'tar archive') ]]; then
+	    if [[ -n "$(file -b $src | grep 'tar archive')" ]]; then
 
 		## src is a tar file with tarx extension
-		dev_txt="tarx file is tar archive"
+		dev_txt='tarx file is tar archive'
 
 	    fi
+	    ;;
 
-	    #else
-
-	    #	printf "${MAGENTA}no valid tar crypto box (.tarx) file found${NOC}\n"
-	    #	exit
-
-	    #fi
     esac
 }
 
@@ -772,16 +953,19 @@ get_pass() {
 	encr)
 	    # verifiy pass
 	    ro_pass_sha3512=$(printf '%s' "$ro_pass" | gpg --print-md sha3-512)
-	    read -s -p "verify:		" ro_pass
+	    read -s -p 'verify:		' ro_pass
 	    echo
 
-	    if [[ "$ro_pass_sha3512" == $(printf '%s' "$ro_pass" | gpg --print-md sha3-512) ]]; then
+	    ro_pass_verify="$(printf '%s' "$ro_pass" | gpg --print-md sha3-512)"
+
+	    if [[ "$ro_pass_sha3512" == "$ro_pass_verify" ]]; then
 
 		a=0
 
 	    else
 
-		printf "${MAGENTA}pass verification failed${NOC}\n"
+		printf "${MAGENTA}%s${NOC}\n" 'pass verification failed'
+		#printf "${MAGENTA}pass verification failed${NOC}\n"
 		exit 1
 
 	    fi
@@ -847,7 +1031,7 @@ main() {
 
 	encr)
 
-	    tar_create
+	    #tar_create
 	    encrypt
 	    ;;
 
