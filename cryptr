@@ -34,8 +34,7 @@ set -o pipefail
 ##
 #
 
-# TODO multiple input files or dirs
-# in progress ...
+# TODO overwrite option -O --overwrite
 
 # initial definitions
 ## select cipher suite
@@ -121,9 +120,12 @@ operation() {
 		file_type=$(file "$arg")
 		file_name=$(basename -- "$arg")
 		file_ext="${file_name##*.}"
+		file_tar_content=$(tar -tvf "$arg")
 
 		if [[ $(echo $file_type | grep 'tar archive') ]] && \
-		       [[ $file_ext == 'tarx' ]]; then
+		       [[ $file_ext == 'tarx' || \
+			      ( $(printf '%s' "$file_tar_content" | grep 'crypt' ) && \
+				    $(printf '%s' "$file_tar_content" | grep 'csf') )]]; then
 		    ## $arg is a tarx file
 		    ## to be decrypted
 
