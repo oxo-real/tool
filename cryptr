@@ -119,7 +119,6 @@ operation() {
 
 		file_type=$(file "$arg")
 		file_name=$(basename -- "$arg")
-		file_ext="${file_name##*.}"
 
 		if [[ $(printf '%s' "$file_type" | grep 'tar archive') ]]; then
 
@@ -197,6 +196,8 @@ operation() {
 	oper='decr'
 
     fi
+
+    oper_info
 }
 
 
@@ -286,7 +287,7 @@ arguments() {
 	    if [[ "$arg_index" == "$last_element_index" ]]; then
 
 		## if element is a non existent file or directory
-		if [[ ! -f "$arg" ]] && [[ ! -d "$arg" ]]; then
+		if [[ ! -f "$arg" ]] || [[ ! -d "$arg" ]]; then
 
 		    ## declare $arg as destination
 		    dst_arg="$arg"
@@ -307,7 +308,7 @@ arguments() {
 	## destination file or directory
 	if [[ "$opr" == 'd' ]] || [[ "$opr" == 'b' ]]; then
 
-	    ## if element is the last element
+	    ## if element is the last element (last argument)
 	    if [[ "$arg_index" == "$last_element_index" ]]; then
 
 		## element is same as $src
@@ -357,10 +358,10 @@ arguments() {
 
 	fi
 
+	src_info
+
     done
 
-    oper_info
-    src_info
     dst_info
 }
 
@@ -399,6 +400,8 @@ src_validate() {
 	    ;;
 
     esac
+
+    #src_info
 }
 
 
@@ -424,6 +427,16 @@ dst_validate() {
 		    elif [[ -d $pwd/$dst_arg ]]; then
 
 			dst_arg="$pwd/$dst_arg"
+
+		    fi
+
+		    ## if last argument and existing dir then dir/first_src_name
+		    if [[ "$arg_index" == "$last_element_index" && -d $dst_sub_dir ]]; then
+
+			#printf "DEV447: $dst_sub_dir\n"
+			#printf "DEV448: $(basename "${src_arr[0]}")\n"
+			first_element_filename="$(basename "${src_arr[0]}")"
+			dst_arg="$dst_arg/$first_element_filename"
 
 		    fi
 
@@ -574,6 +587,7 @@ select_cipher() {
 
 cipher_select_file() {
 
+    ## cipher select file (csf)
     cipher_select_file="$tmp_dir/$(basename $src).csf"
     printf "%s\n" ${cipher_select[@]} > "$cipher_select_file"
 
@@ -734,7 +748,8 @@ crypt_once() {
 	encr)
 
 	    file_in=$tar_file
-	    file_out=$src.crypt
+	    file_out=$dst
+	    #file_out=$src.crypt
 	    ;;
 
 	decr)
@@ -982,6 +997,7 @@ round_pass() {
 
 get_pass() {
 
+    ## enter password
     read -s -p "pass:		" ro_pass
     echo
 
@@ -1021,7 +1037,7 @@ cleanup() {
 	    tar_destroy
 	    #[TODO] why in pwd? -> temp!
 	    #[TODO] check these!
-	    \rm -rf $file_out
+	    #\rm -rf $file_out
 	    ;;
 
 	decr)
