@@ -120,12 +120,19 @@ operation() {
 		file_type=$(file "$arg")
 		file_name=$(basename -- "$arg")
 		file_ext="${file_name##*.}"
-		file_tar_content=$(tar -tvf "$arg")
 
-		if [[ $(echo $file_type | grep 'tar archive') ]] && \
-		       [[ $file_ext == 'tarx' || \
-			      ( $(printf '%s' "$file_tar_content" | grep 'crypt' ) && \
-				    $(printf '%s' "$file_tar_content" | grep 'csf') )]]; then
+		if [[ $(printf '%s' "$file_type" | grep 'tar archive') ]]; then
+
+		    unset tar_content_crypt
+		    unset tar_content_csf
+		    file_tar_content=$(tar -tvf "$arg")
+
+		    tar_content_crypt="$(printf '%s' "$file_tar_content" | grep 'crypt')"
+		    tar_content_csf="$(printf '%s' "$file_tar_content" | grep 'csf')"
+
+		fi
+
+		if [[ -n "$tar_content_crypt" && -n "$tar_content_csf" ]]; then
 		    ## $arg is a tarx file
 		    ## to be decrypted
 
@@ -190,9 +197,6 @@ operation() {
 	oper='decr'
 
     fi
-
-    ## user feedback
-    printf "\noper:		${INV}${BOLD} %sypting ${NOC}\n" "$oper"
 }
 
 
@@ -203,6 +207,9 @@ get_args_arr_index() {
 	if [[ "${args_arr[$i]}" == "${arg}" ]]; then
 
 	    arg_index="${i}"
+	    ## when having current args index
+	    ## then stop iteration over !args_arr[@]
+	    break
 
 	fi
 
@@ -212,12 +219,12 @@ get_args_arr_index() {
 
 arguments() {
 
-    declare -a src_arr=()
-    #declare -a src_arr
-    #src_arr=()
+    ## getting operation, source and destination
 
-    ## iterate over (non-associative) array
-    ## values are arguments
+    declare -a src_arr=()
+
+    ## iterate over (non-associative) array ($args_arr)
+    ## which values are entered arguments
     for arg in "${args_arr[@]}"; do
 
 	get_args_arr_index
@@ -257,17 +264,22 @@ arguments() {
 		src_validate
 		src_arr+=("$src")
 
+	    else
+
+		printf "source error\n"
+		exit 70
+
 	    fi
 
 	else
 
 	    printf "operation error\n"
-	    exit 231
+	    exit 77
 
 	fi
 
-	## destination file
 	## in case of encryption
+	## destination file
 	if [[ "$opr" == 'e' ]] || [[ "$opr" == 'c' ]]; then
 
 	    ## if element is the last element
@@ -292,6 +304,7 @@ arguments() {
 	fi
 
 	## in case of decryption
+	## destination file or directory
 	if [[ "$opr" == 'd' ]] || [[ "$opr" == 'b' ]]; then
 
 	    ## if element is the last element
@@ -326,6 +339,7 @@ arguments() {
 
 	dst_validate
 
+	## in case of encryption
 	## create inner tar file (encryption only)
 	if [[ "$opr" == 'e' ]] || [[ "$opr" == 'c' ]]; then
 
@@ -345,6 +359,7 @@ arguments() {
 
     done
 
+    oper_info
     src_info
     dst_info
 }
@@ -452,6 +467,14 @@ dst_validate() {
 	    ;;
 
     esac
+}
+
+
+oper_info() {
+
+    ## user feedback
+    printf "\noperation:	${INV}${BOLD} %sypt ${NOC}\n" "$oper"
+
 }
 
 
@@ -633,7 +656,7 @@ crypt_first() {
 
     esac
 
-    crypt_now
+    crypt_exec
 }
 
 
@@ -668,7 +691,7 @@ crypt_next() {
 
     esac
 
-    crypt_now
+    crypt_exec
 }
 
 
@@ -699,7 +722,7 @@ crypt_last() {
 
     esac
 
-    crypt_now
+    crypt_exec
 }
 
 
@@ -717,16 +740,27 @@ crypt_once() {
 	decr)
 
 	    file_in=$crypt_file
-	    file_out=$dst.plain
+
+	    ## tar file
+	    ## to staging destination
+	    ## then extracting tar to dst (tar_extract())
+	    file_out="${file_in}_temp.tar"
+	    #file_out="$tmp_dir/${file_in}_temp.tar"
+
+	    # if [[ -d "$dst" ]]; then
+	    #	file_out="$tmp_dir/${file_in}_temp.tar"
+	    # else
+	    #	file_out="$dst"
+	    # fi
 	    ;;
 
     esac
 
-    crypt_now
+    crypt_exec
 }
 
 
-crypt_now() {
+crypt_exec() {
 
     case $cipher_suite in
 
@@ -770,9 +804,9 @@ crypt_now() {
 tar_extract() {
 
     ## extract tar archive
-    tar -xvf $file_out
+    tar -xvf $file_out --directory $dst
     ## remove tarx.plain
-    \rm -rf $file_out
+    #command rm -rf $file_out
 }
 
 
@@ -780,7 +814,7 @@ tar_destroy() {
 
     tmp_dir_del=$(printf $tmp_dir | cut -d / -f -6)
     # \ prevents using aliases
-    \rm -rf $tmp_dir_del
+    command rm -rf $tmp_dir_del
 }
 
 
@@ -876,9 +910,10 @@ tarx_create() {
 
 tarx_open() {
 
-    ## extract tar box contents (2 files)
+    ## extract tar box contents
+    ## 2 files; .crypt & .src
     mkdir -p $tmp_dir
-    tar -xvf $src -C $tmp_dir
+    tar --extract --file $src -C $tmp_dir
 }
 
 
@@ -993,7 +1028,7 @@ cleanup() {
 
 	    tar_destroy
 	    #\rm -rf $file_out
-	    \rm -rf $cipher_select_file
+	    #\rm -rf $cipher_select_file
 	    ;;
 
     esac
@@ -1020,7 +1055,6 @@ decrypt() {
     get_crypto_data
     get_pass
     running_rounds
-    cleanup
 }
 
 
@@ -1041,6 +1075,7 @@ main() {
 
 	    decrypt
 	    tar_extract
+	    cleanup
 	    ;;
 
     esac
