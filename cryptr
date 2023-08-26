@@ -78,10 +78,12 @@ initialize() {
 
 operation() {
 
-    ## determine operation
+    # determine operation
+
     case "$arg" in
 
 	-d)
+	    ## explicit decrypt
 	    case $cipher_suite in
 
 		gnupg)
@@ -94,10 +96,12 @@ operation() {
 
 	    esac
 
+	    ## next argument
 	    arguments_continue=1
 	    ;;
 
 	-e)
+	    ## explicit encrypt
 	    case $cipher_suite in
 
 		gnupg)
@@ -110,10 +114,12 @@ operation() {
 
 	    esac
 
+	    ## next argument
 	    arguments_continue=1
 	    ;;
 
 	*)
+	    ## argument is other than -d or -e
 	    if [[ -f "$arg" ]] || [[ -d "$arg" ]]; then
 		## $arg is an existent file or directory
 
@@ -196,8 +202,6 @@ operation() {
 	oper='decr'
 
     fi
-
-    oper_info
 }
 
 
@@ -231,63 +235,84 @@ arguments() {
 	get_args_arr_index
 
 	unset arguments_continue
+	unset arg_was_src
 
 	## determine operation if not already known
 	[[ -z "$opr" ]] && operation
 
 	[[ $arguments_continue == 1 ]] && continue
-	## if arg was -d or -e
+	## if arg was -d or -e (in operation)
 	## take the next argument from ${args_arr[@]} (continue)
-	## else continue with lines below
+	## else continue (with $arg) in this loop (with lines below)
 
 	## populate $src_arr (source file list) ...
+	get_source
 
-	## ... for decrypting (gnupg d or openssl b)
-	if [[ "$opr" == 'd' ]] || [[ "$opr" == 'b' ]]; then
+	## destination file
+	get_destination
 
-	    if [[ -f "$arg" ]]; then
+	## create inner tar file (encryption only)
+	#create_inner_tar
 
-		## element is an existent file to decrypt
-		## this can not be more than one file
-		## element value is source file or directory
-		src="$arg"
+    done
+}
 
-	    fi
 
-	## ... for encrypting (gnupg e or openssl c)
-	elif [[ "$opr" == 'e' ]] || [[ "$opr" == 'c' ]]; then
+get_source() {
 
-	    if [[ -f "$arg" ]] || [[ -d "$arg" ]]; then
+    ## ... for decrypting (gnupg d or openssl b)
+    if [[ "$opr" == 'd' ]] || [[ "$opr" == 'b' ]]; then
 
-		## element is an existent file or directory to encrypt
-		## append element to (non-associative) array $src_arr
-		## $src_arr element values are source files or directories
-		src_validate
-		src_arr+=("$src")
+	if [[ -f "$arg" ]]; then
 
-	    else
-
-		printf "source error\n"
-		exit 70
-
-	    fi
-
-	else
-
-	    printf "operation error\n"
-	    exit 77
+	    ## element is an existent file to decrypt
+	    ## this can not be more than one file
+	    ## element value is source file or directory
+	    src="$arg"
 
 	fi
 
+    ## ... for encrypting (gnupg e or openssl c)
+    elif [[ "$opr" == 'e' ]] || [[ "$opr" == 'c' ]]; then
+
+	## element is an existent file or directory to encrypt
+	src_validate
+
+	## append element to (non-associative) array $src_arr
+	src_arr+=("$src")
+
+	## populate src_info
+	add_to_src_info
+
+	arg_was_src=1
+
+    fi
+}
+
+
+get_destination() {
+
+    # destination file or directory
+
+    ## do run get_destination for last ($arg) element
+    if [[ "$arg_index" == "$last_element_index" ]]; then
+
+	unset arg_was_src
+
+    fi
+
+    ## run only if $arg was no source
+    if [[ -z "$arg_was_src" ]]; then
+
 	## in case of encryption
-	## destination file
+
 	if [[ "$opr" == 'e' ]] || [[ "$opr" == 'c' ]]; then
 
 	    ## if element is the last element
 	    if [[ "$arg_index" == "$last_element_index" ]]; then
 
-		## if element is a non existent file or directory
-		if [[ ! -f "$arg" ]] || [[ ! -d "$arg" ]]; then
+		## if element is a non existent file and directory
+		if [[ ! -f "$arg" ]] && [[ ! -d "$arg" ]]; then
 
 		    ## declare $arg as destination
 		    dst_arg="$arg"
@@ -305,7 +330,6 @@ arguments() {
 	fi
 
 	## in case of decryption
-	## destination file or directory
 	if [[ "$opr" == 'd' ]] || [[ "$opr" == 'b' ]]; then
 
 	    ## if element is the last element (last argument)
@@ -318,7 +342,7 @@ arguments() {
 		    ## decrypting in current directory
 		    dst_arg="$PWD"
 
-		## if element is a non existent directory
+		    ## if element is a non existent directory
 		elif [[ ! -d "$arg" ]]; then
 
 		    ## make the directory
@@ -326,7 +350,7 @@ arguments() {
 		    ## declare $arg as destination
 		    dst_arg="$arg"
 
-		## if element is an existent directory
+		    ## if element is an existent directory
 		elif [[ -d "$arg" ]]; then
 
 		    ## declare $arg as destination
@@ -340,29 +364,27 @@ arguments() {
 
 	dst_validate
 
-	## in case of encryption
-	## create inner tar file (encryption only)
-	if [[ "$opr" == 'e' ]] || [[ "$opr" == 'c' ]]; then
+    fi
+}
 
-	    case "$arg_index" in
 
-		0)
-		    tar_create
-		    ;;
+create_inner_tar() {
+    ## in case of encryption
+    if [[ "$opr" == 'e' ]] || [[ "$opr" == 'c' ]]; then
 
-		*)
-		    tar_append
-		    ;;
+	case "$arg_index" in
 
-	    esac
+	    0)
+		tar_create
+		;;
 
-	fi
+	    *)
+		tar_append
+		;;
 
-	src_info
+	esac
 
-    done
-
-    dst_info
+    fi
 }
 
 
@@ -385,23 +407,8 @@ src_validate() {
     fi
 
     ## set source directory and target names
-    case $oper in
-	## $oper catches both $opr for encryption and decryption
-
-	encr)
-	    ## catches both $opr values (e and c)
-	    src_sub_dir=$(dirname $src)
-	    src_tar_get=$(basename $src)
-	    ;;
-
-	decr)
-	    ## catches both $opr values (d and b)
-	    src_txt="no src limitations for decr"
-	    ;;
-
-    esac
-
-    #src_info
+    src_sub_dir=$(dirname $src)
+    src_tar_get=$(basename $src)
 }
 
 
@@ -415,30 +422,36 @@ dst_validate() {
 	case $oper in
 
 	    encr)
-		# dst_arg has to be a non-existent file
-		# with an valid absolute filepath
-		# or a valid relative path to pwd
+		# dst_arg has to be a non-existent file ...
 		if [[ ! -f $dst_arg ]]; then
 
-		    if [[ -d $(dirname $dst_arg) ]]; then
+		    # ... with an valid absolute filepath ...
+		    if [[ -d "$dst_sub_dir" ]]; then
 
 			dst_arg="$(realpath $dst_arg)"
 
-		    elif [[ -d $pwd/$dst_arg ]]; then
+		    # ... or a valid relative path to pwd
+		    elif [[ -d "$pwd/$dst_arg" ]]; then
 
 			dst_arg="$pwd/$dst_arg"
 
 		    fi
 
-		    ## if last argument and existing dir then dir/first_src_name
-		    if [[ "$arg_index" == "$last_element_index" && -d $dst_sub_dir ]]; then
+		    # ## more than one argument
+		    # ## first argument not -e or -d and
+		    # ## if last argument and existing dir then dir/first_src_name
+		    # if [[ "$last_element_index" -gt 0 && \
+		    # 	      "${arg_index[0]}" != "-e" && \
+		    # 	      "${arg_index[0]}" != "-d" && \
+		    #    	      "$arg_index" == "$last_element_index" && \
+		    # 	      -d $dst_sub_dir ]]; then
 
-			#printf "DEV447: $dst_sub_dir\n"
-			#printf "DEV448: $(basename "${src_arr[0]}")\n"
-			first_element_filename="$(basename "${src_arr[0]}")"
-			dst_arg="$dst_arg/$first_element_filename"
+		    # 	#printf "DEV447: $dst_sub_dir\n"
+		    # 	#printf "DEV448: $(basename "${src_arr[0]}")\n"
+		    # 	first_element_filename="$(basename "${src_arr[0]}")"
+		    # 	dst_arg="$dst_arg/$first_element_filename"
 
-		    fi
+		    # fi
 
 		    # dst_arg contains subdir(s)
 		    if [[ "$dst_sub_dir" != "." ]]; then
@@ -451,15 +464,19 @@ dst_validate() {
 		fi
 		;;
 
-	    decr)
-		:
-		;;
+	    #decr)
+		# destination needs no validation here
 
 	esac
 
 	## rewrite variables
 	dst_sub_dir=$(dirname $dst_arg)
 	dst_tar_get=$(basename $dst_arg)
+
+    else
+
+	printf 'no destination\n'
+	exit 80
 
     fi
 
@@ -486,8 +503,7 @@ dst_validate() {
 oper_info() {
 
     ## user feedback
-    printf "\noperation:	${INV}${BOLD} %sypt ${NOC}\n" "$oper"
-
+    printf "\noperation:	${INV}${BOLD} %sypt ${NOC}\n\n" "$oper"
 }
 
 
@@ -507,10 +523,26 @@ dst_info() {
 }
 
 
+add_to_src_info() {
+
+    ## there can be multiple sources
+    si_line=$(printf "source:	        $src\n")
+    si_lines=$(printf "$si_lines\n%s\n" "$si_line")
+}
+
+
 src_info() {
 
-    printf "source:	        ${src[*]}\n"
+    #printf "source:	        ${src[*]}\n"
+    printf '%s\n' "$si_lines"
+}
 
+
+show_info() {
+
+    src_info
+    oper_info
+    dst_info
 }
 
 
@@ -518,7 +550,7 @@ tar_create() {
 
     # (inner) tar file
     # will be wrapped in tarx
-    tar_file=$tmp_dir/$src_tar_get.tar
+    tar_file=$tmp_dir/$src_tar_get.inner.tar
     mkdir -p $(dirname $tar_file)
 
     ## create (inner) tar archive
@@ -854,7 +886,6 @@ tarx_check() {
 
     [[ -f $tarx_file ]] && tarx_exist=1
 
-
     case $oper in
 
 	encr)
@@ -862,8 +893,8 @@ tarx_check() {
 	    if [[ "$tarx_exist" == "1" ]]; then
 		#TODO error when no dest arg given
 
-		printf "tarx file:	${YELLOW}%s${NOC} exists\n" "$tarx_file"
-		printf 'overwrite? (y/N) '
+		printf "\ntarx file:	${YELLOW}%s${NOC} exists\n" "$tarx_file"
+		printf '                overwrite? (y/N) '
 		reply_single
 
 		case $reply in
@@ -1078,12 +1109,14 @@ main() {
 
     initialize
     arguments
+    show_info
 
     case $oper in
 
 	encr)
 
 	    #tar_create
+	    create_inner_tar
 	    encrypt
 	    ;;
 

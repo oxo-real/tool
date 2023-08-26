@@ -572,6 +572,20 @@ show_status() {
 }
 
 
+copy_text() {
+    ## # 20230826
+    ## # --paste-once does not work in $browser
+    ## # but does work in terminal (alacritty)
+    ## # mimetype is not the issue
+    wl-copy
+    #wl-copy --type text/plain
+    #wl-copy --type text/plain --paste-once
+    #wl-copy --trim-newline --paste-once --type text/plain
+    #wl-copy --trim-newline --paste-once --type text/plain;charset=utf-8
+
+}
+
+
 get_mountpoint_status() {
 
     mountpoint -q $store_l && mp_status=$store || mp_status=0
@@ -602,7 +616,7 @@ pass_mount() {
 
     ## pass crypto source luksuuid
     luksuuid=$(sudo cryptsetup luksUUID $crypto_source)
-    printf "$luksuuid" | wl-copy -n -o
+    printf "$luksuuid" | copy-text
 
     ## check for mountpoint
     lsblk_rpaf=$(lsblk -rpaf --noheadings)
@@ -826,14 +840,15 @@ get_element_value() {
     check_element_value
 
     ## '%s' prevents 'invalid format character' error
-    printf '%s' "$element_value" | wl-copy -n -o
+    printf '%s' "$element_value" | copy_text
+    #printf '%s' "$element_value" | wl-copy --type=text/plain -n -o
 }
 
 
 
 get_password() {
 
-    pass $object | head -n 1 | wl-copy -n -o
+    pass $object | head -n 1 | copy_text
 }
 
 
@@ -849,7 +864,7 @@ get_otp() {
     ## check_obj_exist && pass otp $object | wl-copy -n -o
     if [[ -f $store/$object.gpg ]]; then
 
-    	pass otp $object | wl-copy -n -o
+    	pass otp $object | copy_text
 	## alternative: sh $XDG_DATA_HOME/c/git/note/crypto/2fa/2fa_sha1_totp.sh $otp_secret
 
     fi
@@ -1035,7 +1050,8 @@ autoentry() {
 
 get_object_name() {
 
-    printf "$object" | wl-copy -n -o
+    printf "$object" | copy-text
+    #printf "$object" | wl-copy -n -o
 }
 
 
@@ -1229,7 +1245,8 @@ list_otps()
 
     else
 
-	printf "$otp_selected" | awk -F ' ' '{print $(NF-1)$NF}' | wl-copy -n -o
+	printf "$otp_selected" | awk -F ' ' '{print $(NF-1)$NF}' | copy-text
+	#printf "$otp_selected" | awk -F ' ' '{print $(NF-1)$NF}' | wl-copy -n -o
     	otp_list='' && unset otp_list
     	otp_selected='' && unset otp_selected
     	exit 0
