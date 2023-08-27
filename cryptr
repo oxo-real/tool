@@ -21,15 +21,15 @@ set -o pipefail
 ###
 ### --------------------------------
 ### usage:
-### -e encrypt a file or dir
-### cryptr [-e] <src> [srcs] [dest]
+###
+### argument order compulsory:
+### command [operation] source(s) [destination]
+###
+### -e encrypt a file or directory
+### cryptr [-e] $src [$srcs] [-o $dest]
 ###
 ### -d decrypt a tarx file
-### cryptr [-d] <src> [dest]
-###
-### examples:
-### cryptr src1
-### cryptr src1 explicit.dst
+### cryptr [-d] $src [-o $dest]
 ### --------------------------------
 ###
 ### WARNING! risk in multi-user systems!
@@ -44,8 +44,8 @@ set -o pipefail
 cipher_suite="gnupg"
 #cipher_suite="openssl"
 
-gc_dir="$XDG_DATA_HOME/c/git/code"
-source_dir="$gc_dir/source/function"
+cgc_dir="$XDG_DATA_HOME/c/git/code"
+source_dir="$cgc_dir/source/function"
 
 args="$@"
 
@@ -210,11 +210,17 @@ operation() {
 
 get_args_arr_index() {
 
+    ## get current index number of $args_arr
     for i in "${!args_arr[@]}"; do
 
 	if [[ "${args_arr[$i]}" == "${arg}" ]]; then
 
 	    arg_index="${i}"
+
+	    ## when $arg = -o then next arg is dst
+	    ## TODO
+
+
 	    ## when having current args index
 	    ## then stop iteration over !args_arr[@]
 	    break
@@ -237,6 +243,7 @@ arguments() {
 
 	get_args_arr_index
 
+	unset src
 	unset arguments_continue
 	unset arg_was_src
 	unset src_is_dst
@@ -254,7 +261,7 @@ arguments() {
 	get_source
 
 	## destination file
-	get_destination
+	[[ -z $src ]] && get_destination
 
 	## create source tar file (encryption only)
 	#create_source_tar
@@ -268,14 +275,51 @@ get_source() {
     ## ... for decrypting (gnupg d or openssl b)
     if [[ "$opr" == 'd' ]] || [[ "$opr" == 'b' ]]; then
 
-	if [[ -f "$arg" ]]; then
+	## catch if with -o a custom destination has been entered
+	case $arg in
 
-	    ## element is an existent file to decrypt
-	    ## this can not be more than one file
-	    ## element value is source file or directory
-	    src="$arg"
+	    -o)
+		## explicit decrypt
+		case $cipher_suite in
 
-	fi
+		    gnupg)
+			opr='d'
+			;;
+
+		    openssl)
+			opr='b'
+			;;
+
+		esac
+
+		## decrypt destination
+		dst_arg="S{args_arr[@]}"
+
+		custom_dst=1
+
+		## next argument
+		#arguments_continue=1
+		continue
+		;;
+
+	    *)
+		## element is an existent file to decrypt
+		src_validate
+
+		if [[ -f "$arg" ]]; then
+
+		    ## element is an existent file to decrypt
+		    ## this can not be more than one file
+		    ## element value is source file or directory
+		    src="$arg"
+
+		fi
+
+		## populate src_info
+		add_to_src_info
+		;;
+
+	esac
 
     ## ... for encrypting (gnupg e or openssl c)
     elif [[ "$opr" == 'e' ]] || [[ "$opr" == 'c' ]]; then
@@ -352,7 +396,7 @@ get_destination() {
 
 		    ## no destination is given
 		    ## decrypting in current directory
-		    dst_arg="$PWD"
+		    dst_arg="$pw_dir"
 
 		    ## if element is a non existent directory
 		elif [[ ! -d "$arg" ]]; then
@@ -374,7 +418,9 @@ get_destination() {
 
 	fi
 
-	dst_validate
+	if [[ -n $dst_arg ]]; then
+	    dst_validate
+	    fi
 
     fi
 }
@@ -385,38 +431,55 @@ src_validate() {
     ## write full src path
     src="$(realpath "$arg")"
 
-    ## src does not exist
-    if [[ ! -f $src ]] && [[ ! -d $src ]] ; then
+    case $oper in
 
-	## if element is the last element (last argument)
-	## but not the only argument
-	if [[ "$arg_index" == "$last_element_index" ]] && \
-	       [[ "$last_element_index" -gt 0 ]]; then
+	encr)
+	    ## src does not exist
+	    if [[ ! -f $src ]] && [[ ! -d $src ]] ; then
 
-	    ## current $arg should be destination
-	    src_is_dst=1
-	    get_destination
-	    continue
+		## if element is the last element (last argument)
+		## but not the only argument
+		if [[ "$arg_index" == "$last_element_index" ]] && \
+		       [[ "$last_element_index" -gt 0 ]]; then
 
-	else
+		    ## current $arg should be destination
+		    src_is_dst=1
+		    get_destination
+		    continue
 
-	    printf "${MAGENTA}%s${NOC} source file not found\n" "$src"
-	    exit 5
+		else
 
-	fi
+		    printf "${MAGENTA}%s${NOC} source file not found\n" "$src"
+		    exit 5
 
-    elif [[ -z $src ]]; then
+		fi
 
-	printf "${MAGENTA}source & destination${NOC} files missing\n"
-	exit 5
+	    elif [[ -z $src ]]; then
 
-    else
+		printf "${MAGENTA}source & destination${NOC} files missing\n"
+		exit 5
 
-	## set source directory and target names
-	src_sub_dir=$(dirname $src)
-	src_tar_get=$(basename $src)
+	    else
 
-    fi
+		## set source directory and target names
+		src_sub_dir=$(dirname $src)
+		src_tar_get=$(basename $src)
+
+	    fi
+	    ;;
+
+	decr)
+	    ## decrypting to custom path
+	    if [[ -d $src ]]; then
+
+		src_is_dst=1
+		unset src
+		dst="$src"
+
+	    fi
+	    ;;
+
+    esac
 }
 
 
@@ -439,9 +502,9 @@ dst_validate() {
 			dst_arg="$(realpath $dst_arg)"
 
 		    # ... or a valid relative path to pwd
-		    elif [[ -d "$pwd/$dst_arg" ]]; then
+		    elif [[ -d "$pw_dir/$dst_arg" ]]; then
 
-			dst_arg="$pwd/$dst_arg"
+			dst_arg="$pw_dir/$dst_arg"
 
 		    fi
 
@@ -472,7 +535,35 @@ dst_validate() {
 		fi
 		;;
 
-	    #decr)
+	    decr)
+		if [[ -z $dst ]]; then
+
+		    dst="$pw_dir"
+
+		fi
+
+		if [[ ! -d $dst_sub_dir ]]; then
+
+		    printf "${MAGENTA}%s${NOC} does not exist\n" "$dst_sub_dir"
+		    printf 'create? (y/N) '
+
+		    reply_single
+
+		    case $reply in
+
+			y)
+			    mkdir -p $dst_sub_dir
+			    ;;
+
+			n)
+			    exit 52
+			    ;;
+
+		    esac
+
+		fi
+
+
 		# destination needs no validation here
 
 	esac
@@ -497,7 +588,13 @@ dst_validate() {
     else
 
 	## no destination argument is given
-	dst="$(realpath $dst_sub_dir/$dst_tar_get).tarx"
+	case $oper in
+
+	    encr)
+		dst="$(realpath $dst_sub_dir/$dst_tar_get).tarx"
+		;;
+
+	esac
 
     fi
 
@@ -1112,16 +1209,11 @@ cleanup() {
 	encr)
 
 	    tar_destroy
-	    #[TODO] why in pwd? -> temp!
-	    #[TODO] check these!
-	    #\rm -rf $file_out
 	    ;;
 
 	decr)
 
 	    tar_destroy
-	    #\rm -rf $file_out
-	    #\rm -rf $cipher_select_file
 	    ;;
 
     esac
@@ -1137,7 +1229,6 @@ encrypt() {
     tarx_define
     tarx_check
     tarx_create
-    cleanup
 }
 
 
@@ -1163,13 +1254,14 @@ main() {
 
 	    tar_append
 	    encrypt
+	    cleanup
 	    ;;
 
 	decr)
 
 	    decrypt
 	    tar_extract
-	    cleanup
+	    #cleanup
 	    ;;
 
     esac
