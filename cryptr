@@ -241,9 +241,11 @@ arguments() {
     ## which values are entered arguments
     for arg in "${args_arr[@]}"; do
 
+	printf "DEV244 <<<<< arg: $arg\n"
+
 	get_args_arr_index
 
-	unset src
+	#unset src
 	unset arguments_continue
 	unset arg_was_src
 	unset src_is_dst
@@ -256,6 +258,13 @@ arguments() {
 	## if arg was -d or -e (in operation)
 	## take the next argument from ${args_arr[@]} (continue)
 	## else continue (with $arg) in this loop (with lines below)
+
+	if [[ -n $custom_dst_decr ]]; then
+
+	    get_destination
+	    continue
+
+	fi
 
 	## populate $src_arr (source file list) ...
 	get_source
@@ -295,11 +304,11 @@ get_source() {
 		## decrypt destination
 		dst_arg="S{args_arr[@]}"
 
-		custom_dst=1
+		custom_dst_decr=1
 
 		## next argument
 		#arguments_continue=1
-		continue
+		#continue
 		;;
 
 	    *)
