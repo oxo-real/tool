@@ -616,7 +616,7 @@ pass_mount() {
 
     ## pass crypto source luksuuid
     luksuuid=$(sudo cryptsetup luksUUID $crypto_source)
-    printf "$luksuuid" | copy-text
+    printf "$luksuuid" | copy_text
 
     ## check for mountpoint
     lsblk_rpaf=$(lsblk -rpaf --noheadings)
@@ -1050,7 +1050,7 @@ autoentry() {
 
 get_object_name() {
 
-    printf "$object" | copy-text
+    printf "$object" | copy_text
     #printf "$object" | wl-copy -n -o
 }
 
@@ -1245,7 +1245,7 @@ list_otps()
 
     else
 
-	printf "$otp_selected" | awk -F ' ' '{print $(NF-1)$NF}' | copy-text
+	printf "$otp_selected" | awk -F ' ' '{print $(NF-1)$NF}' | copy_text
 	#printf "$otp_selected" | awk -F ' ' '{print $(NF-1)$NF}' | wl-copy -n -o
     	otp_list='' && unset otp_list
     	otp_selected='' && unset otp_selected
