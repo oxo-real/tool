@@ -133,7 +133,7 @@ operation() {
 
 		    unset tar_content_crypt
 		    unset tar_content_csf
-		    file_tar_content=$(tar -tvf "$arg")
+		    file_tar_content=$(tar --list --verbose --file "$arg")
 
 		    tar_content_crypt="$(printf '%s' "$file_tar_content" | grep 'crypt')"
 		    tar_content_csf="$(printf '%s' "$file_tar_content" | grep 'csf')"
@@ -361,7 +361,7 @@ get_destination() {
 	    ## if element is the last element (last argument)
 	    if [[ "$arg_index" == "$last_element_index" ]]; then
 
-		## element is same as $src
+		## element is (same as) $src
 		if [[ "$arg" == "$src" ]]; then
 
 		    ## no destination is given
@@ -459,12 +459,15 @@ dst_validate() {
 
     if [[ -n $dst_arg ]]; then
 
+	dst_arg="$(realpath $dst_arg)"
 	dst_sub_dir=$(dirname $dst_arg)
 	dst_tar_get=$(basename $dst_arg)
 
 	case $oper in
 
 	    encr)
+		## encrypt to destination file
+
 		## dst_arg has to be a non-existent file ...
 		if [[ ! -f $dst_arg ]]; then
 
@@ -492,7 +495,10 @@ dst_validate() {
 		;;
 
 	    decr)
-		dst="$dst_tar_get"
+		## decrypt to destination directory
+
+		dst="$dst_arg"
+		#dst="$dst_tar_get"
 		;;
 
 	esac
@@ -633,7 +639,7 @@ tar_append() {
 	s_el_sub_dir=$(dirname $src_elem)
 	s_el_tar_get=$(basename $src_elem)
 
-	tar --append -f $tar_src -C $s_el_sub_dir $s_el_tar_get
+	tar --append --file $tar_src --directory $s_el_sub_dir $s_el_tar_get
 
     done
 }
@@ -915,7 +921,7 @@ crypt_exec() {
 tar_extract() {
 
     ## extract tar archive
-    tar -xvf $file_out --directory $dst
+    tar --extract --file $file_out --directory $dst
 }
 
 
@@ -1010,8 +1016,10 @@ tarx_check() {
 tarx_create() {
 
     ## create tar archive
-    tar -cf $tarx_file -C $sub_dir_fo $(basename $file_out)
-    tar -rf $tarx_file -C $sub_dir_csf $(basename $cipher_select_file)
+    ## with encrypted file
+    tar --create --file $tarx_file --directory $sub_dir_fo $(basename $file_out)
+    ## append cipher select file
+    tar --append --file $tarx_file --directory $sub_dir_csf $(basename $cipher_select_file)
 }
 
 
@@ -1020,7 +1028,7 @@ tarx_open() {
     ## extract tar box contents
     ## 2 files; .crypt & .src
     mkdir -p $tmp_dir
-    tar --extract --file $src -C $tmp_dir
+    tar --extract --file $src --directory $tmp_dir
 }
 
 
