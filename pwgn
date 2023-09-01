@@ -408,9 +408,12 @@ output_wlcopy() {
 }
 
 
-print_qr_code() {
-    # qrencode not installed, then skip printing
-    [[ -n $(command -v qrencode) ]] && printf $1 | qrencode -m 3 -t UTF8
+print_qr_code()
+{
+    ## qrencode not installed, then skip printing
+    ## qrinv is qrencode with inverse color and smaller borders
+    [[ -n $(command -v qrencode) ]] && qrinv $1
+    #[[ -n $(command -v qrencode) ]] && printf $1 | qrencode -m 3 -t UTF8
 }
 
 
@@ -460,7 +463,8 @@ dynamic_truncate() {
 }
 
 
-debugging() {
+debugging()
+{
     printf "input:	    $input\n"
     printf "hash_sha1:	    $hash_sha1\n"
     printf "hash_sha3512:   $hash_sha3512\n"
@@ -471,21 +475,32 @@ debugging() {
 }
 
 
-sourcing
-get_sudo
-input_type
-#choose_input
-input_validation
-hash_1_input
-hash_3_input
-clear_input
-round_pool
-round_space
-rounds_number
-round_key
-#debugging
-#two_fa
-running_rounds
-#output_console
-output_wlcopy
-exit 0
+exit_main()
+{
+    exit 0
+}
+
+
+main()
+{
+    sourcing
+    get_sudo
+    input_type
+    #choose_input
+    input_validation
+    hash_1_input
+    hash_3_input
+    clear_input
+    round_pool
+    round_space
+    rounds_number
+    round_key
+    #debugging
+    #two_fa
+    running_rounds
+    #output_console
+    output_wlcopy
+    exit_main
+}
+
+main

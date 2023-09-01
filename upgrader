@@ -87,16 +87,21 @@ set_clock()
 }
 
 
+get_ipex()
+{
+    ## retrieve external ip address
+    ipex=$(host myip.opendns.com resolver2.opendns.com \
+	       | tail -n 1 | rev | cut -d ' ' -f 1 | rev)
+    ## alternative
+    #ipex=$(dig @resolver1.opendns.com myip.opendns.com +dnssec +short)
+}
+
+
 internet_conn_check()
 {
     # check internet connection
-    ipex=$(host myip.opendns.com resolver2.opendns.com \
-	       | tail -n 1 | rev | cut -d ' ' -f 1 | rev)
 
-    #ipex=$(dig @resolver1.opendns.com myip.opendns.com +dnssec +short)
-    #$(ping -q -w 2 -c 1 $ip_check > /dev/null)
-    #if [ $? != 0 ]; then
-    #printf "${MAGENTA}not able to check network connectivity (ipv4)${NOC}\n"
+    get_ipex
 
     if [ -z $ipex ]; then
 
@@ -109,12 +114,23 @@ internet_conn_check()
 	if printf "$reply" | grep -iq "^n" ; then
 
 	    printf "exiting\n"
-	    exit 112
+	    exit 117
 
 	else
 
 	    sh $netconn
 	    echo
+
+	    get_ipex
+
+	    if [ -z $ipex ]; then
+
+		printf "again: unable to retrieve external ip address (ipv4)\n"
+		printf "${MAGENTA}check physical connections${NOC}\n"
+		printf "exiting\n"
+		exit 131
+
+	    fi
 
 	fi
 

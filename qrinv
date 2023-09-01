@@ -1,0 +1,53 @@
+#!/usr/bin/env sh
+
+#
+## qrinv
+## qrcode with inverted colors
+## after: https://superuser.com/q/1420001/551559
+#
+
+# input from wl-copy
+args="$@"
+
+qrcode=$(qrencode --type utf8 --margin 3 "$args")
+#echo "${qrcode}"
+
+
+# transformation steps
+
+## replace black
+qrcode=$(echo "${qrcode}" | sed s/$(echo -e '\xe2\x96\x88')/A/g)
+#echo "${qrcode}"
+
+## replace white
+qrcode=$(echo "${qrcode}" | sed s/\ /B/g)
+#echo "${qrcode}"
+
+## swap black for white
+qrcode=$(echo "${qrcode}" | sed s/A/\ /g)
+#echo "${qrcode}"
+
+## swap white for black
+qrcode=$(echo "${qrcode}" | sed s/B/$(echo -e '\xe2\x96\x88')/g)
+#echo "${qrcode}"
+
+## replace "Upper Half Block"
+qrcode=$(echo "${qrcode}" | sed s/$(echo -e '\xe2\x96\x80')/A/g)
+#echo "${qrcode}"
+
+## replace "Lower Half Block"
+qrcode=$(echo "${qrcode}" | sed s/$(echo -e '\xe2\x96\x84')/B/g)
+#echo "${qrcode}"
+
+## swap upper for lower
+qrcode=$(echo "${qrcode}" | sed s/A/$(echo -e '\xe2\x96\x84')/g)
+#echo "${qrcode}"
+
+## swap lower for upper
+qrcode=$(echo "${qrcode}" | sed s/B/$(echo -e '\xe2\x96\x80')/g)
+#echo "${qrcode}"
+
+
+# output to terminal
+
+echo "${qrcode}"

@@ -47,6 +47,7 @@
 ├── passexp
 ├── passr
 ├── pwgn
+├── qrinv
 ├── rename_exif
 ├── repo_tree.md
 ├── shred_all
@@ -71,5 +72,5 @@
     ├── passr_old
     └── trashOLD
 
-3 directories, 68 files
+3 directories, 69 files
 ```
