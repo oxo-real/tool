@@ -41,8 +41,8 @@ set -o pipefail
 
 # initial definitions
 ## select cipher suite
-cipher_suite="gnupg"
-#cipher_suite="openssl"
+#cipher_suite="gnupg"
+cipher_suite="openssl"
 
 cgc_dir="$XDG_DATA_HOME/c/git/code"
 source_dir="$cgc_dir/source/function"
@@ -1004,7 +1004,7 @@ tarx_check() {
 	    if [[ -n "$(file -b $src | grep 'tar archive')" ]]; then
 
 		## src is a tar file with tarx extension
-		dev_txt='tarx file is tar archive'
+		src_file_type='tar_archive'
 
 	    fi
 	    ;;
