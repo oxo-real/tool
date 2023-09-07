@@ -13,13 +13,14 @@ language=$2
 
 ## file locations
 vosk_dir='/home/oxo/.local/share/a/data/ai/language/model/vosk-api'
-vtx_app='/home/oxo/.cache/test/nerd-dictation/nerd-dictation'
+vtx_app='nerd-dictation'
 config_file='/home/oxo/.config/nerd-dictation/nerd-dictation.py'
 
 ## nd options
-#sim_tool='STDOUT'
-sim_tool='YDOTOOL'
+sim_tool='STDOUT'
+#sim_tool='YDOTOOL'
 # NOTICE: systemctl --user start ydotool.service
+# 20230907 ydotool still gives errors (user and sudo)
 numbers='--numbers-min-value 10 --numbers-as-digits --numbers-no-suffix'
 
 ## specific language selection
@@ -68,9 +69,19 @@ case $action in
 
     begin)
 	[[ -z $language ]] && exit 47
-	systemctl --user status ydotool.service
-	[[ $? -eq 3 ]] && systemctl --user start ydotool.service && sleep 2
-	$vtx_app $action --config $config_file --simulate-input-tool $sim_tool $numbers --vosk-model-dir $model_dir
+
+	## ydotool sudo
+	#sudo systemctl status ydotool.service
+	#[[ $? -eq 3 ]] && sudo systemctl start ydotool.service && sleep 2
+	#$vtx_app $action --config $config_file --simulate-input-tool $sim_tool $numbers --vosk-model-dir $model_dir
+
+	## ydotool user
+	#systemctl --user status ydotool.service
+	#[[ $? -eq 3 ]] && systemctl --user start ydotool.service && sleep 2
+	#$vtx_app $action --config $config_file --simulate-input-tool $sim_tool $numbers --vosk-model-dir $model_dir
+
+	## stdout
+	$vtx_app $action --simulate-input-tool $sim_tool $numbers --vosk-model-dir $model_dir --verbose 2
 	;;
 
     end)

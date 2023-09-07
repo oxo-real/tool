@@ -21,6 +21,8 @@ qb_conf="$XDG_CONFIG_HOME/qutebrowser/config.py"
 source $XDG_DATA_HOME/c/git/code/source/function/text_appearance
 source_html='https://www.useragents.me/#most-common-desktop-useragents-json-csv'
 source_www='https://www.useragents.me/api'
+# same source?
+#https://techblog.willshouse.com/2012/01/03/most-common-user-agents/
 
 
 # set ua current logging
