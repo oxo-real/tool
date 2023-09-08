@@ -15,8 +15,7 @@
 │   ├── data_flow_mon
 │   ├── groff_compile
 │   ├── spin
-│   ├── time_passed
-│   └── toggle_mic
+│   └── time_passed
 ├── diffdir
 ├── diritems
 ├── dividir
@@ -41,6 +40,7 @@
 ├── make_offl_repo
 ├── make_recov
 ├── metar
+├── mic_switch
 ├── mountr
 ├── netistat
 ├── nmconn

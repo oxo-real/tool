@@ -1,0 +1,107 @@
+#! /usr/bin/env sh
+
+# dependency for vtxt
+
+# usage: toggle_mic $action [$name]
+
+args="$@"
+
+sel_action="$1"
+[[ "$sel_action" == 'on' || "$sel_action" == 'off' || "$sel_action" == 'toggle' ]] && shift
+
+sel_descr="$@"
+
+# toggle mic with hotkey
+# get name from args (for vtxt)
+
+
+get_source_list()
+{
+    source_list=$(pactl list sources | grep -e 'device.description' -e 'node.name')
+}
+
+
+get_node_description()
+{
+    # get device.description
+    sel_descr=$(printf "$source_list" | grep 'device.description' | awk -F '"' '{print $2}' | sort | uniq | fzf)
+}
+
+
+get_node_name()
+{
+    # get node.name from device.description
+    sel_name=$(printf "$source_list" | grep -A 1 "$sel_descr" | grep node.name | awk -F '"' '{print $2}')
+}
+
+
+get_action()
+{
+    sel_action=$(printf 'toggle\noff\non' | fzf)
+}
+
+
+activate_mic()
+{
+    pactl suspend-source $sel_name false
+    pactl set-source-port $sel_name analog-input-mic
+    pactl set-source-volume $sel_name 100%
+    pactl set-source-mute $sel_name false
+}
+
+
+deactivate_mic()
+{
+    pactl set-source-port $sel_name analog-input-mic
+    pactl set-source-volume $sel_name 0%
+    pactl set-source-mute $sel_name true
+    pactl suspend-source $sel_name true
+}
+
+
+toggle_mic()
+{
+   curr_name=$(pactl info | grep "Default Source" | cut -d ' ' -f 3)
+   curr_mute_status=$(pactl list sources | grep -A 6 $curr_name | grep "Mute: yes")
+
+   [[ -n $curr_mute_status ]] && activate_mic || deactivate_mic
+}
+
+
+execute()
+{
+    case $sel_action in
+
+	off)
+	    deactivate_mic
+	    ;;
+
+	on)
+	    activate_mic
+	    ;;
+
+	*)
+	    toggle_mic
+	    ;;
+
+    esac
+}
+
+
+inform()
+{
+    notify-send "source $sel_descr $sel_action"
+}
+
+
+main()
+{
+    get_source_list
+    [[ -z $sel_descr ]] && get_node_description
+    [[ -z $sel_action ]] && get_action
+    get_node_name
+    execute
+    inform
+}
+
+main
