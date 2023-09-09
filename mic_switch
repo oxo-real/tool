@@ -64,7 +64,17 @@ toggle_mic()
    curr_name=$(pactl info | grep "Default Source" | cut -d ' ' -f 3)
    curr_mute_status=$(pactl list sources | grep -A 6 $curr_name | grep "Mute: yes")
 
-   [[ -n $curr_mute_status ]] && activate_mic || deactivate_mic
+   if [[ -n $curr_mute_status ]]; then
+
+       activate_mic
+       direction='on'
+
+   else
+
+       deactivate_mic
+       direction='off'
+
+   fi
 }
 
 
@@ -90,7 +100,8 @@ execute()
 
 inform()
 {
-    notify-send "source $sel_descr $sel_action"
+    beep
+    notify-send "source $sel_descr $sel_action $direction"
 }
 
 
