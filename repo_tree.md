@@ -51,7 +51,7 @@
 ├── qrinv
 ├── rename_exif
 ├── repo_tree.md
-├── shred_all
+├── shredr
 ├── slicer
 ├── syncr
 ├── trash

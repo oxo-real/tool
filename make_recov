@@ -47,6 +47,9 @@ repo()
     case $repo_mounted in
 
 	1)
+	    # permissions
+	    sudo chown -R $USER:$GROUP $repo_mount
+
 	    # options = rsync options
 	    $make_offl_repo "$repo_mount" "$options"
 	    ;;
@@ -68,6 +71,8 @@ code()
     ## dock/3 is mountpoint
     [[ $(mount | grep $code_mount) ]] && code_mounted=1
 
+    # permissions
+    sudo chown -R $USER:$GROUP $code_mount
 
     ## code source array (dictionary)
     declare -A code_source=( \
@@ -180,6 +185,8 @@ keys()
     # dock/4 is mountpoint
     [[ $(mount | grep $keys_mount) ]] && keys_mounted=1
 
+    # permissions
+    sudo chown -R $USER:$GROUP $keys_mount
 
     # keys source array (dictionary)
     declare -A keys_source=( \

@@ -51,6 +51,9 @@ protocol="https"
 number_of_mirrors="5"
 age="12"	# 12 hours
 mirror_location="/etc/pacman.d"
+yay_cache_dir="$XDG_CACHE_HOME/yay"
+keep_installed='3'
+keep_uninstalled='1'
 
 
 # general function definitions
@@ -375,10 +378,21 @@ clean_up()
     #yay -c
     #printf "done\n"
 
-    # removes old packages from the pacman cache directory
-    printf "cleanup paccache (rv)\n"
-    paccache -rv
-    #paccache -v -rk3 -ruk3
+    # remove old packages from the pacman cache directory
+    printf "==> cleanup paccache\n"
+    printf "rk3v  "
+    paccache --remove --keep $keep_installed --verbose
+    printf "ruk0v "
+    paccache --remove --uninstalled --keep $keep_uninstalled --verbose
+
+    # remove old packages from the yay cache directory
+    yay_cache_dirs="$(find "$yay_cache_dir" -maxdepth 1 -type d | awk '{ print "--cachedir " $1 }' | tail -n +2)"
+
+    printf "==> cleanup yaycache\n"
+    printf "rk3v  "
+    paccache --remove --keep $keep_installed --verbose $yay_cache_dirs
+    printf "ruk0v "
+    paccache --remove --uninstalled --keep $keep_uninstalled --verbose $yay_cache_dirs
     echo
 }
 

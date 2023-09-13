@@ -16,11 +16,15 @@
 
 ## package file source
 p_src='/var/cache/pacman/pkg'
-
 db_name='offline'
+
+## aur source
+
+
 
 ## destination root
 ## i.e. from make_recov
+## normally REPO (dock/2)
 p_dst=$1
 
 ## rsync options
@@ -55,15 +59,40 @@ build_custom_pkg_db()
 
 	printf '\n==> %s\n' "$p_curr"
 
-	repo-add $p_dst/$db_name.db.tar.zst $p_dst/$p_curr
+	#repo-add $p_dst/$db_name.db.tar.zst $p_dst/$p_curr
 	#repo-add --new $p_dst/$db_name.db.tar.zst $p_dst/$p_curr
-	#repo-add --new --remove $p_dst/$db_name.db.tar.zst $p_dst/$p_curr
+	repo-add --new --remove $p_dst/$db_name.db.tar.zst $p_dst/$p_curr
 
     done <<< "$p_src_sort"
 }
 
 
-aur_packages()
+aur_packages_copy_DEV()
+{
+    #DEV
+    # compile source code from aur packages
+    ## source for hajime/4apps.sh#aur_install
+
+    aur_pkgs=( $(yay -Qqm) )
+    src_aur="$HOME/.cache/yay"
+    dst_aur="$p_dst/aur"
+
+    [[ -d $dst_aur ]] || mkdir -p $dst_aur
+
+    for package in "${aur_pkgs[@]}"; do
+
+	printf '\n==> %s\n' "$package"
+	cp -r "$src_aur/$package" "$dst_aur"
+
+    done
+
+    ## with hajime/4apps.sh install_aur()
+    ## aur packages are installed with:
+    ## pacman -U $package_dir/$package.tar.zst
+}
+
+
+aur_packages_build()
 {
     # compile source code from aur packages
     ## source for hajime/4apps.sh#aur_install
@@ -80,7 +109,7 @@ aur_packages()
 
 	printf '\n==> %s\n' "$package"
 	cd "$dst_aur/$package"
-	makepkg -sc --needed
+	makepkg --syncdeps --needed --clean
 	#makepkg -sc
 
     done
@@ -91,7 +120,8 @@ main()
 {
     rsync_all_packages
     build_custom_pkg_db
-    aur_packages
+    #aur_packages_build
+    aur_packages_copy_DEV
 }
 
 main
