@@ -14,17 +14,18 @@
 ##
 #
 
-## package file source
-p_src='/var/cache/pacman/pkg'
+
 db_name='offline'
 
-## aur source
+## package file source
+pmn_src='/var/cache/pacman/pkg'
 
-
+## aur file source
+aur_src="$HOME/.cache/yay"
 
 ## destination root
 ## i.e. from make_recov
-## normally REPO (dock/2)
+## default: REPO (dock/2)
 p_dst=$1
 
 ## rsync options
@@ -42,7 +43,7 @@ rsync_all_packages()
 {
     rsync -aAXv \
 	$options \
-	$p_src/ $p_dst
+	$pmn_src/ $p_dst
 	#--filter='protect aur' \
 	#--delete \
 }
@@ -53,28 +54,25 @@ build_custom_pkg_db()
     # build custom package database
     ## .zst and older .xz packages
     ## not .sig files
-    p_src_sort=$(ls $p_src | grep --invert-match '.sig$' | sort --numeric-sort)
+    pmn_src_sort=$(ls $pmn_src | grep --invert-match '.sig$' | sort --numeric-sort)
 
     while IFS= read -r p_curr; do
 
 	printf '\n==> %s\n' "$p_curr"
 
-	#repo-add $p_dst/$db_name.db.tar.zst $p_dst/$p_curr
-	#repo-add --new $p_dst/$db_name.db.tar.zst $p_dst/$p_curr
 	repo-add --new --remove $p_dst/$db_name.db.tar.zst $p_dst/$p_curr
 
-    done <<< "$p_src_sort"
+    done <<< "$pmn_src_sort"
 }
 
 
-aur_packages_copy_DEV()
+aur_packages_copy()
 {
     #DEV
     # compile source code from aur packages
     ## source for hajime/4apps.sh#aur_install
 
-    aur_pkgs=( $(yay -Qqm) )
-    src_aur="$HOME/.cache/yay"
+    aur_pkgs=( $(ls $aur_src) )
     dst_aur="$p_dst/aur"
 
     [[ -d $dst_aur ]] || mkdir -p $dst_aur
@@ -82,13 +80,28 @@ aur_packages_copy_DEV()
     for package in "${aur_pkgs[@]}"; do
 
 	printf '\n==> %s\n' "$package"
-	cp -r "$src_aur/$package" "$dst_aur"
+	rsync -aAXv --delete --info=progress2,stats --progress \
+	      --exclude='.git' "$aur_src/" "$dst_aur"
+	#cp -r "$aur_src/$package" "$dst_aur"
+
+	copy_pkg_tar_zst
 
     done
 
     ## with hajime/4apps.sh install_aur()
     ## aur packages are installed with:
     ## pacman -U $package_dir/$package.tar.zst
+}
+
+
+copy_pkg_tar_zst()
+{
+    ## newest .pkg.tar.zst file
+    newest_ptz_loc=$(realpath $(ls $aur_src/$package/*.pkg.tar.zst | sort --version-sort --reverse | sed -n 1p))
+    newest_ptz_filename=$(basename $newest_ptz_loc)
+    ## copy to $p_dst default: REPO (dock/2)
+    ln -s $newest_ptz_loc $p_dst/$newest_ptz_filename
+    #cp $newest_ptz_file $p_dst
 }
 
 
@@ -118,10 +131,10 @@ aur_packages_build()
 
 main()
 {
-    rsync_all_packages
-    build_custom_pkg_db
+    #rsync_all_packages
+    #build_custom_pkg_db
     #aur_packages_build
-    aur_packages_copy_DEV
+    aur_packages_copy
 }
 
 main
