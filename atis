@@ -2,89 +2,232 @@
 
 # create atis
 
-#TODO location with more words
-#location='El+Chalten'
-location=$(head -n 1 $XDG_CONFIG_HOME/wttr/default-city.txt)
-timestamp=$(date +%s)
+# usage: atis [$location]
 
-wttr_data=( $(curl -s "wttr.in/$location?format=j1" | jq -r '.nearest_area[] .areaName[] .value + " " + .current_condition[] .observation_time + " " + .current_condition[] .winddirDegree + " " + .current_condition[] .winddir16Point + " " + .current_condition[] .windspeedKmph + " " + .weather[0] .hourly[0] .WindGustKmph + " " + .current_condition[] .visibility + " " + .current_condition[] .precipMM + " " + .current_condition[] .cloudcover + " " + .current_condition[] .temp_C + " " + .weather[0] .hourly[0] .DewPointC + " " + .current_condition[] .pressure + " " + .current_condition[] .weatherDesc[] .value') )
+args="$@"
+#timestamp=$(date +%s)
 
-location=${wttr_data[0]}
-observation_time=${wttr_data[1]}
-observation_time_ap=${wttr_data[2]}
-wind_angle=${wttr_data[3]}
-wind_direction=${wttr_data[4]}
-wind_speed=${wttr_data[5]}
-wind_gusts=${wttr_data[6]}
-visibility=${wttr_data[7]}
-precipitation=${wttr_data[8]}
-cloud_cover=${wttr_data[9]}
-temperature=${wttr_data[10]}
-dewpoint=${wttr_data[11]}
-pressure=${wttr_data[12]}
-#conditions=${wttr_data[13]}
 
-# meteorological wind rose full (for say)
-case $wind_direction in
-     N) wind_dir_say='North' ;;
-     NNE) wind_dir_say='North north east' ;;
-     NE) wind_dir_say='North east' ;;
-     ENE) wind_dir_say='East north east' ;;
-     E) wind_dir_say='East' ;;
-     ESE) wind_dir_say='East south east' ;;
-     SE) wind_dir_say='South east' ;;
-     SSE) wind_dir_say='South south east' ;;
-     S) wind_dir_say='South' ;;
-     SSW) wind_dir_say='South south west' ;;
-     SW) wind_dir_say='South west' ;;
-     WSW) wind_dir_say='West south west' ;;
-     W) wind_dir_say='West' ;;
-     WNW) wind_dir_say='West north west' ;;
-     NW) wind_dir_say='North west' ;;
-     NNW) wind_dir_say='North north west' ;;
-esac
+get_location()
+{
+    #TODO location with more words
+    #location='El+Chalten'
+    if [[ -z $1 ]]; then
 
-wind_speed_say="$wind_speed meters per second"
-wind_gusts_say="$wind_gusts meters per second"
+	location=$(head -n 1 "$XDG_CONFIG_HOME/wttr/default-city.txt")
 
-# cloudbase relative (to stn_height)
-cloud_base=$(echo $(qalc --terse "round(($temperature-$dewpoint)/10*1.247*1000,0)"))
+    fi
+}
 
-# conditions
-## conditions can contain more words
-n=${#wttr_data[@]}
-for (( i=13; i<$n; i++ )); do
-#for i in {13..$n}; do
-    conditions="${conditions} ${wttr_data[$i]}"
-done
 
-# 24 hour clock
-if [[ "$observation_time_ap" -eq "PM" ]]; then
-    obs_time_hour=$(echo $observation_time | cut -d : -f 1)
-    obs_time_hour_24=$(( $obs_time_hour + 12 ))
-    obs_time_minute=$(echo $observation_time | cut -d : -f 2 | head -c 2)
-    observation_time_24="${obs_time_hour_24}:${obs_time_minute}"
-fi
+## openweathermap api call (other_api_key)
+#https://api.openweathermap.org/data/2.5/weather?lat=50&lon=10&appid=85a4e3c55b73909f42c6a23ec35b7147
 
-# precipitation
-if [[ "$precipitation" == "0.0" ]]; then
-    precipitation_say='No precipitation.'
-else
-    precipitation_say="Precipitation: ${precipitation} millimeter."
+get_data()
+{
+    #wttr_data=( $(curl -s "wttr.in/$location?format=j1" | jq -r '.nearest_area[] .areaName[] .value + " " + .current_condition[] .observation_time + " " + .current_condition[] .winddirDegree + " " + .current_condition[] .winddir16Point + " " + .current_condition[] .windspeedKmph + " " + .weather[0] .hourly[0] .WindGustKmph + " " + .current_condition[] .visibility + " " + .current_condition[] .precipMM + " " + .current_condition[] .cloudcover + " " + .current_condition[] .temp_C + " " + .weather[0] .hourly[0] .DewPointC + " " + .current_condition[] .pressure + " " + .current_condition[] .weatherDesc[] .value') )
+    wttr_data=( $(curl -s "wttr.in/$location?format=j1" | jq -r \
+'.nearest_area[] .areaName[] .value + " " +
+.current_condition[] .observation_time + " " +
+.current_condition[] .winddirDegree + " " +
+.current_condition[] .winddir16Point + " " +
+.current_condition[] .windspeedKmph + " " +
+.weather[0] .hourly[0] .WindGustKmph + " " +
+.current_condition[] .visibility + " " +
+.current_condition[] .precipMM + " " +
+.current_condition[] .cloudcover + " " +
+.current_condition[] .temp_C + " " +
+.weather[0] .hourly[0] .DewPointC + " " +
+.current_condition[] .pressure + " " +
+.current_condition[] .weatherDesc[] .value') )
+}
 
-fi
 
-# negative temperature
+process_data()
+{
+    location=${wttr_data[0]}
+    observation_time=${wttr_data[1]}
+    observation_time_ap=${wttr_data[2]}  ## am pm
+    wind_angle=${wttr_data[3]}
+    wind_direction=${wttr_data[4]}
+    wind_speed=${wttr_data[5]}
+    wind_gusts=${wttr_data[6]}
+    visibility=${wttr_data[7]}
+    precipitation=${wttr_data[8]}
+    cloud_cover=${wttr_data[9]}
+    temperature=${wttr_data[10]}
+    dewpoint=${wttr_data[11]}
+    pressure=${wttr_data[12]}
+    #conditions=${wttr_data[13]}
+}
 
-# string for say
-printf "\
+
+say_wind()
+{
+    # meteorological wind rose full (for say)
+    case $wind_direction in
+
+	N)
+	    wind_dir_say='North'
+	    ;;
+
+	NNE)
+	    wind_dir_say='North north east'
+	    ;;
+
+	NE)
+	    wind_dir_say='North east'
+	    ;;
+
+	ENE)
+	    wind_dir_say='East north east'
+	    ;;
+
+	E)
+	    wind_dir_say='East'
+	    ;;
+
+	ESE)
+	    wind_dir_say='East south east'
+	    ;;
+
+	SE)
+	    wind_dir_say='South east'
+	    ;;
+
+	SSE)
+	    wind_dir_say='South south east'
+	    ;;
+
+	S)
+	    wind_dir_say='South'
+	    ;;
+
+	SSW)
+	    wind_dir_say='South south west'
+	    ;;
+
+	SW)
+	    wind_dir_say='South west'
+	    ;;
+
+	WSW)
+	    wind_dir_say='West south west'
+	    ;;
+
+	W)
+	    wind_dir_say='West'
+	    ;;
+
+	WNW)
+	    wind_dir_say='West north west'
+	    ;;
+
+	NW)
+	    wind_dir_say='North west'
+	    ;;
+
+	NNW)
+	    wind_dir_say='North north west'
+	    ;;
+
+    esac
+
+    wind_speed_say="$wind_speed meters per second"
+    wind_gusts_say="$wind_gusts meters per second"
+}
+
+
+calc_cloudbase()
+{
+    # cloudbase relative (to stn_height)
+    cloud_base=$(echo $(qalc --terse "round(($temperature-$dewpoint)/10*1.247*1000,0)"))
+}
+
+
+convert_conditions()
+{
+    # conditions
+    ## conditions can contain more words
+    n=${#wttr_data[@]}
+
+    for (( i=13; i<$n; i++ )); do
+
+	conditions="${conditions} ${wttr_data[$i]}"
+
+    done
+}
+
+
+convert_time()
+{
+    # 24 hour clock
+    if [[ "$observation_time_ap" == "PM" ]]; then
+
+	obs_time_hour=$(echo $observation_time | cut -d : -f 1)
+	obs_time_hour_24=$(( $obs_time_hour + 12 ))
+	obs_time_minute=$(echo $observation_time | cut -d : -f 2 | head -c 2)
+	observation_time_24="${obs_time_hour_24}:${obs_time_minute}"
+
+    elif [[ "$observation_time_ap" == "AM" ]]; then
+
+	observation_time_24="${observation_time}"
+
+    fi
+}
+
+
+convert_precip()
+{
+    # precipitation
+    if [[ "$precipitation" == "0.0" ]]; then
+
+	precipitation_say='No precipitation.'
+
+    else
+
+	precipitation_say="Precipitation: ${precipitation} millimeter."
+
+    fi
+}
+
+
+convert_temp()
+{
+    # TODO handle negative temperature values
+    :
+}
+
+
+synth_say_string()
+{
+    # string for say
+    printf "\
 Location: ${location}. \
 Time: ${observation_time_24} zulu. \
-Wind. Direction: ${wind_angle} degrees ${wind_dir_say} at ${wind_speed_say}. Wind gusts: ${wind_gusts_say}. \
+Wind. Direction: ${wind_angle} degrees. ${wind_dir_say}, at ${wind_speed_say}. Wind gusts: ${wind_gusts_say}. \
 Visibility: ${visibility} kilometers. \
 Current conditions: ${conditions}. \
 ${precipitation_say} \
 Cloud cover: ${cloud_cover} percent. Cloud base: ${cloud_base} meters. \
 Temperature: ${temperature} degrees Celsius. Dewpoint: ${dewpoint} degrees. \
-Barometric pressure: ${pressure} hectopascal.
+Barometric pressure: ${pressure} hectopascals.
 \n"
+}
+
+
+main()
+{
+    get_location
+    get_data
+    process_data
+    say_wind
+    calc_cloudbase
+    convert_conditions
+    convert_time
+    convert_precip
+    convert_temp
+    synth_say_string
+}
+
+main

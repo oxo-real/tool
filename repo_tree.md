@@ -14,6 +14,7 @@
 ├── dev
 │   ├── data_flow_mon
 │   ├── groff_compile
+│   ├── sexager
 │   ├── spin
 │   └── time_passed
 ├── diffdir
@@ -51,7 +52,6 @@
 ├── qrinv
 ├── rename_exif
 ├── repo_tree.md
-├── sexager
 ├── shredr
 ├── slicer
 ├── syncr
