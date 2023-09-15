@@ -51,6 +51,7 @@
 ├── qrinv
 ├── rename_exif
 ├── repo_tree.md
+├── sexager
 ├── shredr
 ├── slicer
 ├── syncr
@@ -73,5 +74,5 @@
     ├── passr_old
     └── trashOLD
 
-3 directories, 70 files
+3 directories, 71 files
 ```
