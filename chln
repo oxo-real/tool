@@ -1,9 +1,9 @@
-#!/usr/bin/env bash
+#! /usr/bin/env sh
 
 ## usage:	chln [non-default target directory]
 
 : '
-change symlinks $HOME to other $USER
+change symlinks $HOME to current $USER
 old: /home/user01/dir/symlink
 new: /home/user02/dir/symlink
 
@@ -34,12 +34,18 @@ fi
 
 for symlink in $(find $target -type l); do
 
+    ## only for links to old users $HOME
+    if [[ "$(realpath $symlink)" == "/home/*" ]]; then
+
+	## -f canonicalize every symlink
 	new_target=$( \
-	readlink $symlink | \
-	cut -d / -f 4- | \
-	awk -v new_home="$HOME/" '{print new_home $0}' \
-	)
+		      readlink -f $symlink | \
+			  cut -d / -f 4- | \
+			  awk -v new_home="$HOME/" '{print new_home $0}' \
+		  )
 
 	ln -sf $new_target $symlink
+
+    fi
 
 done
