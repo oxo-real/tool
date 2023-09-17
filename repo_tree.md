@@ -36,7 +36,6 @@
 ├── histdel
 ├── home_clear
 ├── kill_float
-├── kill_proc
 ├── location
 ├── make_offl_repo
 ├── make_recov
@@ -48,6 +47,7 @@
 ├── notmuch_search
 ├── passexp
 ├── passr
+├── proc_kill
 ├── pwgn
 ├── qrinv
 ├── rename_exif

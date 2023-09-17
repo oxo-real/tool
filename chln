@@ -34,12 +34,12 @@ fi
 
 for symlink in $(find $target -type l); do
 
-    ## only for links to old users $HOME
-    if [[ "$(readlink $symlink)" == "/home/*" ]]; then
+    ## only for links to other users $HOME
+    if [[ "$(readlink $symlink)" == /home/* ]]; then
 
 	## -f canonicalize every symlink
 	new_target=$( \
-		      readlink -f $symlink | \
+		      readlink $symlink | \
 			  cut -d / -f 4- | \
 			  awk -v new_home="$HOME/" '{print new_home $0}' \
 		  )

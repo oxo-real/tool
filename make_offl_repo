@@ -131,8 +131,8 @@ aur_packages_build()
 
 main()
 {
-    #rsync_all_packages
-    #build_custom_pkg_db
+    rsync_all_packages
+    build_custom_pkg_db
     #aur_packages_build
     aur_packages_copy
 }

@@ -29,7 +29,6 @@ code_mount="$HOME/dock/3"
 keys_mount="$HOME/dock/4"
 make_offl_repo="$XDG_DATA_HOME/c/git/code/tool/make_offl_repo"
 
-
 # sourcing
 source_dir="$XDG_DATA_HOME/c/git/code/source/function"
 source $source_dir/get_sudo
@@ -40,6 +39,14 @@ source $source_dir/text_appearance
 repo()
 {
     # synchronize offline repo		(repo)
+
+
+    ## mount repo
+    repo_lbl='REPO'
+    repo_dev=$(lsblk -o label,path | grep "$repo_lbl" | awk '{print $2}')
+
+    mountpoint -q $repo_dir
+    [[ $? -eq 0 ]] || sudo mount "$repo_dev" "$repo_mount"
 
     ## dock/2 is mountpoint
     [[ $(mount | grep $repo_mount) ]] && repo_mounted=1
@@ -67,6 +74,13 @@ code()
 {
     # synchronize offline code		(code)
 
+
+    ## mount code
+    code_lbl='CODE'
+    code_dev=$(lsblk -o label,path | grep "$code_lbl" | awk '{print $2}')
+
+    mountpoint -q $code_dir
+    [[ $? -eq 0 ]] || sudo mount "$code_dev" "$code_mount"
 
     ## dock/3 is mountpoint
     [[ $(mount | grep $code_mount) ]] && code_mounted=1
@@ -181,6 +195,13 @@ keys()
 {
     # synchronize keys			(keys)
 
+
+    ## mount keys
+    keys_lbl='KEYS'
+    keys_dev=$(lsblk -o label,path | grep "$keys_lbl" | awk '{print $2}')
+
+    mountpoint -q $code_dir
+    [[ $? -eq 0 ]] || sudo mount "$keys_dev" "$keys_mount"
 
     # dock/4 is mountpoint
     [[ $(mount | grep $keys_mount) ]] && keys_mounted=1
