@@ -35,7 +35,7 @@ fi
 for symlink in $(find $target -type l); do
 
     ## only for links to old users $HOME
-    if [[ "$(realpath $symlink)" == "/home/*" ]]; then
+    if [[ "$(readlink $symlink)" == "/home/*" ]]; then
 
 	## -f canonicalize every symlink
 	new_target=$( \
