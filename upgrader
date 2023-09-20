@@ -329,25 +329,25 @@ list_marked_upgrade()
 upgrade_packages()
 {
     # upgrade installed packages
-    printf "also upgrade developement packages? (y/N) "
-    reply_read_single_hidden_timer
-    echo
+    #printf "also upgrade developement packages? (y/N) "
+    #reply_read_single_hidden_timer
+    #echo
 
-    if printf "$reply" | grep -iq "^y" ; then
+    #if printf "$reply" | grep -iq "^y" ; then
 
-	devel_packages="--devel"
-	timeupdate="--timeupdate"
-	printf "upgrade (Suv --devel)\n"
-	#printf "upgrade (Suv --devel --timeupdate --combinedupgrade)\n"
-	echo
+    #	devel_packages="--devel"
+    #	timeupdate="--timeupdate"
+    #	printf "upgrade (Suv --devel)\n"
+    #	#printf "upgrade (Suv --devel --timeupdate --combinedupgrade)\n"
+    #	echo
 
-    else
+    #else
 
-	printf "upgrade (Suv)\n"
-	#printf "upgrade (Suv --timeupdate --combinedupgrade)\n"
-	echo
+    	printf "upgrade (Suv)\n"
+    #	#printf "upgrade (Suv --timeupdate --combinedupgrade)\n"
+    #	echo
 
-    fi
+    #fi
 
     ## devel packages are optional
     yay -Suv $devel_packages --sudoloop
