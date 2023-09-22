@@ -419,7 +419,7 @@ report_plain()
             	if [[ ! -d "$src/$file_2_copy" ]] && \
             		[[ ! -f "$src/$file_2_copy" ]]; then
 
-        	   printf "$src/$file_2_copy ${MAGENTA}source not found${NOC}\n"
+        	   printf "${MAGENTA}$src/$file_2_copy${NOC} source not found\n"
         	   continue
 
             	else
@@ -561,7 +561,7 @@ crypt()
 			    ## remove the unencrypted tar archive
 			    destroy $tar_name
 
-			    printf " ${YELLOW}unchanged hash${NOC}\n"
+			    printf " ${BOLD}unchanged hash${NOC}\n"
 
 			    continue
 
@@ -628,7 +628,7 @@ crypt()
 
 		    else
 
-			printf "${MAGENTA}$crypt_loc is not a file or directory${NOC}\n"
+			printf "${MAGENTA}$crypt_loc${NOC} is not a file or directory\n"
 
 			continue
 		    fi
