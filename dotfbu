@@ -111,7 +111,7 @@ validate_source()
 
     	printf "source:		${MAGENTA}$src${NOC}\n\n"
 
-	printf "source ${MAGENTA}does not exist${NOC}\n"
+	printf "${MAGENTA}$src${NOC} does not exist\n"
 	printf "exiting, bye!\n"
 	exit 11
 
@@ -132,18 +132,18 @@ validate_destination()
 
 	    backup)
 
-		printf "${MAGENTA}no destination argument${NOC}, exiting, bye!\n"
+		printf "${MAGENTA}empty destination argument${NOC}, exiting, bye!\n"
 		exit 11
 		;;
 
 	    restore)
 
 		re_dest=$(head -n 1 $src/.sync_info)
-		printf "destination:	${MAGENTA}no argument${NOC}\n"
+		printf "destination:	${MAGENTA}empty argument${NOC}\n"
 
 		if [[ ! -z $re_dest ]]; then
 
-		    printf "		${YELLOW}$re_dest${NOC}\n\n"
+		    printf "		${BOLD}$re_dest${NOC}\n\n"
 		    printf "is this okay? (y/N) "
 		    reply_read_single
 		    #reply_single
@@ -161,7 +161,7 @@ validate_destination()
 
 		else
 
-		    printf "\nno valid destination argument, exiting, bye!\n"
+		    printf "\n${MAGENTA}no valid destination argument${NOC}, exiting, bye!\n"
 		    exit 12
 
 		fi
@@ -220,18 +220,18 @@ validate_destination()
 
 	    ## req: .fpcl_file in source
 	    [[ ! -f $src/.fpcl ]] && \
-		printf "${MAGENTA}no .fpcl file found in $bu_src${NOC}\n" && exit 21
+		printf "no .fpcl file found in ${MAGENTA}$bu_src${NOC}\n" && exit 21
 	    ;;
 
 	restore)
 
 	    ## req: .sync_info file in source
 	    [[ ! -f $src/.sync_info ]] && \
-		printf "${MAGENTA}no .sync_info file found in $re_src${NOC}\n" && exit 22
+		printf "no .sync_info file found in $${MAGENTA}re_src${NOC}\n" && exit 22
 
 	    ## req: .fpcl_file in source
 	    [[ ! -f $src/.fpcl ]] && \
-		printf "${MAGENTA}no .fpcl file found in $bu_src${NOC}\n" && exit 22
+		printf "no .fpcl file found in ${MAGENTA}$bu_src${NOC}\n" && exit 22
 	    ;;
 
     esac
@@ -493,7 +493,7 @@ crypt()
 		elif [[ ! -d "$src/$file_2_crypt" ]] && \
 		    [[ ! -f "$src/$file_2_crypt" ]]; then
 
-		    printf "$src/$file_2_crypt ${MAGENTA}location not found${NOC}\n"
+		    printf "${MAGENTA}$src/$file_2_crypt${NOC} location not found\n"
 
 		    continue
 
@@ -617,7 +617,7 @@ crypt()
 			    ## remove the unencrypted tar archive
 			    destroy $file_name
 
-			    printf " ${YELLOW}unchanged hash${NOC}\n"
+			    printf " ${BOLD}unchanged hash${NOC}\n"
 
 			    continue
 
@@ -767,7 +767,7 @@ crypt()
 
 		else
 
-		    printf "${MAGENTA}$crypt_loc is not a file or directory${NOC}\n"
+		    printf "${MAGENTA}$crypt_loc${NOC} is not a file or directory\n"
 
 		    continue
 
@@ -839,15 +839,15 @@ verify()
 
 		### loc_verify is existing file
 		[[ -f $loc_verify ]] || \
-		    printf "CRITICAL ERROR ${MAGENTA}$loc_verify${NOC} file does not exist\n"
+		    printf "${BOLD}CRITICAL ERROR${NOC} ${MAGENTA}$loc_verify${NOC} file does not exist\n"
 
 		### loc_verify has openssl encryption
 		file $loc_verify | grep -q 'openssl enc' || \
-		    printf "CRITICAL ERROR ${MAGENTA} $loc_verify${NOC} not openssl encrypted\n"
+		    printf "${BOLD}CRITICAL ERROR${NOC} ${MAGENTA} $loc_verify${NOC} not openssl encrypted\n"
 
 		### unencrypted location "$fpcl_line" does exist
 		[[ -f "$bu_dest/$fpcl_location" ]] || \
-		    printf "CRITICAL ERROR ${MAGENTA} $bu_dest/$fpcl_location${NOC} exist\n"
+		    printf "${BOLD}CRITICAL ERROR${NOC} ${MAGENTA} $bu_dest/$fpcl_location${NOC} exist\n"
 
 	    done < $fpcl_file
 
@@ -863,7 +863,7 @@ verify()
 
 		*)
 		    # no git repo
-		    printf "WARNING! ${MAGENTA}$bu_dest${NOC} is no git repo\n"
+		    printf "${BOLD}WARNING${NOC} ${MAGENTA}$bu_dest${NOC} is no git repo\n"
 		    printf "git init and remote add? (Y/n)"
 
 		    reply_read_single
