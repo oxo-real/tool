@@ -1,18 +1,16 @@
 #!/bin/bash
 #
 ##
-###      _                  _          _ _
-###  ___| |__  _ __ ___  __| |    __ _| | |
-### / __| '_ \| '__/ _ \/ _` |   / _` | | |
-### \__ \ | | | | |  __/ (_| |  | (_| | | |
-### |___/_| |_|_|  \___|\__,_|___\__,_|_|_|
-###                         |_____|
-###  _ _|_ _ ._    _  _
-### (_\/|_(_)|_)\/(_|(/_
-###   /      |  /  _|
+###      _                  _
+###  ___| |__  _ __ ___  __| |_ __
+### / __| '_ \| '__/ _ \/ _` | '__|
+### \__ \ | | | | |  __/ (_| | |
+### |___/_| |_|_|  \___|\__,_|_|
+###  _    _
+### (_)><(_)
 ###
 ### shred_all
-### (c) 2017 - 2022  |  cytopyge
+### (c) 2017 - 2023  |  oxo
 ###
 ### destroy files and directories
 ###
@@ -67,9 +65,9 @@ destroying()
 		link_count=$(find $target -depth -type l | wc -l)
 		directory_count=$(find $target -depth -type d | wc -l)
 
-		printf "about to shred:	${YELLOW}$file_count${NOC} files, ${YELLOW}$link_count${NOC} links and ${YELLOW}$directory_count${NOC} directories in $target\n\n${RED}THIS IS DEFINITE${NOC} continue? (y/N) "
+		printf "\ndelete ($passes shredr passes): ${YELLOW}$file_count${NOC} files, ${YELLOW}$link_count${NOC} links and ${YELLOW}$directory_count${NOC} directories in $target\n\n${BOLD}THIS IS DEFINITE${NOC} continue? (y/N) "
 
-		reply_read_single_hidden_timer
+		reply_read_single_hidden_timer 10
 
 		echo
 		if printf "$reply" | grep -iq "^y"; then

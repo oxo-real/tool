@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#! /usr/bin/env sh
 set -o errexit
 #set -o nounset
 set -o pipefail
@@ -39,15 +39,15 @@ set -o pipefail
 #
 
 
+args="$@"
+
 # initial definitions
 ## select cipher suite
-#cipher_suite="gnupg"
-cipher_suite="openssl"
+cipher_suite="gnupg"
+#cipher_suite="openssl"
 
 cgc_dir="$XDG_DATA_HOME/c/git/code"
 source_dir="$cgc_dir/source/function"
-
-args="$@"
 
 ## read elements non-accociative array $args_arr
 ## [SC2206 · koalaman/shellcheck Wiki · GitHub](https://github.com/koalaman/shellcheck/wiki/SC2206)

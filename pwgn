@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#! /usr/bin/env sh
 #
 ##
 ###  _ ____      ____ _ _ __
@@ -34,7 +34,7 @@
 #
 
 ## dependencies
-#$  source_dir, qrencode, zbarcam
+##  source_dir, qrencode, zbarcam
 
 ## usage
 #   pwgn
@@ -70,9 +70,6 @@ source_dir="$XDG_DATA_HOME/c/git/code/source/function"
 sourcing() {
     ## define colors
     source "$source_dir/text_appearance"
-
-    ## reply functions
-    source "$source_dir/reply_functions"
 
     ## user authentication
     source "$source_dir/get_sudo"
@@ -136,29 +133,6 @@ input_type() {
 	    ;;
 
     esac
-}
-
-
-choose_input() {
-    # DEV old can be deleted after testing DEL
-    # choose optical or manual input
-
-    printf "decode video input (${YELLOW}Q${NOC}R-code) "
-
-    reply_read_single_hidden_timer
-
-    if printf "$reply" | grep -iq "^q"; then
-
-        optical_input
-        echo
-
-    else
-
-        erase_line
-
-        keyboard_input
-
-    fi
 }
 
 
@@ -486,7 +460,6 @@ main()
     sourcing
     get_sudo
     input_type
-    #choose_input
     input_validation
     hash_1_input
     hash_3_input

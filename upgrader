@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#! /usr/bin/env sh
 #
 ##
 ###                                  _
@@ -191,7 +191,7 @@ boot_usr_presence() {
     mountpoint -q /boot
     if [[ $? -ne 0 ]]; then
 
-	printf "no device at mountpoint ${MAGENTA}/boot${NOC}\n"
+	printf "${MAGENTA}/boot${NOC} no device at mountpoint\n"
 	printf "exiting\n"
 	exit 175
 
@@ -201,7 +201,7 @@ boot_usr_presence() {
     mountpoint -q /usr
     if [[ $? -ne 0 ]]; then
 
-	printf "no device at mountpoint ${MAGENTA}/usr${NOC}\n"
+	printf "${MAGENTA}/usr${NOC} no device at mountpoint\n"
 	printf "exiting\n"
 	exit 183
 
