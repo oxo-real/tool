@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#! /usr/bin/env sh
 
 # create atis
 
@@ -19,8 +19,30 @@ get_location()
     fi
 }
 
+lat=50
+lon=10
+api_key='85a4e3c55b73909f42c6a23ec35b714'
+curl='curl --silent --fail'
+https='https://api.openweathermap.org/data/2.5/'
+products='weather forecast forecast/daily'
 
-## openweathermap api call (other_api_key)
+
+get_owm_data()
+{
+    for product in "$products"; do
+
+	data="$($curl $https/$product?lat=$lat&lon=$lon&appid=$api_key)"
+	owm_$product="$data"
+
+    done
+
+    head $owm_weather
+    head $owm_forecast
+    head ${owm_forecast/daily}
+}
+
+exit 255
+# openweathermap api call (other_api_key)
 #https://api.openweathermap.org/data/2.5/weather?lat=50&lon=10&appid=85a4e3c55b73909f42c6a23ec35b7147
 
 get_data()
@@ -216,7 +238,7 @@ Barometric pressure: ${pressure} hectopascals.
 }
 
 
-main()
+main_OLD()
 {
     get_location
     get_data
@@ -228,6 +250,11 @@ main()
     convert_precip
     convert_temp
     synth_say_string
+}
+
+main()
+{
+    get_owm_data
 }
 
 main
