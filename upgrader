@@ -113,6 +113,7 @@ internet_conn_check()
 	printf "run netconn? (Y/n) "
 	reply_read_single_hidden_timer
 	echo
+	echo
 
 	if printf "$reply" | grep -iq "^n" ; then
 
