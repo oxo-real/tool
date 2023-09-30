@@ -1,7 +1,9 @@
 #! /usr/bin/env sh
+
 #set -o errexit
 #set -o nounset
 set -o pipefail
+
 #
 ##
 ###                              _
@@ -30,7 +32,7 @@ set -o pipefail
 # and
 # 2. unmount mounted devices (mps_umount)
 # by simply selecting device and/or mountpoint
-# NOTICE: mount sets current owner and group
+# NOTICE mount sets current owner and group
 
 # initial general definitions
 
@@ -44,21 +46,21 @@ crypto_source="$XDG_DATA_HOME/c/keys/pass/vlt_pass"
 password_store_lnk="$HOME/.password-store"
 
 
-text_appearance() {
-
+text_appearance()
+{
     source $source_dir/text_appearance
 }
 
 
-get_sudo() {
-
+get_sudo()
+{
     source $source_dir/get_sudo
     get_sudo
 }
 
 
-get_mps_mount() {
-
+get_mps_mount()
+{
     # common mountpoints
     common_mps=(\
 	 /boot \
@@ -136,8 +138,8 @@ get_mps_mount() {
 }
 
 
-get_mps_umount() {
-
+get_mps_umount()
+{
     ## umountable mountpoints
     mps_umount=$(findmnt --list -o SOURCE,FSTYPE,SIZE,LABEL,TARGET | \
     #mps_umount=$(findmnt --list -o SOURCE,SIZE,LABEL,TARGET | \
@@ -154,8 +156,8 @@ get_mps_umount() {
 }
 
 
-remove_from_list () {
-
+remove_from_list ()
+{
     # remove designated lines from source_devs_avail_list
     # to prevent sed error: 'extra characters after command'
     # start the sed sting with '\' and use alternative delimiters ':'
@@ -317,16 +319,16 @@ get_source_devs() {
 }
 
 
-refresh_mps_avail() {
-
+refresh_mps_avail()
+{
     unset common_mps
     unset mps_avail
     get_mps_mount
 }
 
 
-mount_to_select_param() {
-
+mount_to_select_param()
+{
     # choose mountpoint
     local fzf_input=$(printf '\t\t\t\t\t%s\n' "${mps_avail[@]}")
     local fzf_prompt="set mountpoint for source: $line"
@@ -337,8 +339,8 @@ mount_to_select_param() {
 }
 
 
-devs_and_mps_param() {
-
+devs_and_mps_param()
+{
     # choose devices (mount) and or mountpoints (umount)
 
     local fzf_input="$(printf "%s\n%s" "${source_devs_avail[@]}" "$mps_umount")"
@@ -359,8 +361,8 @@ devs_and_mps_param() {
 }
 
 
-fzf_choose() {
-
+fzf_choose()
+{
     # fzf selection without tabs (from mount_to_select_param)
     fzf_select=$(printf "$fzf_input" | fzf -m --header="${BOLD}source device			      mountpoint${NORMAL}" --prompt="$fzf_prompt " $fzf_options | tr -d '\t')
 
@@ -389,32 +391,32 @@ fzf_choose() {
 }
 
 
-mount_info() {
-
+mount_info()
+{
     printf "$source_dev $dev_type $size $label mounted to ${BLUE}$mount_to${NOC}\n"
 }
 
 
-umount_info() {
-
+umount_info()
+{
     printf "$source_dev $dev_type $size $label umounted from ${BLUE}$mountpoint${NOC}\n"
 }
 
 
-mapper_is_vlt() {
-
+mapper_is_vlt()
+{
     mapper_is_vlt=$(printf "$line" | grep vlt_)
 }
 
 
-dev_is_luks() {
-
+dev_is_luks()
+{
     sudo cryptsetup isLuks $device >/dev/null 2>&1
 }
 
 
-get_device_data() {
-
+get_device_data()
+{
     source_dev=$(printf "$line" | cut -d ' ' -f 1)
     dev_type=$(\lsblk -nrp -o "name,type" | grep -w "$source_dev" | cut -d ' ' -f 2)
     size=$(printf "$line" | cut -d ' ' -f 3)
@@ -423,14 +425,14 @@ get_device_data() {
 }
 
 
-dev_has_mountpoint() {
-
+dev_has_mountpoint()
+{
     mountpoint -q $mountpoint &> /dev/null
 }
 
 
-validity_check() {
-
+validity_check()
+{
     case $action in
 
         mount)
@@ -444,7 +446,9 @@ validity_check() {
 	    case $mount_to in
 
                 other)
-		    read -r -p "mount $device to " <&1 mount_to
+		    ## not hidden empty directories
+		    mount_to=$(find $HOME -type d -empty 2> /dev/null | sed '/\/\./d' | fzf --prompt "mount $device to ")
+		    #read -r -p "mount $device to " <&1 mount_to
 		    validity_check
           	    ;;
 
@@ -476,8 +480,8 @@ validity_check() {
 }
 
 
-process_devs_and_mps() {
-
+process_devs_and_mps()
+{
     # processing fzf selection
     while IFS= read -r -u 7 line; do
 
@@ -542,8 +546,8 @@ process_devs_and_mps() {
 }
 
 
-dev_is_vlt_pass() {
-
+dev_is_vlt_pass()
+{
     if [[ $(printf "$line" | grep "$crypto_source") ]]; then
 
 	pass_mount=$(readlink $password_store_lnk)
@@ -557,8 +561,8 @@ dev_is_vlt_pass() {
 }
 
 
-main() {
-
+main()
+{
     text_appearance
     #get_sudo
 
