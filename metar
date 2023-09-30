@@ -21,7 +21,7 @@
 
 # usage:
 # metar [taf] $ident_1 [$ident_n]
-# metar [taf] [near 50,-10]
+# metar [taf] [near $lat,$lon]
 
 
 args="$@"
@@ -152,7 +152,7 @@ data_presentation()
 	    station_dist=$(printf '%.*f\n' 1 "$station_dist")
 	    station_bear=$(printf '%.*f\n' 0 "$station_bear")
 
-	    printf '      %skm %s°\n' "$station_dist" "$station_bear"
+	    printf '%skm %s°\n' "$station_dist" "$station_bear"
 	    ;;
 
 	*)
