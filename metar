@@ -37,7 +37,7 @@ avwx_api_key='Authorization: BEARER 4mLFIAd0-TzYNLNGJVWS0-zf87wQNzFvaT5uAN_8jVg'
 
 ## declare globally
 show_taf=0
-dist_bear=0
+near=0
 
 args_fetch()
 {
@@ -53,6 +53,7 @@ args_fetch()
 
 	    near)
 		## fetch nearby stations
+		near=1
 		shift
 		## decimal coordinates; i.e. 50.0,-10
 		latlon="$1"
@@ -92,11 +93,17 @@ station_data_retrieval()
 
     esac
 
-    # [TODO] distance and direction from $latlon
-    station_lat=$(printf '%s' "$station_raw" | jq '.latitude')
-    station_lon=$(printf '%s' "$station_raw" | jq '.longitude')
+    # distance and direction from $latlon
+    case $near in
 
-    distance_bearing $lat $lon $station_lat $station_lon
+	1)
+	    station_lat=$(printf '%s' "$station_raw" | jq '.latitude')
+	    station_lon=$(printf '%s' "$station_raw" | jq '.longitude')
+
+	    distance_bearing $lat $lon $station_lat $station_lon
+	    ;;
+
+    esac
 
     #pirep_raw=$(curl -sSL --request GET --url "$avwx_domain/pirep/$ident" --header 'Authorization: BEARER 4mLFIAd0-TzYNLNGJVWS0-zf87wQNzFvaT5uAN_8jVg')
     #airsigmet_raw=$(curl -sSL --request GET --url "$avwx_domain/airsigmet/$ident" --header 'Authorization: BEARER 4mLFIAd0-TzYNLNGJVWS0-zf87wQNzFvaT5uAN_8jVg')
@@ -123,27 +130,42 @@ nearby_stations()
 
 data_presentation()
 {
+    ## station data
     station_pretty_id=$(printf '%s' "$station_raw" | jq '.name + ", " + .city + " " + .country + " " + (.latitude|tostring) + " " + (.longitude|tostring) + " " + (.elevation_m|tostring) + "m"' | tr -d '"')
-    ###station_distance=$(distance_bearing $lat $lon $station_lat $station_lon)
-    station_dist=$(printf '%s' "$dist_bear" | cut -d ' ' -f 1)
-    station_bear=$(printf '%s' "$dist_bear" | cut -d ' ' -f 2)
 
-    ## no negative bearings
-    if [[ "$(printf '%s' "$station_bear" | head -c 1)" == '-' ]]; then
+    printf '      %s ' "$station_pretty_id"
 
-	station_bear=$(echo "360 + $station_bear" | bc)
+    case $near in
 
-    fi
+	1)
+	    station_dist=$(printf '%s' "$dist_bear" | cut -d ' ' -f 1)
+	    station_bear=$(printf '%s' "$dist_bear" | cut -d ' ' -f 2)
 
-    ## rounding numbers
-    station_dist=$(printf '%.*f\n' 1 "$station_dist")
-    station_bear=$(printf '%.*f\n' 0 "$station_bear")
+	    ## no negative bearings
+	    if [[ "$(printf '%s' "$station_bear" | head -c 1)" == '-' ]]; then
 
-    printf '      %s %skm %s°\n' "$station_pretty_id" "$station_dist" "$station_bear"
+		station_bear=$(echo "360 + $station_bear" | bc)
 
+	    fi
+
+	    ## rounding numbers
+	    station_dist=$(printf '%.*f\n' 1 "$station_dist")
+	    station_bear=$(printf '%.*f\n' 0 "$station_bear")
+
+	    printf '      %skm %s°\n' "$station_dist" "$station_bear"
+	    ;;
+
+	*)
+	    echo
+	    ;;
+
+    esac
+
+    ## metar data
     metar=$(printf '%s' "$metar_raw" | jq '.raw' | tr -d '"')
     printf 'metar %s\n' "$metar"
 
+    ## taf data
     case $show_taf in
 
 	1)
