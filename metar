@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#! /usr/bin/env sh
 #
 ##
 ###                 _
@@ -10,205 +10,280 @@
 ### (_)><(_)
 ###
 ### metar
-### get metar from all over the world
-### include tafs optionally
-### source: aviationweather.gov
+### get metar
+### include taf, pirep, airsigmet optionally
+### source: [avwx rest api](https://info.avwx.rest/)
 ###
 ### (c) 2020 - 2023  |  oxo
 ###
 ##
 #
 
-## script can be used as cli command and as source for i3blocks
-### script call for i3 blocks:
-### -nc -s eham
-
 # usage:
-# metar
-# metar -s eham
-# metar and taf
-# metar -t -s eham
+# metar [taf] $ident_1 [$ident_n]
+# metar [taf] [near 50,-10]
+
+
+args="$@"
+
 
 # variable initialization
-
-#ids="$METAR"
-ip_check="9.9.9.9"
 script_name="metar"
 developer='oxo'
-initial_release='2020
+initial_release='2020'
 
-'
-source_web='https://www.aviationweather.gov/metar/data'
+avwx_domain="https://avwx.rest/api"
+avwx_api_key='Authorization: BEARER 4mLFIAd0-TzYNLNGJVWS0-zf87wQNzFvaT5uAN_8jVg'
 
+## declare globally
+show_taf=0
 
-# read_flags
+args_fetch()
+{
+    while [[ "$1" ]]; do
 
-while getopts ":s:tnch" opt; do
+	case "$1" in
 
-	case $opt in
-		s)
-		    ## compulsory argument with value
-		    ## station ID
-		    ## -ids <IDs>
-		    ids=${OPTARG}
-		    ;;
-		t)
-		    ## optional argument
-		    ## -t
-		    ## include TAF
-		    #t=${OPTARG}
-		    taf="1"
-		    ;;
-		n)
-		    ## optional argument
-		    ## don't print full metar and taf
-		    ## i3blocks: compulsory '1' for i3blocks, else '0'
-		    no_metar="1"
-		    ;;
-		c)
-		    ## optional argument
-		    ## print custom metar (for i3blocks)
-		    ## print_custom_metar optional for command, but must be '1' for i3blocks
-		    custom_metar="1"
-		    ;;
-		h)
-		    ## -h display help text
-		    printf "$script_name usage: $script_usage"
-		    exit 0
-		    ;;
-		\?)
-		    printf "$script_name ${RED}invalid option: -${OPTARG}${NOC}"
-		    exit 1
-		    ;;
-		:)
-		    ## display help
-		    printf "$script_name: ${RED}option -${OPTARG} requires an argument (IDs)${NOC}"
-		    exit 1
-		    ;;
+	    taf)
+		## include taf
+		show_taf=1
+		shift
+		;;
+
+	    near)
+		## fetch nearby stations
+		shift
+		## decimal coordinates; i.e. 50.0,-10
+		latlon="$1"
+		lat=$(printf '%s' "$latlon" | awk -F ',' '{print $1}')
+		lon=$(printf '%s' "$latlon" | awk -F ',' '{print $2}')
+		shift
+		## number of stations
+		#n=$1
+		nearby_stations "$latlon"
+		;;
+
+	    *)
+		## arg is station
+		ident="$1"
+		station_data_retrieval
+		shift
+		;;
+
 	esac
 
-done
-
-
-source_qry="?ids=${ids}&format=raw&hours=0&taf=on&layout=on"
-
-
-internet_conn_check() {
-
-    $(ping -q -w 2 -c 1 $ip_check > /dev/null 2>&1)
-
-    if [ $? != 0 ]; then
-
-	exit 101
-
-    fi
-
+    done
 }
 
 
-# getting the data
+station_data_retrieval()
+{
+    station_raw=$(curl -sSL --request GET --url "$avwx_domain/station/$ident" --header 'Authorization: BEARER 4mLFIAd0-TzYNLNGJVWS0-zf87wQNzFvaT5uAN_8jVg')
+    # [TODO] api key
+    #station_raw=$(curl -sSL --request GET --url "$avwx_domain/station/$ident" --header 'Authorization: BEARER "$avwx_api_key"')
+    metar_raw=$(curl -sSL --request GET --url "$avwx_domain/metar/$ident" --header 'Authorization: BEARER 4mLFIAd0-TzYNLNGJVWS0-zf87wQNzFvaT5uAN_8jVg')
 
-getting_data() {
+    case $show_taf in
 
-    ## download website
-    awc_metar_site=$(curl -s -i "$source_web""$source_qry")
+	1)
+	    taf_raw=$(curl -sSL --request GET --url "$avwx_domain/taf/$ident" --header 'Authorization: BEARER 4mLFIAd0-TzYNLNGJVWS0-zf87wQNzFvaT5uAN_8jVg')
+	    ;;
 
-    ## throw html garbage away
-    awc_metar_html=$(echo $awc_metar_site | awk -F '<!-- Data ends here --> ' '{print $1}' | awk -F '<!-- Data starts here --> ' '{print $2}' )
+    esac
 
-    ## getting clean metar
-    awc_metar=$(echo $awc_metar_html | awk -F '</code>' '{print $1}' | awk -F '<code>' '{print $2}')
+    # [TODO] distance and direction from $latlon
+    station_lat=$(printf '%s' "$station_raw" | jq '.latitude')
+    station_lon=$(printf '%s' "$station_raw" | jq '.longitude')
 
-    ## getting clean taf
-    awc_taf=$(echo $awc_metar_html | awk -F '<br/><code>' '{print $2}' | awk -F '</code><br/>' '{print $1}' | sed 's/&nbsp;//g' | sed s'/ <br\/>/\\n/g' )
-
+    #pirep_raw=$(curl -sSL --request GET --url "$avwx_domain/pirep/$ident" --header 'Authorization: BEARER 4mLFIAd0-TzYNLNGJVWS0-zf87wQNzFvaT5uAN_8jVg')
+    #airsigmet_raw=$(curl -sSL --request GET --url "$avwx_domain/airsigmet/$ident" --header 'Authorization: BEARER 4mLFIAd0-TzYNLNGJVWS0-zf87wQNzFvaT5uAN_8jVg')
+    #notam_raw=$(curl -sSL --request GET --url "$avwx_domain/notam/$ident" --header 'Authorization: BEARER 4mLFIAd0-TzYNLNGJVWS0-zf87wQNzFvaT5uAN_8jVg')
+    #nbm_raw=$(curl -sSL --request GET --url "$avwx_domain/nbm/report/$ident" --header 'Authorization: BEARER 4mLFIAd0-TzYNLNGJVWS0-zf87wQNzFvaT5uAN_8jVg')
 }
 
 
-# for i3blocks
+nearby_stations()
+{
+    near_raw=$(curl -sSL --request GET --url "$avwx_domain/station/near/${latlon}" --header 'Authorization: BEARER 4mLFIAd0-TzYNLNGJVWS0-zf87wQNzFvaT5uAN_8jVg')
+    station_list=$(printf '%s' "$near_raw" | jq '.[].station.icao' | tr -d '"' | sed '/null/d')
 
-calculations_for_i3blocks() {
+    while IFS= read -r ident; do
 
-    ## remove variable winds, if that field is present (000V000)
-    metar=$(echo $awc_metar | sed -e 's/[0-9][0-9][0-9]V[0-9][0-9][0-9] //')
+	station_data_retrieval
+	data_presentation
 
-    ## retrieving data fields
-    location=$( echo $metar | awk -F " " '{print $1}' )
+    done <<< "$station_list"
 
-    m_dayn=$( echo $metar | awk -F " " '{print $2}' | cut -c -2 )
-    m_time=$( echo $metar | awk -F " " '{print $2}' | cut -c 3- | cut -c -4 )
-    m_hour=$( echo $metar | awk -F " " '{print $2}' | cut -c 3- | cut -c -2 )
-    m_minute=$( echo $metar | awk -F " " '{print $2}' | cut -c 5- | cut -c -2 )
-
-    dzt=$(date +%z | cut -c 2-3)
-    dzt_minutes=$(( 10#$dzt * 60 ))
-
-    hour_now=`date +%H`
-    minute_now=`date +%M`
-
-    ## Prepend the string "10#" to the front of your variables. That forces bash to treat them as decimal,
-    ## even though the leading zero would normally make them octal.
-    m_age=$(( ( 10#$hour_now * 60 ) + 10#$minute_now - ( 10#$m_hour * 60 + 10#$m_minute + 10#$dzt_minutes ) ))
-
-    wind=$( echo $metar | awk -F " " '{print $3}' | cut -c -5 )
-    gusts=$( echo $metar | awk -F " " '{print $3}' | cut -c -5 )
-
-    ## bash regular expressions matching (rematch)
-    ### conditions
-    re_cond="[A_Z]{5}"
-    [[ $metar =~ $re_cond ]] && cond=${BASH_REMATCH[0]}
-    ### temperature and dewpoint
-    re_temp="M?[0-9]{2}\/M?[0-9]{2}"
-    [[ $metar =~ $re_temp ]] && temp_dew=${BASH_REMATCH[0]}
-    ### barometric pressure
-    re_qnh="Q[0-9]{4}"
-    [[ $metar =~ $re_qnh ]] && qnh=${BASH_REMATCH[0]}
-    qnh=$(echo $qnh | cut -c 2-)
-
-    ## getting clean custom metar
-    metar_cstm="$location$m_age $wind $cond $temp_dew $qnh"
-
+    exit 0
 }
 
 
-# printing data
-printing_data() {
+data_presentation()
+{
+    station_pretty_id=$(printf '%s' "$station_raw" | jq '.name + ", " + .city + " " + .country + " " + (.latitude|tostring) + " " + (.longitude|tostring) + " " + (.elevation_m|tostring) + "m"' | tr -d '"')
+    station_distance=$(dir_bear $lat $lon $station_lat $station_lon)
+    printf '      %s %s\n' "$station_pretty_id" "$station_distance"
 
-    ## metar
-    ### print unless metar is switched off with -n flag
-    if [ -z "$no_metar" ]; then
+    metar=$(printf '%s' "$metar_raw" | jq '.raw' | tr -d '"')
+    printf 'metar %s\n' "$metar"
 
-	printf "$awc_metar\n"
+    case $show_taf in
 
-    fi
+	1)
+	    taf=$(printf '%s' "$taf_raw" | jq '.raw' | tr -d '"')
+	    printf '  taf %s\n' "$taf"
+	    ;;
 
-    ## taf
-    ### print when switched on with -t flag
-    if [ -n "$taf" ]; then
+    esac
 
-	printf "$awc_taf\n"
-
-    fi
-
-    ## custom metar
-    ## (for i3blocks) when switched on with -c flag
-
-    if [ -n "$custom_metar" ]; then
-
-	calculations_for_i3blocks
-
-	printf "$metar_cstm"
-
-    fi
-
+    echo
 }
 
 
-main() {
+haversine()
+{
+    if test "$#" -ne 4; then
+	echo >&2 "E: syntax: $0 lat1 lon1 lat2 lon2"
+	exit 1
+    fi
 
-    internet_conn_check
-    getting_data
-    printing_data
+    set -e
+
+    # make GNU bc use POSIX mode and shut up
+    BC_ENV_ARGS=-qs
+    export BC_ENV_ARGS
+
+    # assignment of constants, variables and functions
+    # p: multiply with to convert from degrees to radians (π/180)
+    # r: earth radius in metres
+    # d: distance
+    # h: haversine intermediate
+    # i,j: (lat,lon) point 1
+    # x,y: (lat,lon) point 2
+    # k: delta lat
+    # l: delta lon
+    # m: sin(k/2) (square root of hav(k))
+    # n: sin(l/2) (  partial haversine  )
+    # n(x): arcsin(x)
+    # r(x,n): round x to n decimal digits
+    # v(x): sign (Vorzeichen)
+    # w(x): min(1, sqrt(x)) (Wurzel)
+
+    bc -l <<-EOF
+    scale=64
+    define n(x) {
+	if (x == -1) return (-2 * a(1))
+	if (x == 1) return (2 * a(1))
+	return (a(x / sqrt(1 - x*x)))
+	}
+    define v(x) {
+	if (x < 0) return (-1)
+	if (x > 0) return (1)
+	return (0)
+	}
+    define r(x, n) {
+	auto o
+	o = scale
+	if (scale < (n + 1)) scale = (n + 1)
+	x += v(x) * 0.5 * A^-n
+	scale = n
+	x /= 1
+	scale = o
+	return (x)
+	}
+    define w(x) {
+	if (x >= 1) return (1)
+	return (sqrt(x))
+	}
+/* WGS84 reference ellipsoid: große Halbachse (metres), Abplattung */
+i = 6378137.000
+x = 1/298.257223563
+/* other axis */
+j = i * (1 - x)
+/* mean radius resulting */
+r = (2 * i + j) / 3
+/* coordinates */
+p = (4 * a(1) / 180)
+i = (p * $1)
+j = (p * $2)
+x = (p * $3)
+y = (p * $4)
+/* calculation */
+k = (x - i)
+l = (y - j)
+m = s(k / 2)
+n = s(l / 2)
+h = ((m * m) + (c(i) * c(x) * n * n))
+d = 2 * r * n(w(h))
+r(d, 3)
+EOF
+
+    # output is in metres, rounded to millimetres, error < ¼% in WGS84
+    # https://evolvis.org/plugins/scmgit/cgi-bin/gitweb.cgi?p=useful-scripts/mirkarte.git;a=blob;f=geo.sh;hb=HEAD
+}
+
+
+dir_bear()
+{
+    awk -v lat1="$1" -v lat2="$3" -v lon1="$2" -v lon2="$4" '
+    BEGIN {
+    #some basic info
+
+    pi = 3.14159
+    R  = 6371
+
+    lat1r = lat1 * pi / 180
+    lat2r = lat2 * pi / 180
+    lon1r = lon1 * pi / 180
+    lon2r = lon2 * pi / 180
+
+    dLat = lat2r - lat1r
+    dLon = lon2r - lon1r
+
+    #Distance calculations
+    a   = sin(dLat/2) * sin(dLat/2) + cos(lat1r) * cos(lat2r) * sin(dLon/2) * sin(dLon/2)
+    c1  = sqrt(a)
+    c2  = sqrt(1 - a)
+    cat = atan2(c1,c2)
+    c   = 2 * cat
+    d   = R * c
+
+    #Bearing calculation
+    x = cos(lat1r) * sin(lat2r) - sin(lat1r) * cos(lat2r) * cos(dLon)
+    y = sin(dLon) * cos(lat2r)
+
+    brng = atan2(y,x)
+    brn  = brng * 180 / pi
+    #print brng * 180 / pi
+
+    #Mid point calculation
+
+    Bx = cos(lat2r) * cos(dLon)
+    By = cos(lat2r) * sin(dLon)
+    atc1 = sin(lat1r) + sin(lat2r)
+    atc2 = sqrt( (cos(lat1r) + Bx )^2 + By^2 )
+
+    latmidr = atan2(atc1,atc2)
+    latmid  = latmidr * 180 / pi
+
+    atc3 = By
+    atc4 = cos(lat1r) + Bx
+
+    lonmidr = lon1r + atan2(atc3,atc4)
+    lonmid  = lonmidr * 180 / pi
+
+    print d, "km", brn, "deg"
+    #print d, brn, latmid, lonmid
+    }
+    '
+}
+
+
+main()
+{
+    args_fetch $args
+    station_data_retrieval
+    data_presentation
 }
 
 main

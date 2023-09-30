@@ -1,0 +1,214 @@
+#!/usr/bin/env bash
+#
+##
+###                 _
+###  _ __ ___   ___| |_ __ _ _ __
+### | '_ ` _ \ / _ \ __/ _` | '__|
+### | | | | | |  __/ || (_| | |
+### |_| |_| |_|\___|\__\__,_|_|
+###  _    _
+### (_)><(_)
+###
+### metar
+### get metar from all over the world
+### include tafs optionally
+### source: aviationweather.gov
+###
+### (c) 2020 - 2023  |  oxo
+###
+##
+#
+
+## script can be used as cli command and as source for i3blocks
+### script call for i3 blocks:
+### -nc -s eham
+
+# usage:
+# metar
+# metar -s eham
+# metar and taf
+# metar -t -s eham
+
+# variable initialization
+
+#ids="$METAR"
+ip_check="9.9.9.9"
+script_name="metar"
+developer='oxo'
+initial_release='2020
+
+'
+source_web='https://www.aviationweather.gov/metar/data'
+
+
+# read_flags
+
+while getopts ":s:tnch" opt; do
+
+	case $opt in
+		s)
+		    ## compulsory argument with value
+		    ## station ID
+		    ## -ids <IDs>
+		    ids=${OPTARG}
+		    ;;
+		t)
+		    ## optional argument
+		    ## -t
+		    ## include TAF
+		    #t=${OPTARG}
+		    taf="1"
+		    ;;
+		n)
+		    ## optional argument
+		    ## don't print full metar and taf
+		    ## i3blocks: compulsory '1' for i3blocks, else '0'
+		    no_metar="1"
+		    ;;
+		c)
+		    ## optional argument
+		    ## print custom metar (for i3blocks)
+		    ## print_custom_metar optional for command, but must be '1' for i3blocks
+		    custom_metar="1"
+		    ;;
+		h)
+		    ## -h display help text
+		    printf "$script_name usage: $script_usage"
+		    exit 0
+		    ;;
+		\?)
+		    printf "$script_name ${RED}invalid option: -${OPTARG}${NOC}"
+		    exit 1
+		    ;;
+		:)
+		    ## display help
+		    printf "$script_name: ${RED}option -${OPTARG} requires an argument (IDs)${NOC}"
+		    exit 1
+		    ;;
+	esac
+
+done
+
+
+source_qry="?ids=${ids}&format=raw&hours=0&taf=on&layout=on"
+
+
+internet_conn_check() {
+
+    $(ping -q -w 2 -c 1 $ip_check > /dev/null 2>&1)
+
+    if [ $? != 0 ]; then
+
+	exit 101
+
+    fi
+
+}
+
+
+# getting the data
+
+getting_data() {
+
+    ## download website
+    awc_metar_site=$(curl -s -i "$source_web""$source_qry")
+
+    ## throw html garbage away
+    awc_metar_html=$(echo $awc_metar_site | awk -F '<!-- Data ends here --> ' '{print $1}' | awk -F '<!-- Data starts here --> ' '{print $2}' )
+
+    ## getting clean metar
+    awc_metar=$(echo $awc_metar_html | awk -F '</code>' '{print $1}' | awk -F '<code>' '{print $2}')
+
+    ## getting clean taf
+    awc_taf=$(echo $awc_metar_html | awk -F '<br/><code>' '{print $2}' | awk -F '</code><br/>' '{print $1}' | sed 's/&nbsp;//g' | sed s'/ <br\/>/\\n/g' )
+
+}
+
+
+# for i3blocks
+
+calculations_for_i3blocks() {
+
+    ## remove variable winds, if that field is present (000V000)
+    metar=$(echo $awc_metar | sed -e 's/[0-9][0-9][0-9]V[0-9][0-9][0-9] //')
+
+    ## retrieving data fields
+    location=$( echo $metar | awk -F " " '{print $1}' )
+
+    m_dayn=$( echo $metar | awk -F " " '{print $2}' | cut -c -2 )
+    m_time=$( echo $metar | awk -F " " '{print $2}' | cut -c 3- | cut -c -4 )
+    m_hour=$( echo $metar | awk -F " " '{print $2}' | cut -c 3- | cut -c -2 )
+    m_minute=$( echo $metar | awk -F " " '{print $2}' | cut -c 5- | cut -c -2 )
+
+    dzt=$(date +%z | cut -c 2-3)
+    dzt_minutes=$(( 10#$dzt * 60 ))
+
+    hour_now=`date +%H`
+    minute_now=`date +%M`
+
+    ## Prepend the string "10#" to the front of your variables. That forces bash to treat them as decimal,
+    ## even though the leading zero would normally make them octal.
+    m_age=$(( ( 10#$hour_now * 60 ) + 10#$minute_now - ( 10#$m_hour * 60 + 10#$m_minute + 10#$dzt_minutes ) ))
+
+    wind=$( echo $metar | awk -F " " '{print $3}' | cut -c -5 )
+    gusts=$( echo $metar | awk -F " " '{print $3}' | cut -c -5 )
+
+    ## bash regular expressions matching (rematch)
+    ### conditions
+    re_cond="[A_Z]{5}"
+    [[ $metar =~ $re_cond ]] && cond=${BASH_REMATCH[0]}
+    ### temperature and dewpoint
+    re_temp="M?[0-9]{2}\/M?[0-9]{2}"
+    [[ $metar =~ $re_temp ]] && temp_dew=${BASH_REMATCH[0]}
+    ### barometric pressure
+    re_qnh="Q[0-9]{4}"
+    [[ $metar =~ $re_qnh ]] && qnh=${BASH_REMATCH[0]}
+    qnh=$(echo $qnh | cut -c 2-)
+
+    ## getting clean custom metar
+    metar_cstm="$location$m_age $wind $cond $temp_dew $qnh"
+
+}
+
+
+# printing data
+printing_data() {
+
+    ## metar
+    ### print unless metar is switched off with -n flag
+    if [ -z "$no_metar" ]; then
+
+	printf "$awc_metar\n"
+
+    fi
+
+    ## taf
+    ### print when switched on with -t flag
+    if [ -n "$taf" ]; then
+
+	printf "$awc_taf\n"
+
+    fi
+
+    ## custom metar
+    ## (for i3blocks) when switched on with -c flag
+
+    if [ -n "$custom_metar" ]; then
+
+	calculations_for_i3blocks
+
+	printf "$metar_cstm"
+
+    fi
+
+}
+
+
+main() {
+
+    internet_conn_check
+    getting_data
+    printing_data
+}
+
+main
