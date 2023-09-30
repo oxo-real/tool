@@ -37,6 +37,7 @@ avwx_api_key='Authorization: BEARER 4mLFIAd0-TzYNLNGJVWS0-zf87wQNzFvaT5uAN_8jVg'
 
 ## declare globally
 show_taf=0
+dist_bear=0
 
 args_fetch()
 {
@@ -95,6 +96,8 @@ station_data_retrieval()
     station_lat=$(printf '%s' "$station_raw" | jq '.latitude')
     station_lon=$(printf '%s' "$station_raw" | jq '.longitude')
 
+    distance_bearing $lat $lon $station_lat $station_lon
+
     #pirep_raw=$(curl -sSL --request GET --url "$avwx_domain/pirep/$ident" --header 'Authorization: BEARER 4mLFIAd0-TzYNLNGJVWS0-zf87wQNzFvaT5uAN_8jVg')
     #airsigmet_raw=$(curl -sSL --request GET --url "$avwx_domain/airsigmet/$ident" --header 'Authorization: BEARER 4mLFIAd0-TzYNLNGJVWS0-zf87wQNzFvaT5uAN_8jVg')
     #notam_raw=$(curl -sSL --request GET --url "$avwx_domain/notam/$ident" --header 'Authorization: BEARER 4mLFIAd0-TzYNLNGJVWS0-zf87wQNzFvaT5uAN_8jVg')
@@ -121,8 +124,22 @@ nearby_stations()
 data_presentation()
 {
     station_pretty_id=$(printf '%s' "$station_raw" | jq '.name + ", " + .city + " " + .country + " " + (.latitude|tostring) + " " + (.longitude|tostring) + " " + (.elevation_m|tostring) + "m"' | tr -d '"')
-    station_distance=$(dir_bear $lat $lon $station_lat $station_lon)
-    printf '      %s %s\n' "$station_pretty_id" "$station_distance"
+    ###station_distance=$(distance_bearing $lat $lon $station_lat $station_lon)
+    station_dist=$(printf '%s' "$dist_bear" | cut -d ' ' -f 1)
+    station_bear=$(printf '%s' "$dist_bear" | cut -d ' ' -f 2)
+
+    ## no negative bearings
+    if [[ "$(printf '%s' "$station_bear" | head -c 1)" == '-' ]]; then
+
+	station_bear=$(echo "360 + $station_bear" | bc)
+
+    fi
+
+    ## rounding numbers
+    station_dist=$(printf '%.*f\n' 1 "$station_dist")
+    station_bear=$(printf '%.*f\n' 0 "$station_bear")
+
+    printf '      %s %skm %s°\n' "$station_pretty_id" "$station_dist" "$station_bear"
 
     metar=$(printf '%s' "$metar_raw" | jq '.raw' | tr -d '"')
     printf 'metar %s\n' "$metar"
@@ -223,9 +240,10 @@ EOF
 }
 
 
-dir_bear()
+distance_bearing()
 {
-    awk -v lat1="$1" -v lat2="$3" -v lon1="$2" -v lon2="$4" '
+    dist_bear=$(\
+		awk -v lat1="$1" -v lat2="$3" -v lon1="$2" -v lon2="$4" '
     BEGIN {
     #some basic info
 
@@ -272,10 +290,11 @@ dir_bear()
     lonmidr = lon1r + atan2(atc3,atc4)
     lonmid  = lonmidr * 180 / pi
 
-    print d, "km", brn, "deg"
+    print d, brn
     #print d, brn, latmid, lonmid
     }
     '
+    )
 }
 
 
