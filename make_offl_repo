@@ -77,11 +77,14 @@ aur_packages_copy()
 
     [[ -d $dst_aur ]] || mkdir -p $dst_aur
 
+	rsync -aAXv --delete --info=progress2,stats --progress \
+	      --exclude='.git' "$aur_src/$package/" "$dst_aur"
+
     for package in "${aur_pkgs[@]}"; do
 
 	printf '\n==> %s\n' "$package"
-	rsync -aAXv --delete --info=progress2,stats --progress \
-	      --exclude='.git' "$aur_src/" "$dst_aur"
+	#rsync -aAXv --delete --info=progress2,stats --progress \
+	#      --exclude='.git' "$aur_src/$package/" "$dst_aur"
 	#cp -r "$aur_src/$package" "$dst_aur"
 
 	copy_pkg_tar_zst
@@ -99,8 +102,17 @@ copy_pkg_tar_zst()
     ## newest .pkg.tar.zst file
     newest_ptz_loc=$(realpath $(ls $aur_src/$package/*.pkg.tar.zst | sort --version-sort --reverse | sed -n 1p))
     newest_ptz_filename=$(basename $newest_ptz_loc)
-    ## copy to $p_dst default: REPO (dock/2)
+    ## create symlink to $p_dst default: REPO (dock/2)
     ln -s $newest_ptz_loc $p_dst/$newest_ptz_filename
+    ## copy to $p_dst default: REPO (dock/2)
+    #cp $newest_ptz_file $p_dst
+
+    ## newest .pkg.tarc.gz file
+    newest_ptz_loc=$(realpath $(ls $aur_src/$package/*.pkg.tar.gz | sort --version-sort --reverse | sed -n 1p))
+    newest_ptz_filename=$(basename $newest_ptz_loc)
+    ## create symlink to $p_dst default: REPO (dock/2)
+    ln -s $newest_ptz_loc $p_dst/$newest_ptz_filename
+    ## copy to $p_dst default: REPO (dock/2)
     #cp $newest_ptz_file $p_dst
 }
 
@@ -131,8 +143,8 @@ aur_packages_build()
 
 main()
 {
-    rsync_all_packages
-    build_custom_pkg_db
+    #rsync_all_packages
+    #build_custom_pkg_db
     #aur_packages_build
     aur_packages_copy
 }

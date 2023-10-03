@@ -69,8 +69,8 @@ get_mps_mount()
 	 $HOME/dock/3 \
 	 $HOME/dock/4 \
 	 $HOME/dock/transfer \
-	 $HOME/dock/vlt/pass \
-	 other\
+	 available_HOME\
+	 available_ROOT\
 	 )
 #    common_mps+=(\
 #	 /boot \
@@ -445,13 +445,18 @@ validity_check()
 
 	    case $mount_to in
 
-                other)
-		    ## not hidden empty directories
-		    mount_to=$(find $HOME -type d -empty 2> /dev/null | sed '/\/\./d' | fzf --prompt "mount $device to ")
-		    #read -r -p "mount $device to " <&1 mount_to
+                available_HOME)
+		    ## not hidden empty directories from $HOME
+		    mount_to=$(fd --type empty --type directory --full-path "$HOME" | fzf --prompt "mount $device to ")
+		    #mount_to=$(find $HOME -type d -empty 2> /dev/null | sed '/\/\./d' | fzf --prompt "mount $device to ")
 		    validity_check
           	    ;;
 
+		available_ROOT)
+		    ## all empty directories from root
+		    mount_to=$(fd --hidden --type empty --type directory --full-path '/' | fzf --prompt "mount $device to ")
+		    validity_check
+		    ;;
             esac
 
 	    ## check mountpoint dir existing

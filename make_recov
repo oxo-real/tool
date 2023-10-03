@@ -252,6 +252,14 @@ keys()
 }
 
 
+umount_rck()
+{
+    [ $repo_mounted == 1 ] && umount $repo_mount
+    [ $code_mounted == 1 ] && umount $code_mount
+    [ $keys_mounted == 1 ] && umount $keys_mount
+}
+
+
 make_recovery()
 {
     repo
@@ -263,6 +271,7 @@ make_recovery()
 main()
 {
     make_recovery
+    umount_rck
 }
 
 main

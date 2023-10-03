@@ -1,4 +1,4 @@
-#!/bin/bash
+#! /usr/bin/env sh
 
 location_list="$XDG_CONFIG_HOME/qutebrowser/bookmark_urls"
 

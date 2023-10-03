@@ -3,71 +3,50 @@
 # capture current buffer
 
 # dependencies: alacritty, ydotool
+
 args=$@
 arg1=$1
 
 
-check_service(){
-
-    service_status=$(systemctl status ydotool.service | grep 'Active' | awk '{print $2}')
-
+check_service()
+{
+    service_status=$(systemctl --user status dotoold.service | grep 'Active' | awk '{print $2}')
 }
 
 
-start_service(){
-    export YDOTOOL_SOCKET=/tmp/ydotools
-    nohup ydotoold --socket-path /tmp/ydotools &
+start_service()
+{
+    case $service_status in
 
-    #case $service_status in
+    	inactive)
+    	    systemctl --user start dotoold.service
+    	    printf '%s\n' 'starting dotoold.service...'
+    	    sleep 2
+    	    ;;
 
-    #	inactive)
-    #	    sudo systemctl start ydotool.service
-    #	    printf '%s\n' 'starting ydotool.service...'
-    #	    sleep 2
-    #	    ;;
-
-    #esac
-
-    #sudo ydotoold &
+    esac
 }
 
 
-yank_scrollback_buffer() {
-
+yank_scrollback_buffer()
+{
     # capture entire scrollback buffer
     ## alacritty keysequence:
     ## C-S-space v g y C-S space
-    ##  	 C-S-space		       v	 g	   y	     C-S-space
-    ##          |---------------------------| |-------| |-------| |-------| |---------------------------|
-    ydotool key 29:1 42:1 57:1 57:0 42:0 29:0 47:1 47:0 34:1 34:0 21:1 21:0 29:1 42:1 57:1 57:0 42:0 29:0
+    echo key ctrl+shift+space v g y ctrl+shift+space | dotool
 }
 
 
-yank_visible_buffer() {
-
+yank_visible_buffer()
+{
     # capture visible buffer
     # alacritty keysequence:
-    # C-S-space :0y+ S-h v S-g y C-S space
-
-    ## :0y+ clear yank register
-    ##  	 C-S-space                     :0                 y          +
-    ##          |---------------------------| |-----------------| |-------| |-----------------|
-    ydotool key 29:1 42:1 57:1 57:0 42:0 29:0 42:1 39:1 39:0 42:0 21:1 21:0 42:1 13:1 13:0 42:0
-
-    ##	         S-h                 v         S-g                 y         C-S-space
-    ##	        |-----------------| |-------| |-----------------| |-------| |---------------------------|
-    ydotool key 42:1 35:1 35:0 42:0 47:1 47:0 42:1 34:1 34:0 42:0 21:1 21:0 29:1 42:1 57:1 57:0 42:0 29:0
-
-
-#define KEY_0 11
-#define KEY_5 6
-#define KEY_Y 21
-#define KEY_EQUAL13
-#define KEY_ENTER 28#define KEY_ENTER28
+    # C-S-space :0y+ S-h v S-g y C-S-space
+    echo key ctrl+shift+space shift+semicolon 0 y shift+minus shift+h v shift+g y ctrl+shift+space | dotool
 }
 
-yank() {
-
+yank()
+{
     wl-copy -c
 
     case $arg1 in
@@ -83,21 +62,24 @@ yank() {
     esac
 
     raw_copy=$(wl-paste)
-    #raw_copy=$(wl-paste | grep .)
 }
 
 
-select_file_location() {
-
+select_file_location()
+{
     ## file locations
-    loc_file=$(printf '%s\n' "$raw_copy" | grep . | grep --only-matching --perl-regexp '[\/]{0,3}[\w]*[\/]+.+[\/].*\b' | sort | uniq -u)
+    loc_file=$(printf '%s' "$raw_copy" | grep --perl-regexp --only-matching '(.*/)([^/]*)' | sort | uniq -u)
+    #loc_file=$(printf '%s\n' "$raw_copy" | grep . | grep --perl-regexp -o '\w*(/[^/ ]*)+/?\w*' | sort | uniq -u)
+
     #ORG loc_file=$(printf '%s\n' "$raw_copy" | grep . | grep --only-matching --perl-regexp '[\/]{0,3}[\w]*[\/]+.*[\/].*\b' | sort | uniq -u)
     printf 'DEV085 locfile: %s\n' "${loc_file[@]}"
+    exit 255
 
 }
 
 
-select_url_location() {
+select_url_location()
+{
 #    printf 'DEV90 rawcopy %s \n\n\n' "$raw_copy"
 #    exit 255
 
@@ -105,9 +87,8 @@ select_url_location() {
     ### location starts with protocol:
     loc_url_protocol=( $(printf '%s\n' "$raw_copy" | grep --only-matching --perl-regexp '(?i)\b(?<protocol>https?|ftp)://(?<domain>[-A-Z0-9.]+)(?<file>/[-A-Z0-9+&@#/%=~_|!:,.;]*)?(?<parameters>\?[A-Z0-9+&@#/%=~_|!:,.;]*)?' | sort | uniq -u) )
 
-    printf 'DEV95 locurlprotocol: %s\n' "${loc_url_protocol[@]}"
-    printf 'DEV95 locurlprotocol: %s\n' "${loc_url_protocol[*]}"
-#    exit 255
+    #printf 'DEV95 locurlprotocol: %s\n' "${loc_url_protocol[@]}"
+    #printf 'DEV95 locurlprotocol: %s\n' "${loc_url_protocol[*]}"
 
     ### location starts with domain (no protocol) and then must contain a slash:
     loc_url_domain=( $(printf '%s\n' "$raw_copy" | grep --only-matching --perl-regexp '(?i)\b(?<domain>[-A-Z0-9.]+)(?<file>/[-A-Z0-9+&@#/%=~_|!:,.;]*)?(?<parameters>\?[A-Z0-9+&@#/%=~_|!:,.;]*)?' | grep '/' | sort | uniq -u) )
@@ -129,39 +110,37 @@ select_url_location() {
     done
 
     loc_url=("${loc_url_protocol[@]}" "${loc_url_domain[@]}")
-    printf 'DEV100 locurl: %s\n' "${loc_url[@]}"
+    #printf 'DEV100 locurl: %s\n' "${loc_url[@]}"
 }
 
 
-select_email_address() {
-
+select_email_address()
+{
     ## file locations
     loc_email=$(printf '%s\n' "$raw_copy" | grep --only-matching --perl-regexp '[a-zA-Z0-9_.-+]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9.-]+' | sort | uniq -u)
-    printf 'DEV131 locemail: %s\n' "${loc_email[@]}"
-
+    #printf 'DEV131 locemail: %s\n' "${loc_email[@]}"
 }
 
 
-all_locations() {
+all_locations()
+{
+    #locations=("${loc_file[@]}" "${loc_url[@]}" "${loc_email[@]}")
 
-    locations=("${loc_file[@]}" "${loc_url[@]}" "${loc_email[@]}")
-
-    printf 'DEV100 locations: %s\n' "${locations[@]}"
+    locations=$(printf '%s\n' "${loc_file[@]}" "${loc_url[@]}" "${loc_email[@]}" | tr -d '\r\n')
+    #printf 'DEV100 locations: %s\n' "${locations[@]}"
 
 #    exit 255
-    #if [[ -n $locations ]]; then
+    if [[ -n $locations ]]; then
 
-    #	printf '%s\n' $locations | fzf | wl-copy -n
+    	printf '%s\n' $locations | fzf | wl-copy -n
 
-    #fi
-
+    fi
 }
 
 
 main() {
-
-#    check_service
-#    start_service
+    check_service
+    start_service
     yank
     select_file_location
     select_url_location
