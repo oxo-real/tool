@@ -56,8 +56,8 @@ args_arr_length="${#args_arr[@]}"
 last_element_index=$(( args_arr_length - 1 ))
 
 
-sourcing() {
-
+sourcing()
+{
     ## reply functions
     source $source_dir/reply_functions
 
@@ -66,8 +66,8 @@ sourcing() {
 }
 
 
-initialize() {
-
+initialize()
+{
     sourcing
 
     timestamp="$(date "+%Y%m%d_%H%M%S")"
@@ -79,8 +79,8 @@ initialize() {
 }
 
 
-operation() {
-
+operation()
+{
     # determine operation
 
     case "$arg" in
@@ -208,8 +208,8 @@ operation() {
 }
 
 
-get_args_arr_index() {
-
+get_args_arr_index()
+{
     ## get current index number of $args_arr
     for i in "${!args_arr[@]}"; do
 
@@ -227,8 +227,8 @@ get_args_arr_index() {
 }
 
 
-arguments() {
-
+arguments()
+{
     ## getting operation, source and destination
 
     src_arr=()
@@ -262,8 +262,8 @@ arguments() {
 }
 
 
-get_source() {
-
+get_source()
+{
     ## ... for decrypting (gnupg d or openssl b)
     if [[ "$opr" == 'd' ]] || [[ "$opr" == 'b' ]]; then
 
@@ -314,8 +314,8 @@ get_source() {
 }
 
 
-get_destination() {
-
+get_destination()
+{
     # destination file or directory
 
     ## do run get_destination() for last ($arg) element
@@ -398,8 +398,8 @@ get_destination() {
 }
 
 
-src_validate() {
-
+src_validate()
+{
     ## write full src path
     src="$(realpath "$arg")"
 
@@ -455,8 +455,8 @@ src_validate() {
 }
 
 
-dst_validate() {
-
+dst_validate()
+{
     if [[ -n $dst_arg ]]; then
 
 	dst_arg="$(realpath $dst_arg)"
@@ -550,15 +550,15 @@ dst_validate() {
 }
 
 
-oper_info() {
-
+oper_info()
+{
     ## user feedback
     printf "\noperation:	${INV}${BOLD} %sypt ${NOC}\n\n" "$oper"
 }
 
 
-dst_info() {
-
+dst_info()
+{
     if [[ -d $dst ]] || [[ -f $dst ]]; then
 
 	printf "destination:	${MAGENTA}$dst${NOC}\n"
@@ -573,22 +573,22 @@ dst_info() {
 }
 
 
-add_to_src_info() {
-
+add_to_src_info()
+{
     ## there can be multiple sources
     si_line=$(printf "source:	        $src\n")
     si_lines=$(printf "$si_lines\n%s\n" "$si_line")
 }
 
 
-src_info() {
-
+src_info()
+{
     printf '%s\n' "$si_lines"
 }
 
 
-show_info() {
-
+show_info()
+{
     src_info
     oper_info
     dst_info
@@ -627,8 +627,8 @@ file_out="$tmp_dir/${dst_tar_get}.crypt"
 # '
 
 
-tar_append() {
-
+tar_append()
+{
     ## temporary (source) tar file
     ## will encrypted and wrapped in tarx
     [[ -d $tmp_dir ]] || mkdir -p $tmp_dir
@@ -645,8 +645,8 @@ tar_append() {
 }
 
 
-select_cipher() {
-
+select_cipher()
+{
     case $cipher_suite in
 
 	gnupg)
@@ -694,8 +694,8 @@ select_cipher() {
 }
 
 
-cipher_select_file() {
-
+cipher_select_file()
+{
     ## cipher select file (csf)
     cipher_select_file="$tmp_dir/$(basename $src).csf"
     printf "%s\n" ${cipher_select[@]} > "$cipher_select_file"
@@ -704,8 +704,8 @@ cipher_select_file() {
 }
 
 
-running_rounds() {
-
+running_rounds()
+{
     ## execute encryption rounds
     round=1
     rounds=$cipher_select_amount
@@ -754,8 +754,8 @@ running_rounds() {
 }
 
 
-crypt_first() {
-
+crypt_first()
+{
     ## first round of en- or decryption
     case $oper in
 
@@ -783,8 +783,8 @@ crypt_first() {
 }
 
 
-crypt_next() {
-
+crypt_next()
+{
     ## next round of en- or decryption
     case $oper in
 
@@ -818,8 +818,8 @@ crypt_next() {
 }
 
 
-crypt_last() {
-
+crypt_last()
+{
     ## last round of en- or decryption
     case $oper in
 
@@ -849,8 +849,8 @@ crypt_last() {
 }
 
 
-crypt_once() {
-
+crypt_once()
+{
     ## only one round of en- or decryption
     ## using one algorithm and no cipher cascade
     case $oper in
@@ -877,8 +877,8 @@ crypt_once() {
 }
 
 
-crypt_exec() {
-
+crypt_exec()
+{
     case $cipher_suite in
 
 	gnupg)
@@ -918,23 +918,23 @@ crypt_exec() {
 }
 
 
-tar_extract() {
-
+tar_extract()
+{
     ## extract tar archive
     tar --extract --file $file_out --directory $dst
 }
 
 
-tar_destroy() {
-
+tar_destroy()
+{
     tmp_dir_del=$(printf $tmp_dir | cut -d / -f -6)
     # command prevents using aliases
     command rm -rf $tmp_dir_del
 }
 
 
-tarx_define() {
-
+tarx_define()
+{
     ## create tar box (tarx)
     tarx_file=$dst
 
@@ -946,8 +946,8 @@ tarx_define() {
 }
 
 
-tarx_check() {
-
+tarx_check()
+{
     # check if tarx exists
     ## gpg fails on existence
     ## openssl overwrites without check
@@ -1013,8 +1013,8 @@ tarx_check() {
 }
 
 
-tarx_create() {
-
+tarx_create()
+{
     ## create tar archive
     ## with encrypted file
     tar --create --file $tarx_file --directory $sub_dir_fo $(basename $file_out)
@@ -1023,8 +1023,8 @@ tarx_create() {
 }
 
 
-tarx_open() {
-
+tarx_open()
+{
     ## extract tar box contents
     ## 2 files; .crypt & .src
     mkdir -p $tmp_dir
@@ -1032,8 +1032,8 @@ tarx_open() {
 }
 
 
-get_crypto_data() {
-
+get_crypto_data()
+{
     ## a tarx file always contains only 2 files;
     ## the cipher select file (csf) and
     ## the encrypted (tar) file
@@ -1051,8 +1051,8 @@ get_crypto_data() {
 }
 
 
-round_pass() {
-
+round_pass()
+{
     ## sha3-512 hash for every round
     ## every round has an unique round password (ropa)
     case $oper in
@@ -1095,8 +1095,8 @@ round_pass() {
 }
 
 
-get_pass() {
-
+get_pass()
+{
     ## enter passphrase
     read -s -p "passphr:	" ro_pass
     echo
@@ -1127,8 +1127,8 @@ get_pass() {
 }
 
 
-cleanup() {
-
+cleanup()
+{
     case $oper in
 
 	encr)
@@ -1145,8 +1145,8 @@ cleanup() {
 }
 
 
-encrypt() {
-
+encrypt()
+{
     select_cipher
     cipher_select_file
     get_pass
@@ -1157,8 +1157,8 @@ encrypt() {
 }
 
 
-decrypt() {
-
+decrypt()
+{
     tarx_check
     tarx_open
     get_crypto_data
@@ -1167,8 +1167,8 @@ decrypt() {
 }
 
 
-main() {
-
+main()
+{
     initialize
     arguments
     show_info
