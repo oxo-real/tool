@@ -1,0 +1,25 @@
+#! /usr/bin/env sh
+
+# present unique words from input string
+# each word on it's own line
+# designed to be used in conjuction with yank_buffer
+
+
+args=$@
+arg1=$1
+
+
+all_words()
+{
+    # removing double spaces from string
+    single_space_copy=$(tr ' ' '\n' <<< "$args" | sort | uniq)
+
+    printf '%s' "$single_space_copy" | fzf -d ' '
+}
+
+
+main() {
+    all_words
+}
+
+main

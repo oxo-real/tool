@@ -26,8 +26,8 @@
 ├── file_select
 ├── fiot
 ├── fscu
-├── fzf_file
 ├── fzf_tag_add
+├── fzf_word
 ├── get_device_info
 ├── get_julian_date
 ├── getlocs
@@ -63,6 +63,7 @@
 ├── verbose
 ├── vtxt
 ├── yank_buffer
+├── yank_buffer_old
 ├── zsh_root_like_user
 └── zzz_deprecated
     ├── backup_dot
@@ -75,5 +76,5 @@
     ├── passr_old
     └── trashOLD
 
-3 directories, 72 files
+3 directories, 73 files
 ```

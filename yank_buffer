@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# capture current buffer
+# yank current (visible) buffer into wl-copy
 
 # dependencies: alacritty, ydotool
 
@@ -33,6 +33,7 @@ yank_scrollback_buffer()
     # capture entire scrollback buffer
     ## alacritty keysequence:
     ## C-S-space v g y C-S space
+    ## v visual mode, g cursor to buffer top, y yank block
     echo key ctrl+shift+space v g y ctrl+shift+space | dotool
 }
 
@@ -42,6 +43,7 @@ yank_visible_buffer()
     # capture visible buffer
     # alacritty keysequence:
     # C-S-space :0y+ S-h v S-g y C-S-space
+    ## v visual mode, G cursor to screen top, y yank block
     echo key ctrl+shift+space shift+semicolon 0 y shift+minus shift+h v shift+g y ctrl+shift+space | dotool
 }
 
@@ -60,81 +62,6 @@ yank()
 	    ;;
 
     esac
-
-    raw_copy=$(wl-paste)
-}
-
-
-select_file_location()
-{
-    ## file locations
-    loc_file=$(printf '%s' "$raw_copy" | grep --perl-regexp --only-matching '(.*/)([^/]*)' | sort | uniq -u)
-    #loc_file=$(printf '%s\n' "$raw_copy" | grep . | grep --perl-regexp -o '\w*(/[^/ ]*)+/?\w*' | sort | uniq -u)
-
-    #ORG loc_file=$(printf '%s\n' "$raw_copy" | grep . | grep --only-matching --perl-regexp '[\/]{0,3}[\w]*[\/]+.*[\/].*\b' | sort | uniq -u)
-    printf 'DEV085 locfile: %s\n' "${loc_file[@]}"
-    exit 255
-
-}
-
-
-select_url_location()
-{
-#    printf 'DEV90 rawcopy %s \n\n\n' "$raw_copy"
-#    exit 255
-
-    ## url-type locations
-    ### location starts with protocol:
-    loc_url_protocol=( $(printf '%s\n' "$raw_copy" | grep --only-matching --perl-regexp '(?i)\b(?<protocol>https?|ftp)://(?<domain>[-A-Z0-9.]+)(?<file>/[-A-Z0-9+&@#/%=~_|!:,.;]*)?(?<parameters>\?[A-Z0-9+&@#/%=~_|!:,.;]*)?' | sort | uniq -u) )
-
-    #printf 'DEV95 locurlprotocol: %s\n' "${loc_url_protocol[@]}"
-    #printf 'DEV95 locurlprotocol: %s\n' "${loc_url_protocol[*]}"
-
-    ### location starts with domain (no protocol) and then must contain a slash:
-    loc_url_domain=( $(printf '%s\n' "$raw_copy" | grep --only-matching --perl-regexp '(?i)\b(?<domain>[-A-Z0-9.]+)(?<file>/[-A-Z0-9+&@#/%=~_|!:,.;]*)?(?<parameters>\?[A-Z0-9+&@#/%=~_|!:,.;]*)?' | grep '/' | sort | uniq -u) )
-
-
-    for i in "${loc_url_domain[@]}"; do
-
-	current_domain="$i"
-
-	# https://stackoverflow.com/questions/3685970/check-if-a-bash-array-contains-a-value
-        if [[ ! " ${loc_url_protocol[@]} " =~ " ${current_domain} " ]]; then
-
-	    # current_domain is in loc_url_protocol
-	    # delete current domain from loc_url_domain
-	    loc_url_domain=("${loc_url_domain[@]/$current_domain}")
-
-        fi
-
-    done
-
-    loc_url=("${loc_url_protocol[@]}" "${loc_url_domain[@]}")
-    #printf 'DEV100 locurl: %s\n' "${loc_url[@]}"
-}
-
-
-select_email_address()
-{
-    ## file locations
-    loc_email=$(printf '%s\n' "$raw_copy" | grep --only-matching --perl-regexp '[a-zA-Z0-9_.-+]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9.-]+' | sort | uniq -u)
-    #printf 'DEV131 locemail: %s\n' "${loc_email[@]}"
-}
-
-
-all_locations()
-{
-    #locations=("${loc_file[@]}" "${loc_url[@]}" "${loc_email[@]}")
-
-    locations=$(printf '%s\n' "${loc_file[@]}" "${loc_url[@]}" "${loc_email[@]}" | tr -d '\r\n')
-    #printf 'DEV100 locations: %s\n' "${locations[@]}"
-
-#    exit 255
-    if [[ -n $locations ]]; then
-
-    	printf '%s\n' $locations | fzf | wl-copy -n
-
-    fi
 }
 
 
@@ -142,10 +69,6 @@ main() {
     check_service
     start_service
     yank
-    select_file_location
-    select_url_location
-    select_email_address
-    all_locations
 }
 
 main
