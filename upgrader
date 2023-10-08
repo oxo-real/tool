@@ -108,7 +108,7 @@ internet_conn_check()
 
     if [ -z $ipex ]; then
 
-	printf "${MAGENTA}unable to retrieve external ip address (ipv4)${NOC}\n"
+	printf "${AMBER}unable to retrieve external ip address (ipv4)${NOC}\n"
 
 	printf "run netconn? (Y/n) "
 	reply_read_single_hidden_timer
@@ -130,7 +130,7 @@ internet_conn_check()
 	    if [ -z $ipex ]; then
 
 		printf "again: unable to retrieve external ip address (ipv4)\n"
-		printf "${MAGENTA}check physical connections${NOC}\n"
+		printf "${RED}check physical connections${NOC}\n"
 		printf "exiting\n"
 		exit 131
 

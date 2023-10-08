@@ -115,7 +115,7 @@ destroying()
 		## remove all subdirs
 		[[ "$target" == "$(pwd)" ]] || sudo rm -rfv $target
 
-		printf "${GREEN}shred_all complete${NOC}\n"
+		printf "${BLUE}shredr complete${NOC}\n"
 
 	done
 

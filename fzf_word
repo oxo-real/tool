@@ -30,6 +30,7 @@ send()
 
 main()
 {
+    sleep 1
     receive
     process
     send
