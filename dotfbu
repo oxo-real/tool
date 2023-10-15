@@ -970,9 +970,9 @@ main()
     create_lists
     copy
     modify
-    #generate_pw
+    generate_pw
     report_plain
-    : '
+    #: '
     crypt
     verify
     # '
