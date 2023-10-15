@@ -72,16 +72,6 @@ get_mps_mount()
 	 available_HOME\
 	 available_ROOT\
 	 )
-#    common_mps+=(\
-#	 /boot \
-#	 $HOME/dock/1 \
-#	 $HOME/dock/2 \
-#	 $HOME/dock/3 \
-#	 $HOME/dock/4 \
-#	 $HOME/dock/transfer \
-#	 $HOME/dock/vlt/pass \
-#	 other\
-#	 )
 
     # building mps_avail
     # mps_avail: common_mps available for mounting to
@@ -109,17 +99,15 @@ get_mps_mount()
     done
 
     # mapped vlt's mounted
-    # (not dock/vlt/pass, which is already a common_mps)
-    # little bit of a mess SDMB make this better
-    number_vlt_not_vlt_pass=$(mount | grep '/dev/mapper/vlt_' | grep -v 'dock/vlt/pass' | wc -l)
+    number_vlt=$(mount | grep '/dev/mapper/vlt_' | wc -l)
 
     # if number of elements in mps_avail is the same
     # as the number of elements in common_mps,
-    # plus number of vlt not vlt pass, then
+    # plus number of mounted vlt, then
     # none of the common_mps is mounted and
     # no vlt is mounted, therefore
     # there are no actionable mountpoints
-    number_mounted=$(echo | awk "{print ${#common_mps[@]} - ${#mps_avail[@]} + $number_vlt_not_vlt_pass}")
+    number_mounted=$(echo | awk "{print ${#common_mps[@]} - ${#mps_avail[@]} + $number_vlt}")
 
     if [[ $number_mounted -eq 0 ]]; then
 

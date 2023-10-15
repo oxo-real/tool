@@ -442,7 +442,7 @@ modify()
 	backup)
 
 	    # remove all nested git databases
-	    printf "removing .git directories ... "
+	    printf "removing nested .git directories ... "
 
 	    ## -mindepth 2 protects main dotfile repo .git
 	    find $bu_dest -mindepth 2 -type d -name '*.git' -exec rm -rf {} \; >/dev/null 2>&1
@@ -970,10 +970,12 @@ main()
     create_lists
     copy
     modify
-    generate_pw
+    #generate_pw
     report_plain
+    : '
     crypt
     verify
+    # '
     cleanup
 }
 
