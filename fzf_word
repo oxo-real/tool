@@ -24,7 +24,13 @@ process()
 send()
 {
     ## to fzf
-    printf '%s' "$clean_uniq_word_list" | fzf -d ' '
+    string_select=$(printf '%s' "$clean_uniq_word_list" | fzf -d ' ')
+}
+
+
+copy_clipboard()
+{
+    printf '%s' "$string_select" | wl-copy
 }
 
 
@@ -34,6 +40,7 @@ main()
     receive
     process
     send
+    copy_clipboard
 }
 
 main
