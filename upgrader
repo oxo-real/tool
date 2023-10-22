@@ -74,15 +74,15 @@ source $source_dir/get_sudo
 set_clock()
 {
     # synchronize clocks
-    printf "${BOLD}timedatectl status${NORMAL}\n"
+    printf "${st_bold}timedatectl status${st_def}\n"
     # enable network sync service
     sudo timedatectl set-ntp true
     sudo timedatectl status
     echo
-    printf "${BOLD}timedatectl timesync-status${NORMAL}\n"
+    printf "${st_bold}timedatectl timesync-status${st_def}\n"
     timedatectl timesync-status
     echo
-    printf "${BOLD}hwclock --show${NORMAL}\n"
+    printf "${st_bold}hwclock --show${st_def}\n"
     sudo hwclock --show
     cat /etc/adjtime
     echo
@@ -108,7 +108,7 @@ internet_conn_check()
 
     if [ -z $ipex ]; then
 
-	printf "${AMBER}unable to retrieve external ip address (ipv4)${NOC}\n"
+	printf "${fg_amber}unable to retrieve external ip address (ipv4)${st_def}\n"
 
 	printf "run netconn? (Y/n) "
 	reply_read_single_hidden_timer
@@ -130,7 +130,7 @@ internet_conn_check()
 	    if [ -z $ipex ]; then
 
 		printf "again: unable to retrieve external ip address (ipv4)\n"
-		printf "${RED}check physical connections${NOC}\n"
+		printf "${fg_red}check physical connections${st_def}\n"
 		printf "exiting\n"
 		exit 131
 
@@ -192,7 +192,7 @@ boot_usr_presence() {
     mountpoint -q /boot
     if [[ $? -ne 0 ]]; then
 
-	printf "${MAGENTA}/boot${NOC} no device at mountpoint\n"
+	printf "${fg_magenta}/boot${st_def} no device at mountpoint\n"
 	printf "exiting\n"
 	exit 175
 
@@ -202,7 +202,7 @@ boot_usr_presence() {
     mountpoint -q /usr
     if [[ $? -ne 0 ]]; then
 
-	printf "${MAGENTA}/usr${NOC} no device at mountpoint\n"
+	printf "${fg_magenta}/usr${st_def} no device at mountpoint\n"
 	printf "exiting\n"
 	exit 183
 
@@ -516,15 +516,15 @@ statistics()
 
     if [[ $dQ_packages == 0 ]]; then
 
-	printf "${BLUE}no package upgrades available${NOC}\n"
+	printf "${fg_blue}no package upgrades available${st_def}\n"
 
     elif [[ $dQ_packages == 1 ]]; then
 
-	printf "${BLUE}1 package was upgrade succesfully${NOC}\n"
+	printf "${fg_blue}1 package was upgrade succesfully${st_def}\n"
 
     else
 
-	printf "${BLUE}$dQ_packages packages were upgraded succesfully${NOC}\n"
+	printf "${fg_blue}$dQ_packages packages were upgraded succesfully${st_def}\n"
 
     fi
 
@@ -557,7 +557,7 @@ arch_audit_q()
 #
 #    if printf "$reply" | grep -iq "^n" ; then
 #
-#	printf "vulnerability check ${MAGENTA}user interrupt${NOC}\n"
+#	printf "vulnerability check ${fg_magenta}user interrupt${st_def}\n"
 #	echo
 #
 #    elif [[ -n $(printf "$reply") ]]; then
@@ -586,7 +586,7 @@ update_dns_hosts_blocklist()
 #
 #    if printf "$reply" | grep -iq "^n" ; then
 #
-#	printf "update dns hosts blocklist ${MAGENTA}user interrupt${NOC}\n"
+#	printf "update dns hosts blocklist ${fg_magenta}user interrupt${st_def}\n"
 #	echo
 #
 #    elif [[ -n $(printf "$reply") ]]; then
@@ -626,8 +626,8 @@ kernel_reboot_check()
     if [ "$active_kernel" != "$disk_kernel" ]; then
 
 	echo
-	printf "currently active kernel version: ${MAGENTA}$active_kernel${NOC}\n"
-	printf "upgraded disk kernel version:     ${BLUE}$disk_kernel${NOC}\n"
+	printf "currently active kernel version: ${fg_magenta}$active_kernel${st_def}\n"
+	printf "upgraded disk kernel version:     ${fg_blue}$disk_kernel${st_def}\n"
 	echo
 	printf "kernel needs reboot!\n"
 	echo
