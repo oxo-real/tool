@@ -111,7 +111,7 @@ get_mps_mount()
 
     if [[ $number_mounted -eq 0 ]]; then
 
-	printf "${BLUE}no actionable mountpoints${NOC}\n"
+	printf "${fg_blue}no actionable mountpoints${st_def}\n"
 	sleep 1
 
     fi
@@ -300,7 +300,7 @@ get_source_devs() {
     # check queriing array source_devs_avail
     if [[ -z "${source_devs_avail[@]}" ]]; then
 
-	printf "${BLUE}no actionable source devices${NOC}\n"
+	printf "${fg_blue}no actionable source devices${st_def}\n"
 	sleep 1
 
     fi
@@ -352,7 +352,14 @@ devs_and_mps_param()
 fzf_choose()
 {
     # fzf selection without tabs (from mount_to_select_param)
-    fzf_select=$(printf "$fzf_input" | fzf -m --header="${BOLD}source device			      mountpoint${NORMAL}" --prompt="$fzf_prompt " $fzf_options | tr -d '\t')
+    fzf_select=$(printf "$fzf_input" | fzf -m --header "source device			      mountpoint" --prompt "$fzf_prompt " $fzf_options | tr -d '\t')
+    #fzf_select=$(printf "$fzf_input" | fzf -m --header="\033[1msource device			      mountpoint\033[0m" --prompt="$fzf_prompt " $fzf_options | tr -d '\t')
+    #fzf_select=$(printf "$fzf_input" | fzf -m --header="${BOLD}source device			      mountpoint${NOC}" --prompt="$fzf_prompt " $fzf_options | tr -d '\t')
+    #fzf_select=$(printf "$fzf_input" | fzf -m --header="\e[1msource device			      mountpoint\e[0m" --prompt="$fzf_prompt " $fzf_options | tr -d '\t')
+    #fzf_select=$(printf "$fzf_input" | fzf -m --header="\033[1msource device			      mountpoint\033[0m" --prompt="$fzf_prompt " $fzf_options | tr -d '\t')
+    #fzf_select=$(printf "$fzf_input" | fzf -m --header='\033[1msource device			      mountpoint\033[0m' --prompt="$fzf_prompt " $fzf_options | tr -d '\t')
+    #fzf_select=$(printf "$fzf_input" | fzf -m --header='${st_bold}source device			      mountpoint${st_def}' --prompt="$fzf_prompt " $fzf_options | tr -d '\t')
+    #fzf_select=$(printf "$fzf_input" | fzf -m --header "${st_bold}source device			      mountpoint${st_def}" --prompt "$fzf_prompt " $fzf_options | tr -d '\t')
 
     # no choice: print status of available source devices and umountable mountpoints
     case $fzf_select in
@@ -360,7 +367,7 @@ fzf_choose()
 	'')
 
 	    # header line
-	    printf "${BOLD}source device\t\t\t\tmountpoint${NORMAL}\n"
+	    printf "${st_bold}source device\t\t\t\tmountpoint${st_def}\n"
 
 	    # for aesthetic reasons; avoid empty line
 	    # TODO find a better way to do this
@@ -381,13 +388,13 @@ fzf_choose()
 
 mount_info()
 {
-    printf "$source_dev $dev_type $size $label mounted to ${BLUE}$mount_to${NOC}\n"
+    printf "$source_dev $dev_type $size $label mounted to ${fg_blue}$mount_to${st_def}\n"
 }
 
 
 umount_info()
 {
-    printf "$source_dev $dev_type $size $label umounted from ${BLUE}$mountpoint${NOC}\n"
+    printf "$source_dev $dev_type $size $label umounted from ${fg_blue}$mountpoint${st_def}\n"
 }
 
 
@@ -449,17 +456,17 @@ validity_check()
 
 	    ## check mountpoint dir existing
 	    [[ ! -d $mount_to ]] && \
-	        printf "${MAGENTA}$mount_to${NOC} does not exist\n" && \
+	        printf "${fg_magenta}$mount_to${st_def} does not exist\n" && \
 	        exit 44
 
 	    ## check mountpoint already mounted
 	    [[ -z $( mountpoint $mount_to | grep not ) ]] && \
-	        printf "${MAGENTA}$mount_to${NOC} is already a mountpoint\n" && \
+	        printf "${fg_magenta}$mount_to${st_def} is already a mountpoint\n" && \
 		exit 44
 
 	    ## check mountpoint dir empty
 	    [[ -n $(ls -A $mount_to) ]] && \
-	        printf "${MAGENTA}$mp_mount${NOC} no empty directory\n" && \
+	        printf "${fg_magenta}$mp_mount${st_def} no empty directory\n" && \
 	        exit 44
 
 	    dev_is_luks

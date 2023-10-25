@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#! /usr/bin/env bash
 #set -o errexit
 #set -o nounset
 set -o pipefail
@@ -488,13 +488,14 @@ create_vault() {
 
 
 open_luks() {
-    #echo
+    echo
     #printf "open vault\n"
     printf "\n${YELLOW}%s${NOC}\n" 'open vault'
     sudo cryptsetup open --type luks2 $target $mapping_name
     # DEBUG
     #sudo cryptsetup open --type luks2 $target $mapping_name --debug
 
+    echo
     printf "%20s %s\n" "decrypting" $target
     sleep 1
 #    printf '\n%s\n' "mapping $target to $vlt_mapper_id"
