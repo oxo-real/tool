@@ -49,6 +49,9 @@ arg_optical=$1
 
 # initial definitions
 
+#TODO trap
+#trap "return 1" SIGINT
+
 unset input
 input=
 
