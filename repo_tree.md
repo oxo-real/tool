@@ -23,6 +23,7 @@
 ├── dotfbu
 ├── dynamic_truncate
 ├── emacs_start
+├── figlet_clock
 ├── file_select
 ├── fiot
 ├── fscu
@@ -76,5 +77,5 @@
     ├── passr_old
     └── trashOLD
 
-3 directories, 73 files
+3 directories, 74 files
 ```
