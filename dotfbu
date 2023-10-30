@@ -380,6 +380,8 @@ create_lists()
     all_files_list	.alll	with all files to be copied
     crypt_list		.crpl	with files to be encrypted
     plain_list		.plnl	with files that can stay as they are
+
+    NOTICE ${#all}=${#crypt}+${#plain}
     # '
 }
 
@@ -485,6 +487,7 @@ crypt()
 		## empty lines; skip
 	        if [[ -z "$file_2_crypt" ]]; then
 
+		    ## next location (line)
 		    continue
 
 		## outcommented lines; skip
@@ -501,7 +504,7 @@ crypt()
 
 		    continue
 
-		## then; crypt
+		## then; encrypt
 		else
 
 		    # make relative location in fpcl_file absolute to destination
@@ -515,10 +518,12 @@ crypt()
 		    # crypt_loc is a directory
 		    if [[ -d $crypt_loc ]]; then
 
+			## feedback to human being
 			printf "$crypt_loc"
 
 			## create a tar archive name (variable)
 			tar_name="$crypt_loc.tar"
+			tar_crypt_name="$tar_name.aes"
 
 			## create directory if non-existent
 			tar_name_dir=$(dirname $tar_name)
@@ -526,6 +531,8 @@ crypt()
 
 			## create a tar archive with directory contents
 			tar -czf $tar_name -C $bu_src $file_2_crypt  1>&2 2>/dev/null
+
+			## feedback to human being
 			printf ".tar"
 
 			## remove crypt_loc directory
@@ -536,17 +543,19 @@ crypt()
 
 			## get existing $tar_name hash
 			[[ -f "$tar_name.hash" ]] && \
-			    tar_name_hash_exist=$(cat "$tar_name.hash") || \
+			    tar_name_hash_exist=$(command cat "$tar_name.hash") || \
 			    tar_name_hash_exist=0
 
 			## compare hash_new with hash_exist
+			## if they differ; write hash and encrypted file
 			if [[ "$tar_name_hash_new" != "$tar_name_hash_exist" ]]; then
 
+			    # on unequality:
+
+			    ## update the tar_name.hash file
 			    printf "$tar_name_hash_new" > "$tar_name.hash"
 
-			    ## encrypt the tar archive
-			    #[TODO] gpg encrypt
-			    tar_crypt_name="$tar_name.aes"
+			    ## update encrypted tar archive
 			    openssl enc \
 				-e \
 				-aes-256-cbc \
@@ -556,11 +565,15 @@ crypt()
 				-pass pass:$pw \
 				-in $tar_name \
 				-out $tar_crypt_name
+			    #[TODO] gpg encrypt
 
+			    ## feedback to human being
 			    printf ".aes\n"
 
 			elif [[ "$tar_name_hash_new" = "$tar_name_hash_exist" ]]; then
 			#elif [[ "$tar_name_hash_new" == "$tar_name_hash_exist" ]]; then
+
+			    # on equality:
 
 			    ## remove the unencrypted tar archive
 			    destroy $tar_name
@@ -572,15 +585,18 @@ crypt()
 			fi
 
 			## remove the unencrypted tar archive
+			## again as security feature!
+			## in unexpected case the if block above failed to execute
 			destroy $tar_name
 
 		    # crypt_loc is a file
 
 		    elif [[ -f $crypt_loc ]]; then
 
+			## feedback to human being
 	    		printf "$crypt_loc"
 
-			## create encrypted file name
+			## create encrypted file name (variable)
 			file_name="$crypt_loc"
 			file_crypt_name="$file_name.aes"
 
@@ -588,21 +604,25 @@ crypt()
 			file_name_dir=$(dirname $file_name)
 			[[ -d $file_name_dir ]] || mkdir -p $file_name_dir
 
-			## calculate new $file_name hash
-			file_name_hash_new=$(openssl sha3-512 $file_name | awk '{print $2}')
+			## tar creation not necessary; single file
 
+			## calculate new $file_name hash
+ 			file_name_hash_new=$(openssl sha3-512 $file_name | awk '{print $2}')
 			## get existing $file_name hash
-			[[ -f $file_name.hash ]] && \
-			    file_name_hash_exist=$(< $file_name.hash) || \
+			[[ -f "$file_name.hash" ]] && \
+			    file_name_hash_exist=$(command cat "$file_name.hash") || \
 			    file_name_hash_exist=0
 
 			## compare hash_new with hash_exist
-			## they differ; write hash and encrypted file
+			## if they differ; write hash and encrypted file
 			if [[ "$file_name_hash_new" != "$file_name_hash_exist" ]]; then
 
+			    # on unequality:
+
+			    ## update the file_name.hash file
 			    printf "$file_name_hash_new" > "$file_name.hash"
 
-			    ## encrypt the file
+			    ## update encrypted file
 			    openssl enc \
 				-e \
 				-aes-256-cbc \
@@ -612,13 +632,17 @@ crypt()
 				-pass pass:$pw \
 			    	-in $file_name \
 				-out $file_crypt_name
+			    #[TODO] gpg encrypt
 
+			    ## feedback to human being
 			    printf ".aes\n"
 
 			elif [[ "$file_name_hash_new" = "$file_name_hash_exist" ]]; then
 			#elif [[ "$file_name_hash_new" == "$file_name_hash_exist" ]]; then
 
-			    ## remove the unencrypted tar archive
+			    # on equality:
+
+			    ## remove the unencrypted file
 			    destroy $file_name
 
 			    printf " ${BOLD}unchanged hash${NOC}\n"
@@ -628,6 +652,8 @@ crypt()
 			fi
 
 			## remove the unencrypted file
+			## again as security feature!
+			## in unexpected case the if block above failed to execute
 			destroy $file_name
 
 		    else
@@ -635,6 +661,7 @@ crypt()
 			printf "${MAGENTA}$crypt_loc${NOC} is not a file or directory\n"
 
 			continue
+
 		    fi
 
 		fi
