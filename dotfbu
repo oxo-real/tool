@@ -352,12 +352,16 @@ create_lists()
 
 		    continue
 
+		## generating all_files_list
+		## generating crypt_list
 		## lines starting with c; to all and crypt_list
 		elif [[ "$(printf "$fpcl_location" | head -c 2)" = "c " ]]; then
 		#elif [[ "$(printf "$fpcl_location" | head -c 2)" == "c " ]]; then
 
 		    printf "$fpcl_location\n" | cut -c 3- | tee -a $all_files_list $crypt_list
 
+		## generating all_files_list
+		## generating plain_list
 		## all other lines; to all and plain_list
 		else
 
@@ -952,6 +956,7 @@ clear_password()
     pw=$(< /dev/random tr -d -c "[:xdigit:]" | head -c 64)
     unset pw
 }
+
 
 destroy()
 {
