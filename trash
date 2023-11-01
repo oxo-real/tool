@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#! /usr/bin/env sh
 #
 ##
 ###  _                 _
@@ -40,14 +40,14 @@ source $XDG_DATA_HOME/c/git/code/source/function/text_appearance
 source $XDG_DATA_HOME/c/git/code/source/function/reply_functions
 
 
-reset_sudo() {
-
+reset_sudo()
+{
     sudo -k
 }
 
 
-define_trashcan() {
-
+define_trashcan()
+{
     # prevent trash ending up in root
     if [[ -n "$XDG_CACHE_HOME" ]]; then
 
@@ -60,8 +60,8 @@ define_trashcan() {
 }
 
 
-process_args_array() {
-
+process_args_array()
+{
     ## rm is aliased to trash
     ## if rm options are given (in $1)
     ## (i.e. -rf); then skip these
@@ -150,8 +150,8 @@ process_args_array() {
 }
 
 
-correct_real_dest() {
-
+correct_real_dest()
+{
     # navigated outside of trash directory
 
     char=0
@@ -179,8 +179,8 @@ correct_real_dest() {
 }
 
 
-process_arguments() {
-
+process_arguments()
+{
     for item in "${items[@]}"; do
 
 	cannot_remove_myself
@@ -241,8 +241,8 @@ process_arguments() {
 }
 
 
-cannot_remove_myself() {
-
+cannot_remove_myself()
+{
     # error if:
     # $item is a directory and
     # $PWD is inside or under the to be removed directory $item
@@ -265,8 +265,9 @@ cannot_remove_myself() {
 	esac
 }
 
-trash_info() {
 
+trash_info()
+{
     dirs=$(sudo fd . -t d -u $trash | wc -l)
     dirs="${dirs:-0}"
     #dirs=$(sudo find $XDG_CACHE_HOME/trash -type d | wc -l)
@@ -275,27 +276,35 @@ trash_info() {
     size=$(sudo du -sh $trash | awk '{print $1}')
 }
 
-report_info() {
 
+report_info()
+{
     printf "%s; %s dirs %s files ${BLUE}%s${NOC}\n" $trash $dirs $files $size
 }
 
-trash_size() {
 
+trash_size()
+{
     size=$(du -sh $trash 2>/dev/null | awk '{print $1}')
 }
 
-report_size() {
 
+report_size()
+{
     printf "%s ${BLUE}%s${NOC}\n" $trash $size
 }
 
-trash_ls() {
 
+trash_ls()
+{
     ls -ila $trash
 }
 
-trash_empty() {
+
+trash_empty()
+{
+    ## move out of the trashcan
+    [[ $PWD/ = $trash* ]] && printf "suicidal! ${fg_amber}%s${st_def}\n" $PWD && exit 38
 
     ## empty trashcan
     trash_info
@@ -310,7 +319,8 @@ trash_empty() {
 
 	printf "clearing %s ${BOLD}%s${NOC} dirs ${BOLD}%s${NOC} files ${BLUE}%s${NOC}\n" $trash $dirs $files $size
 
-	\rm -rf $trash && mkdir $trash && exit 0
+	sudo chmod --recursive 777 $trash
+	command rm -rf $trash && mkdir $trash && exit 0
 	#\rm -rf $trash/{*,.*} && \
 	#    printf "trash cleared; %s dirs %s files ${BLUE}%s${NOC}\n" $trash $dirs $files $size && \
 	#    exit 0
@@ -323,14 +333,14 @@ trash_empty() {
 }
 
 
-trash_now() {
-
+trash_now()
+{
     mv -f -- "$item" $dest
 }
 
 
-main() {
-
+main()
+{
     reset_sudo
     define_trashcan
     process_args_array

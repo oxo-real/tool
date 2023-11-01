@@ -2,9 +2,13 @@
 
 # cool clock with figlet fonts chosen via fzf
 
-font="$(command ls $XDG_CONFIG_HOME/figlet | fzf)"
+# v0.2
+# special thanks to emanresu3
+# https://matrix.to/#/!esyCFwsvHGqLXuAxSC:matrix.org/$hVsUXYb7F4WaKE2Hd6Og9uaz_zB30DO3VnuNGkIOwvQ?via=grin.hu&via=matrix.org&via=envs.net
 
-trap "tput cnorm; return 1" SIGINT
+font="$(command ls "$XDG_CONFIG_HOME/figlet" | fzf)"
+
+trap "tput cnorm; callback='return 1'" INT
 
 erase()
 {
@@ -18,15 +22,17 @@ tput civis
 tput sc
 
 
-while true; do
+while :; do
+
+    $callback
 
     echo
-    figlet -d $XDG_CONFIG_HOME/figlet -f $font $(date +'%H:%M:%S')
+    figlet -d "$XDG_CONFIG_HOME/figlet" -f $font $(date +'%H:%M:%S')
     sleep 1
     erase
 
     echo
-    figlet -d $XDG_CONFIG_HOME/figlet -f $font $(date +'%H.%M.%S')
+    figlet -d "$XDG_CONFIG_HOME/figlet" -f $font $(date +'%H.%M.%S')
     sleep 1
     erase
 
