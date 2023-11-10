@@ -394,7 +394,7 @@ copy()
 
 	    # copy all files to destination
 	    rsync -aAXv \
-		--delete \
+		--delete-before \
 		--files-from=$all_files_list \
 		--recursive \
 		$bu_src/ $bu_dest
