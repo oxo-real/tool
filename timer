@@ -1,0 +1,79 @@
+#! /usr/bin/env sh
+
+# usage: timer [up [down seconds]]
+
+# t0 start time
+# tc current time
+# t1 end time
+
+updown=$1
+shift
+
+# td time delta
+td=$1
+
+t0=$(date +%s)
+
+up()
+{
+    # t0 < te
+    while :; do
+
+	# te elapsed time (output)
+	te=$(( $(date +%s) - t0 ))
+
+	time_output
+
+    done
+}
+
+down()
+{
+    # t0 < tc < t1
+    local tc=$(date +%s)
+    local t1=$(( t0 + td ))
+
+    while [ $t1 -gt $tc ]; do
+
+	# te elapsed time (output)
+	te=$(( t1 - tc ))
+
+	time_output
+
+	# update current time
+	local tc=$(date +%s)
+
+    done
+}
+
+
+time_output()
+{
+    printf '%s\r' $(date --universal --date "@$te" +%H:%M:%S)
+    # TODO printf '%s\r' $(date --universal --date "@$te" +%H:%M:%S.%3N)
+    # TODO trap exit
+
+    sleep 0.1
+}
+
+
+main()
+{
+    case $updown in
+
+	up)
+	    tput civis
+	    up
+	    tput cnorm
+	    ;;
+
+	down)
+	    tput civis
+	    down
+	    tput cnorm
+	    ;;
+
+    esac
+}
+
+main
