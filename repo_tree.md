@@ -13,6 +13,7 @@
 ├── dedup_lines
 ├── dev
 │   ├── data_flow_mon
+│   ├── figlet_clock
 │   ├── groff_compile
 │   ├── sexager
 │   ├── spin
@@ -23,7 +24,6 @@
 ├── dotfbu
 ├── dynamic_truncate
 ├── emacs_start
-├── figlet_clock
 ├── file_select
 ├── fiot
 ├── fscu
@@ -64,6 +64,7 @@
 ├── vault
 ├── verbose
 ├── vtxt
+├── wtime
 ├── yank_buffer
 ├── yank_buffer_old
 ├── zsh_root_like_user
@@ -78,5 +79,5 @@
     ├── passr_old
     └── trashOLD
 
-3 directories, 75 files
+3 directories, 76 files
 ```
