@@ -2,38 +2,85 @@
 
 # cool clock with figlet fonts chosen via fzf
 
-# v0.2
-# special thanks to emanresu3
-# https://matrix.to/#/!esyCFwsvHGqLXuAxSC:matrix.org/$hVsUXYb7F4WaKE2Hd6Og9uaz_zB30DO3VnuNGkIOwvQ?via=grin.hu&via=matrix.org&via=envs.net
-
+## choose font type
 font="$(command ls "$XDG_CONFIG_HOME/figlet" | fzf)"
 
-trap "tput cnorm; callback='return 1'" INT
 
 erase()
 {
+    ## delete to boginning of line
     tput el1
+    ## restore cursor position
     tput rc
+    ## delete line
     tput ed
 }
 
 
-tput civis
-tput sc
+set_stage()
+{
+    ## hide cursor
+    tput civis
+    ## save cursor position
+    tput sc
+}
 
 
-while :; do
+int_handler()
+{
+    ## what to do on SIGINT
+    tput cnorm
+    callback=1
+}
 
-    $callback
 
-    echo
-    figlet -d "$XDG_CONFIG_HOME/figlet" -f $font $(date +'%H:%M:%S')
-    sleep 1
-    erase
+exit_neatly()
+{
+    ## how to exit on SIGINT
+    trap int_handler SIGINT
 
-    echo
-    figlet -d "$XDG_CONFIG_HOME/figlet" -f $font $(date +'%H.%M.%S')
-    sleep 1
-    erase
+    case $callback in
 
-done
+	1)
+	    exit 0
+	    ;;
+
+    esac
+}
+
+
+print_loop()
+{
+    while :; do
+
+	## print clock with colons
+	echo
+	figlet -d "$XDG_CONFIG_HOME/figlet" -f $font $(date +'%H:%M:%S')
+
+	# possible exit point on SIGINT
+	exit_neatly
+
+	sleep 1
+	erase
+
+	## print clock with dots
+	echo
+	figlet -d "$XDG_CONFIG_HOME/figlet" -f $font $(date +'%H.%M.%S')
+
+	# possible exit point on SIGINT
+	exit_neatly
+
+	sleep 1
+	erase
+
+    done
+}
+
+
+main()
+{
+    set_stage
+    print_loop
+}
+
+main

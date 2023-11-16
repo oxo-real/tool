@@ -3,23 +3,71 @@
 # world time clock
 # tip: leave search empty and pipe to fzf
 
-time_format='%a %F %T'
-zone_info='/usr/share/zoneinfo/posix/'
+#time_format='%a %F %T'
+zone_info_dir='/usr/share/zoneinfo/posix/'
 
-time_zones="$(find -L $zone_info -type f)"
+zone_info_files="$(find -L $zone_info_dir -type f)"
 
-fzf_input=$(
-    while read time_zones; do
+time_zones=$(
+    while read time_zone; do
+
+	time_zone=$(printf '%s' "$time_zone" | sed "s|$zone_info_dir||")
 
 	## rfc-2822 format
-	d=$(TZ=$z date -R)
+	d=$(TZ=$time_zone date -R)
 
 	## other time_format
 	#d=$(TZ=$z date +"$time_format")
 
-	printf "%23s %-34s\n" "$d" ${z#$zone_info}
+	printf "%s %s\n" "$d" ${time_zone#$zone_info_files}
+	#printf "%23s %-34s\n" "$d" ${time_zone#$zone_info_files}
 
-    done
+    done <<< "$zone_info_files"
 	 )
 
-printf "$fzf_in
+tz_select=$(printf '%s' "$time_zones" | fzf -m)
+tz_lines=$(printf '%s\n' "$tz_select" | wc -l)
+
+handler()
+{
+    neat_end=1
+}
+
+while true; do
+
+    tput civis
+
+    while read line; do
+
+	trap handler SIGINT # trap the SIGINT signal
+
+	tz=$(printf "$line" | awk '{print $NF}')
+
+	## rfc-2822 format
+	d=$(TZ=$tz date -R)
+
+	printf "%s %s\n" "$d" ${tz#$zone_info_files}
+
+    done <<< "$tz_select"
+
+    case $neat_end in
+
+	1)
+	    tput cnorm
+	    exit 0
+	    ;;
+
+    esac
+
+    sleep 1
+
+    ## erase lines
+    for ((i=1; i<=$tz_lines; i++)); do
+
+	printf "\r"
+	tput el
+	tput cuu1
+
+    done
+
+done
