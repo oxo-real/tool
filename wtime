@@ -1,73 +1,138 @@
 #! /usr/bin/env sh
 
 # world time clock
-# tip: leave search empty and pipe to fzf
 
-#time_format='%a %F %T'
-zone_info_dir='/usr/share/zoneinfo/posix/'
+### usage: wtime [$deltas]
+### example: wtime -6 +1 +7
 
-zone_info_files="$(find -L $zone_info_dir -type f)"
+## defining array
+[ "$1" ] && tz_args_arr=()
 
-time_zones=$(
-    while read time_zone; do
+## populating array
+while [ "$1" ]; do
 
-	time_zone=$(printf '%s' "$time_zone" | sed "s|$zone_info_dir||")
+    tz_args_arr+=("$1")
+    shift
 
-	## rfc-2822 format
-	d=$(TZ=$time_zone date -R)
+done
 
-	## other time_format
-	#d=$(TZ=$z date +"$time_format")
 
-	printf "%s %s\n" "$d" ${time_zone#$zone_info_files}
-	#printf "%23s %-34s\n" "$d" ${time_zone#$zone_info_files}
+process_list()
+{
+    ## convert array to variable tz_args
+    for tz_arg in "${tz_args_arr[@]}"; do
 
-    done <<< "$zone_info_files"
-	 )
+	tz_args=$(printf "$tz_args\n$tz_arg")
 
-tz_select=$(printf '%s' "$time_zones" | fzf -m)
-tz_lines=$(printf '%s\n' "$tz_select" | wc -l)
+    done
+
+    printf 'DEV %s\n' "$tz_args"
+
+    ## create tz_select
+    while read tz_arg; do
+
+	tz_no_city=$(printf "$time_zones" | grep -- "$tz_arg" | head -n 1 | awk 'NF{NF-=1};1')
+
+	tz_select=$(printf "$tz_no_city\n$tz_arg")
+
+    done <<< "$tz_args"
+
+}
+
+
+tz_data()
+{
+    #time_format='%a %F %T'
+    zone_info_dir='/usr/share/zoneinfo/posix/'
+
+    zone_info_files="$(find -L $zone_info_dir -type f | sort --reverse)"
+
+    time_zones=$(
+	while read time_zone; do
+
+	    time_zone=$(printf '%s' "$time_zone" | sed "s|$zone_info_dir||")
+
+	    ## rfc-2822 format
+	    d=$(TZ=$time_zone date -R)
+
+	    ## other time_format
+	    #d=$(TZ=$z date +"$time_format")
+
+	    printf "%s %s\n" "$d" ${time_zone#$zone_info_files}
+	    #printf "%23s %-34s\n" "$d" ${time_zone#$zone_info_files}
+
+	done <<< "$zone_info_files"
+	      )
+
+    if [[ -n $tz_args_arr ]]; then
+
+	process_list
+
+    else
+
+	## manually select with fzf
+	tz_select=$(printf '%s' "$time_zones" | sort --key 6n --key 5n --key 7 | fzf -m)
+
+    fi
+
+    tz_lines=$(printf '%s\n' "$tz_select" | wc -l)
+
+
+}
+
 
 handler()
 {
     neat_end=1
 }
 
-while true; do
+printing()
+{
+    while true; do
 
-    tput civis
+	tput civis
 
-    while read line; do
+	while read line; do
 
-	trap handler SIGINT # trap the SIGINT signal
+	    trap handler SIGINT # trap the SIGINT signal
 
-	tz=$(printf "$line" | awk '{print $NF}')
+	    tz=$(printf "$line" | awk '{print $NF}')
 
-	## rfc-2822 format
-	d=$(TZ=$tz date -R)
+	    ## rfc-2822 format
+	    d=$(TZ=$tz date -R)
 
-	printf "%s %s\n" "$d" ${tz#$zone_info_files}
+	    printf "%s %s\n" "$d" ${tz#$zone_info_files}
 
-    done <<< "$tz_select"
+	done <<< "$tz_select"
 
-    case $neat_end in
+	case $neat_end in
 
-	1)
-	    tput cnorm
-	    exit 0
-	    ;;
+	    1)
+		tput cnorm
+		exit 0
+		;;
 
-    esac
+	esac
 
-    sleep 1
+	sleep 1
 
-    ## erase lines
-    for ((i=1; i<=$tz_lines; i++)); do
+	## erase lines
+	for ((i=1; i<=$tz_lines; i++)); do
 
-	printf "\r"
-	tput el
-	tput cuu1
+	    printf "\r"
+	    tput el
+	    tput cuu1
+
+	done
 
     done
+}
 
-done
+
+main()
+{
+    tz_data
+    printing
+}
+
+main
