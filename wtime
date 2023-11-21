@@ -2,41 +2,20 @@
 
 # world time clock
 
-### usage: wtime [$deltas]
-### example: wtime -6 +1 +7
-
-## defining array
-[ "$1" ] && tz_args_arr=()
-
-## populating array
-while [ "$1" ]; do
-
-    tz_args_arr+=("$1")
-    shift
-
-done
+### usage: wtime [$time_zones]
+### example: wtime -0600 +0100 +0700
 
 
-process_list()
+args="$@"
+
+
+process_args()
 {
-    ## convert array to variable tz_args
-    for tz_arg in "${tz_args_arr[@]}"; do
+    ## sort args (timezones)
+    tz_args="$(printf "$args" | tr ' ' '\n' | sort | tr '\n' ' ')"
 
-	tz_args=$(printf "$tz_args\n$tz_arg")
-
-    done
-
-    printf 'DEV %s\n' "$tz_args"
-
-    ## create tz_select
-    while read tz_arg; do
-
-	tz_no_city=$(printf "$time_zones" | grep -- "$tz_arg" | head -n 1 | awk 'NF{NF-=1};1')
-
-	tz_select=$(printf "$tz_no_city\n$tz_arg")
-
-    done <<< "$tz_args"
-
+    ## user has entered tz_args
+    [ -n "$tz_args" ] && tz_args_expl=1
 }
 
 
@@ -59,25 +38,39 @@ tz_data()
 	    #d=$(TZ=$z date +"$time_format")
 
 	    printf "%s %s\n" "$d" ${time_zone#$zone_info_files}
-	    #printf "%23s %-34s\n" "$d" ${time_zone#$zone_info_files}
 
 	done <<< "$zone_info_files"
 	      )
 
-    if [[ -n $tz_args_arr ]]; then
+    if [[ -n $tz_args ]]; then
 
+	## user has entered tz_args
 	process_list
 
     else
 
-	## manually select with fzf
+	## select tz_args with fzf
 	tz_select=$(printf '%s' "$time_zones" | sort --key 6n --key 5n --key 7 | fzf -m)
 
     fi
 
     tz_lines=$(printf '%s\n' "$tz_select" | wc -l)
+}
 
 
+process_list()
+{
+    ## create tz_select
+    for tz_arg in $tz_args; do
+
+	tz_grep=$(printf "$time_zones" | sort --numeric-sort | grep -- "$tz_arg" | head -n 1)
+
+	tz_select=$(printf "$tz_select\n$tz_grep\n")
+
+    done
+
+    # remove first blank line
+    tz_select=$(printf "$tz_select" | tail -n +2)
 }
 
 
@@ -85,6 +78,7 @@ handler()
 {
     neat_end=1
 }
+
 
 printing()
 {
@@ -94,14 +88,27 @@ printing()
 
 	while read line; do
 
-	    trap handler SIGINT # trap the SIGINT signal
+	    ## trap the SIGINT signal
+	    trap handler SIGINT
 
+	    ## define tz; print last field; time zone text
 	    tz=$(printf "$line" | awk '{print $NF}')
 
-	    ## rfc-2822 format
+	    ## time format rfc-2822
 	    d=$(TZ=$tz date -R)
 
-	    printf "%s %s\n" "$d" ${tz#$zone_info_files}
+	    ## print current time
+	    case $tz_args_expl in
+
+		1)
+		    printf "%s %s\n" "$d"
+		    ;;
+
+		*)
+		    printf "%s %s\n" "$d" "$tz"
+		    ;;
+
+	    esac
 
 	done <<< "$tz_select"
 
@@ -131,6 +138,7 @@ printing()
 
 main()
 {
+    process_args "$args"
     tz_data
     printing
 }
