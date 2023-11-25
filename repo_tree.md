@@ -16,6 +16,7 @@
 │   ├── figlet_clock
 │   ├── groff_compile
 │   ├── hashr
+│   ├── location
 │   ├── sexager
 │   ├── snapshot
 │   ├── spin
@@ -39,7 +40,6 @@
 ├── histdel
 ├── home_clear
 ├── kill_float
-├── location
 ├── make_offl_repo
 ├── make_recov
 ├── metar
