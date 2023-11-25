@@ -16,6 +16,7 @@
 │   ├── figlet_clock
 │   ├── groff_compile
 │   ├── sexager
+│   ├── snapshot
 │   ├── spin
 │   └── time_passed
 ├── diffdir
@@ -79,5 +80,5 @@
     ├── passr_old
     └── trashOLD
 
-3 directories, 76 files
+3 directories, 77 files
 ```
