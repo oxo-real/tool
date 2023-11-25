@@ -61,7 +61,6 @@
 ├── timer
 ├── trash
 ├── tzoner
-├── update_dns_hosts_blocklist
 ├── upgrader
 ├── vault
 ├── verbose
@@ -85,5 +84,5 @@
     ├── trashOLD
     └── wfa.py
 
-4 directories, 81 files
+4 directories, 80 files
 ```
