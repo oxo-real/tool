@@ -1,0 +1,53 @@
+#!/bin/bash
+#
+##
+###  _               _
+### | |__   __ _ ___| |__  _ __
+### | '_ \ / _` / __| '_ \| '__|
+### | | | | (_| \__ \ | | | |
+### |_| |_|\__,_|___/_| |_|_|
+###
+###  _ _|_ _ ._    _  _
+### (_\/|_(_)|_)\/(_|(/_
+###   /      |  /  _|
+##
+#
+# hashr
+# calculates common hashes
+# writes to sidecar files
+# (c) 2018 - 2020 cytopyge
+#
+# usage: hashr <target_file> [write_destination]
+
+filename=$1
+directory=$2
+
+if
+	[ ! -z "$directory" ] && [ ! -d "$directory" ]; then
+	echo "directory does not exist"
+	echo "exiting ..."
+	exit
+elif
+	[ -z "$directory" ]; then
+	file=$filename
+else
+	file=$directory/$filename
+fi
+
+## md5
+openssl dgst -md5 $filename | sed 's/^.*= //' > $file.md5
+
+## rmd160
+openssl dgst -rmd160 $filename | sed 's/^.*= //' > $file.rmd160
+
+## sha1
+openssl dgst -sha1 $filename | sed 's/^.*= //' > $file.sha1
+
+## sha256
+openssl dgst -sha256 $filename | sed 's/^.*= //' > $file.sha256
+
+## sha512
+openssl dgst -sha512 $filename | sed 's/^.*= //' > $file.sha512
+
+## sha3-512
+openssl dgst -sha3-512 $filename | sed 's/^.*= //' > $file.sha3-512

@@ -15,6 +15,7 @@
 │   ├── data_flow_mon
 │   ├── figlet_clock
 │   ├── groff_compile
+│   ├── hashr
 │   ├── sexager
 │   ├── snapshot
 │   ├── spin
@@ -74,11 +75,15 @@
     ├── cryptr_v01
     ├── data_to
     ├── dotbu
+    ├── dstruct
+    │   ├── app.js
+    │   └── dstruct.py
     ├── hclsmvp
     ├── metar
     ├── mountr_rofi
     ├── passr_old
-    └── trashOLD
+    ├── trashOLD
+    └── wfa.py
 
-3 directories, 77 files
+4 directories, 81 files
 ```
