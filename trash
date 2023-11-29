@@ -6,8 +6,10 @@
 ### | __| '__/ _` / __| '_ \
 ### | |_| | | (_| \__ \ | | |
 ###  \__|_|  \__,_|___/_| |_|
-###  _    _
-### (_)><(_)
+###
+### # # # # # #
+###      #
+### # # # # # #
 ###
 ### trash
 ### remove files to an intermediate location
@@ -28,16 +30,17 @@
 ##
 #
 
-### known issues: trash /file_under_root
+### known issues:
+### trash /file_under_root
 ###  is being moved to /file_under_root_$epoch
-###  plus: source as sudo has sudos xdg_data_home
+### NOTICE source as sudo takes sudos XDG_DATA_HOME
 
 # items to trash array
 items=( "$@" )
 epoch="$(date +%s)"
 
-source $XDG_DATA_HOME/c/git/code/source/function/text_appearance
-source $XDG_DATA_HOME/c/git/code/source/function/reply_functions
+source "$XDG_DATA_HOME/c/git/code/source/function/text_appearance"
+source "$XDG_DATA_HOME/c/git/code/source/function/reply_functions"
 
 
 reset_sudo()
