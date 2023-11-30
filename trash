@@ -24,8 +24,8 @@
 ###		trash info|status (more info; requires sudo privileges)
 ###		trash size (only size)
 ###		trash ls
-###
-### recommended:	alias rm="trash"
+### recommended:
+###             alias rm="trash"
 ###
 ##
 #
@@ -39,25 +39,40 @@
 items=( "$@" )
 epoch="$(date +%s)"
 
-source "$XDG_DATA_HOME/c/git/code/source/function/text_appearance"
-source "$XDG_DATA_HOME/c/git/code/source/function/reply_functions"
+
+sourcing()
+{
+    ## when ran as sudo
+    ## $HOME is no longer /home/$(logname), but /root
+    ## therefore redefine impacted $xdg dirs (.local/share and .cache)
+    user_name=$(logname)
+    xdg_h="/home/$user_name"
+    xdg_d_h="$xdg_h/.local/share"
+    xdg_c_h="$xdg_h/.cache"
+
+    source_dir="$xdg_d_h/c/git/code/source/function"
+
+    source $source_dir/text_appearance
+    source $source_dir/reply_functions
+    #source $source_dir/get_sudo
+}
 
 
 reset_sudo()
 {
-    sudo -k
+    get_sudo
+    #sudo -k
 }
 
 
 define_trashcan()
 {
     # prevent trash ending up in root
-    if [[ -n "$XDG_CACHE_HOME" ]]; then
+    if [[ -n "$xdg_c_h" ]]; then
 
 	# definition of a trashcan
-	trash="$XDG_CACHE_HOME/trash"
+	trash="$xdg_c_h/trash"
 	[[ -d $trash ]] || mkdir -p $trash
-	[[ "$TRASHDIR" != "$trash" ]] && exit 44
 
     fi
 }
@@ -273,7 +288,7 @@ trash_info()
 {
     dirs=$(sudo fd . -t d -u $trash | wc -l)
     dirs="${dirs:-0}"
-    #dirs=$(sudo find $XDG_CACHE_HOME/trash -type d | wc -l)
+    #dirs=$(sudo find $xdg_c_h/trash -type d | wc -l)
     files=$(sudo fd . -t f -u $trash | wc -l)
     files="${files:-0}"
     size=$(sudo du -sh $trash | awk '{print $1}')
@@ -344,7 +359,8 @@ trash_now()
 
 main()
 {
-    reset_sudo
+    sourcing
+    #reset_sudo
     define_trashcan
     process_args_array
     process_arguments
