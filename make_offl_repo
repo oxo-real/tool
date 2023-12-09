@@ -72,13 +72,24 @@ aur_packages_copy()
     # compile source code from aur packages
     ## source for hajime/4apps.sh#aur_install
 
-    aur_pkgs=( $(ls $aur_src) )
+    aur_pkgs=( $(fd . --max-depth 1 --type directory $aur_src | sed 's/\/$//') )
+    #aur_pkgs=( $(ls $aur_src) )
     dst_aur="$p_dst/aur"
 
     [[ -d $dst_aur ]] || mkdir -p $dst_aur
 
 	rsync -aAXv --delete --info=progress2,stats --progress \
 	      --exclude='.git' "$aur_src/$package/" "$dst_aur"
+
+    ## remove all previously made symlinks in $p_dst
+    ## exclude offline.db and offline.files
+    old_ln=$(fd . --max-depth 1 --type symlink $p_dst | grep --invert-match "$db_name")
+
+    while read line; do
+
+	unlink $line
+
+    done <<< "$old_ln"
 
     for package in "${aur_pkgs[@]}"; do
 
@@ -87,7 +98,7 @@ aur_packages_copy()
 	#      --exclude='.git' "$aur_src/$package/" "$dst_aur"
 	#cp -r "$aur_src/$package" "$dst_aur"
 
-	copy_pkg_tar_zst
+	copy_pkg_tar $package
 
     done
 
@@ -97,23 +108,60 @@ aur_packages_copy()
 }
 
 
-copy_pkg_tar_zst()
+copy_pkg_tar()
 {
-    ## newest .pkg.tar.zst file
-    newest_ptz_loc=$(realpath $(ls $aur_src/$package/*.pkg.tar.zst | sort --version-sort --reverse | sed -n 1p))
-    newest_ptz_filename=$(basename $newest_ptz_loc)
-    ## create symlink to $p_dst default: REPO (dock/2)
-    ln -s $newest_ptz_loc $p_dst/$newest_ptz_filename
-    ## copy to $p_dst default: REPO (dock/2)
-    #cp $newest_ptz_file $p_dst
+    package=$1
 
-    ## newest .pkg.tarc.gz file
-    newest_ptz_loc=$(realpath $(ls $aur_src/$package/*.pkg.tar.gz | sort --version-sort --reverse | sed -n 1p))
-    newest_ptz_filename=$(basename $newest_ptz_loc)
-    ## create symlink to $p_dst default: REPO (dock/2)
-    ln -s $newest_ptz_loc $p_dst/$newest_ptz_filename
-    ## copy to $p_dst default: REPO (dock/2)
-    #cp $newest_ptz_file $p_dst
+    ### newest .pkg.tar.zst file
+    #if [[ -f $package/*.pkg.tar.zst ]]; then
+
+    #	newest_ptz_loc=$(realpath $(ls $package/*.pkg.tar.zst | sort --version-sort --reverse | sed -n 1p))
+    #	newest_ptz_filename=$(basename $newest_ptz_loc)
+
+    #	## create symlink of the latest package in the aur directory into $p_dst default: REPO (dock/2)
+    #	## so that later installation is from a single directory
+    #	ln -s $newest_ptz_loc $p_dst/$newest_ptz_filename
+
+    #	## copy to $p_dst default: REPO (dock/2)
+    #	#cp $newest_ptz_filename $p_dst
+    #fi
+
+
+    ### newest .pkg.tar.gz file
+    #if [[ -f $package/*.pkg.tar.gz ]]; then
+
+    #	newest_ptg_loc=$(realpath $(ls $package/*.pkg.tar.gz | sort --version-sort --reverse | sed -n 1p))
+    #	newest_ptg_filename=$(basename $newest_ptg_loc)
+
+    #	## create symlink of the latest package in the aur directory into $p_dst default: REPO (dock/2)
+    #	## so that later installation is from a single directory
+    #	ln -s $newest_ptg_loc $p_dst/$newest_ptg_filename
+
+    #	## copy to $p_dst default: REPO (dock/2)
+    #	#cp $newest_ptg_filename $p_dst
+    #fi
+
+
+    ## newest package file
+    ## package file formats
+    pkg_ff=( .pkg.tar.gz .pkg.tar.zst .zip )
+
+    for format_ext in "${pkg_ff[@]}"; do
+
+	if [[ -f $package/*$format_ext ]]; then
+
+	    newest_ptg_loc=$(realpath $(ls $package/*$format_ext | sort --version-sort --reverse | sed -n 1p))
+	    newest_ptg_filename=$(basename $newest_ptg_loc)
+
+	    ## create symlink of the latest package in the aur directory into $p_dst default: REPO (dock/2)
+	    ## so that later installation is from a single directory
+	    ln -s $newest_ptg_loc $p_dst/$newest_ptg_filename
+
+	    ## copy to $p_dst default: REPO (dock/2)
+	    #cp $newest_ptg_filename $p_dst
+	fi
+
+    done
 }
 
 
@@ -122,7 +170,9 @@ aur_packages_build()
     # compile source code from aur packages
     ## source for hajime/4apps.sh#aur_install
 
-    aur_pkgs=( $(yay -Qqm) )
+    aur_pkgs=( $(fd . --max-depth 1 --type directory $aur_src) )
+    #aur_pkgs=( $(ls $aur_src) )
+    #aur_pkgs=( $(yay -Qqm) )
     dst_aur="$p_dst/aur"
 
     [[ -d $dst_aur ]] || mkdir -p $dst_aur

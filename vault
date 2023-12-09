@@ -1,4 +1,4 @@
-#! /usr/bin/env bash
+#! /usr/bin/env sh
 #set -o errexit
 #set -o nounset
 set -o pipefail
@@ -9,8 +9,9 @@ set -o pipefail
 ### \ \ / / _` | | | | | __|
 ###  \ V / (_| | |_| | | |_
 ###   \_/ \__,_|\__,_|_|\__|
-###  _    _
-### (_)><(_)
+### # # # # # #
+###      #
+### # # # # # #
 ###
 ### vault
 ### manage secure file containers
