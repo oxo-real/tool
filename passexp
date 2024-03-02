@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#! /usr/bin/env sh
 
 # requirements: open password-store
 # i.e. with: passr open
@@ -19,6 +19,7 @@ gpg_files=$(find $vlt_pass/ -type f -name '*.gpg' | sort)
 for file in $gpg_files; do
 
 	pass_file=$(printf $file | sed "s|$vlt_pass/||" | sed 's|.gpg$||')
+
 	printf '%s\n' "$file" >> $exp_file
 	printf '%s\n' "-------------------------------------------------------------------------------" >> $exp_file
 	pass show $pass_file >> $exp_file

@@ -10,12 +10,14 @@ set -o pipefail
 ### | |_) | (_| \__ \__ \ |
 ### | .__/ \__,_|___/___/_|
 ### |_|
-###  _    _
-### (_)><(_)
+###
+### # # # # # #
+###      #
+### # # # # # #
 ###
 ### passr
 ### fzf cli wrapper for pass
-### copyright (c) 2020 - 2023  |  oxo
+### copyright (c) 2020 - 2024  |  oxo
 ###
 ### GNU GPLv3 GENERAL PUBLIC LICENSE
 ### This program is free software: you can redistribute it and/or modify
@@ -37,7 +39,7 @@ set -o pipefail
 ##
 #
 
-# NOTICE: to run without pwgn: export PWGN_OFF=1
+# NOTICE: to run without pwgn set: export PWGN_OFF=1
 
 
 : '

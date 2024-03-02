@@ -7,13 +7,14 @@
 ### | |_| | |_) | (_| | | | (_| | (_| |  __/ |
 ###  \__,_| .__/ \__, |_|  \__,_|\__,_|\___|_|
 ###       |_|    |___/
+###
 ### # # # # # #
 ###      #
 ### # # # # # #
 ###
 ### upgrader
 ### arch linux upgrade script
-### (c) 2019 - 2023  |  oxo
+### (c) 2019 - 2024  |  oxo
 ###
 ##
 #
@@ -83,9 +84,9 @@ set_clock()
     printf "${st_bold}timedatectl timesync-status${st_def}\n"
     timedatectl timesync-status
     echo
-    printf "${st_bold}hwclock --show${st_def}\n"
-    sudo hwclock --show
-    cat /etc/adjtime
+    printf "${st_bold}hwclock --show --verbose${st_def}\n"
+    sudo hwclock --show --verbose
+    #cat /etc/adjtime
     echo
     sleep 5
 }
