@@ -11,13 +11,15 @@ set -o pipefail
 ### | '_ ` _ \ / _ \| | | | '_ \| __| '__|
 ### | | | | | | (_) | |_| | | | | |_| |
 ### |_| |_| |_|\___/ \__,_|_| |_|\__|_|
-###  _    _
-### (_)><(_)
+###
+### # # # # # #
+###      #
+### # # # # # #
 ###
 ### mountr
 ### manage mountpoints and blockdevices
 ###
-### copyright (c) 2020 - 2023  |  oxo
+### copyright (c) 2020 - 2024  |  oxo
 ###
 ##
 #
@@ -32,7 +34,9 @@ set -o pipefail
 # and
 # 2. unmount mounted devices (mps_umount)
 # by simply selecting device and/or mountpoint
+
 # NOTICE mount sets current owner and group
+
 
 # initial general definitions
 
@@ -159,8 +163,8 @@ get_source_devs() {
     # create a starting point
 
     source_devs_avail_list=$(\
-	\lsblk -nrp -o "name,type,size,label,mountpoint" | \
-	## \lsblk prevents an alias causing error:
+	command lsblk -nrp -o "name,type,size,label,mountpoint" | \
+	## command lsblk prevents an alias causing error:
 	## lsblk: mutually exclusive arguments: --pairs --tree --list --raw
 	## exclude non-volatile storage media on
 	## peripheral component interconnect express bus
@@ -413,9 +417,11 @@ dev_is_luks()
 get_device_data()
 {
     source_dev=$(printf "$line" | cut -d ' ' -f 1)
-    dev_type=$(\lsblk -nrp -o "name,type" | grep -w "$source_dev" | cut -d ' ' -f 2)
+    dev_type=$(printf "$line" | cut -d ' ' -f 2)
     size=$(printf "$line" | cut -d ' ' -f 3)
-    label=$(blkid "$source_dev" | tr -s ' ' '\n' | grep -w 'LABEL=' | cut -d '"' -f 2)
+    label=$(printf "$line" | cut -d ' ' -f 4)
+    #dev_type=$(command lsblk -nrp -o "name,type" | grep -w "$source_dev" | cut -d ' ' -f 2)
+    #label=$(blkid "$source_dev" | tr -s ' ' '\n' | grep -w 'LABEL=' | cut -d '"' -f 2)
     mountpoint=$(printf "$line" | awk '{print $NF}')
 }
 
