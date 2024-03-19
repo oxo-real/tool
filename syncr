@@ -9,12 +9,14 @@ set -o pipefail
 ### \__ \ |_| | | | | (__| |
 ### |___/\__, |_| |_|\___|_|
 ###      |___/
-###  _    _
-### (_)><(_)
+###
+### # # # # # #
+###      #
+### # # # # # #
 ###
 ### syncr
 ### synchronize data (uni-directional)
-### copyright (c) 2020 - 2023  |  oxo
+### copyright (c) 2020 - 2024  |  oxo
 ###
 ### usage:
 ### NOTICE: check switches in main
@@ -58,7 +60,8 @@ source $source_dir/text_appearance
 
 ## destination
 ### under $dest .config is created
-dest=$1; shift
+dest=$1
+shift
 [[ ! -d $dest ]] && \
     printf "${MAGENTA}destination not found${NOC}\n" && \
     exit 3
@@ -356,8 +359,8 @@ main()
 
     logs
 
-    local_share_archive
-    local_share_backup
+    ## ## local_share_archive
+    ## ## local_share_backup
     local_share_current
 
     password_store
