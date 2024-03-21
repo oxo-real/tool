@@ -1,45 +1,69 @@
-#!/usr/bin/env bash
-#set -o errexit
-#set -o nounset
-set -o pipefail
-#
-##
+#! /usr/bin/env sh
+
+###
 ###  ___ _   _ _ __   ___ _ __
 ### / __| | | | '_ \ / __| '__|
 ### \__ \ |_| | | | | (__| |
 ### |___/\__, |_| |_|\___|_|
 ###      |___/
 ###
-### # # # # # #
-###      #
-### # # # # # #
+###  # # # # # #
+###       #
+###  # # # # # #
 ###
-### syncr
-### synchronize data (uni-directional)
-### copyright (c) 2020 - 2024  |  oxo
-###
-### usage:
-### NOTICE: check switches in main
-###
-### syncr <destination> [rsync_options]
-###
-### examples:
-###
-### ## backup
-### syncr $HOME/dock/transfer/tux/home/oxo \
-    ###	    --dry-run --links --delete
-###
-### ## archive
-### syncr $HOME/dock/transfer/tux/home/oxo \
-    ###	    --dry-run --links
-###
-### ## with integrated logfile
-### syncr $HOME/dock/transfer/x1c/home/oxo --delete --links \
-    ###         --log-file=$XDG_LOGS_HOME/syncr/$(now) | \
-    ###         tee -a $XDG_LOGS_HOME/syncr/$(now)
-###
-##
-#
+
+: '
+syncr
+synchronize data (uni-directional)
+copyright (c) 2020 - 2024  |  oxo
+
+GNU GPLv3 GENERAL PUBLIC LICENSE
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+https://www.gnu.org/licenses/gpl-3.0.txt
+
+@oxo@qoto.org
+
+
+# dependencies
+
+# usage
+
+NOTICE: check switches in main
+
+syncr <destination> [rsync_options]
+
+examples:
+
+## backup
+syncr $HOME/dock/transfer/tux/home/oxo \
+###	    --dry-run --links --delete
+
+## archive
+syncr $HOME/dock/transfer/tux/home/oxo \
+###	    --dry-run --links
+
+## with integrated logfile
+syncr $HOME/dock/transfer/x1c/home/oxo --delete --links \
+###         --log-file=$XDG_LOGS_HOME/syncr/$(now) | \
+###         tee -a $XDG_LOGS_HOME/syncr/$(now)
+
+# '
+
+
+#set -o errexit
+#set -o nounset
+set -o pipefail
 
 ## initialize
 args="$@"

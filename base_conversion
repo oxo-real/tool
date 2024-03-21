@@ -1,8 +1,50 @@
-#!/bin/bash
+#! /usr/bin/env sh
+
+#set -o errexit
+#set -o nounset
+set -o pipefail
+
+###
+###  _
+### | |__   ___ ___  _ ____   __
+### | '_ \ / __/ _ \| '_ \ \ / /
+### | |_) | (_| (_) | | | \ V /
+### |_.__/ \___\___/|_| |_|\_/
+###
+###  # # # # # #
+###       #
+###  # # # # # #
+###
+
+: '
+bconv
+base number conversion
+copyright (c) 2022  |  oxo
+
+GNU GPLv3 GENERAL PUBLIC LICENSE
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+https://www.gnu.org/licenses/gpl-3.0.txt
+
+@oxo@qoto.org
+
 
 # usage: base_conversion integer ibase obase
 # with 2<=ibase<=36 (26+10)
 # with 2<=obase<=36 (26+10)
+
+: '
+
 
 echo "obase=$3; ibase=$2; \
 	$( printf $1 | \

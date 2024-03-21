@@ -1,19 +1,21 @@
 #! /usr/bin/env sh
 
-#set -o errexit
-#set -o nounset
-#set -o pipefail
+###
+###  _ ____      ____ _ _ __
+### | '_ \ \ /\ / / _` | '_ \
+### | |_) \ V  V / (_| | | | |
+### | .__/ \_/\_/ \__, |_| |_|
+### |_|           |___/
+###
+###  # # # # # #
+###       #
+###  # # # # # #
+###
 
 : '
-----------------------------------------------------------------------
 pwgn
 generate unique hex strings
-
 copyright (c) 2020 - 2024  |  oxo
-
-# # # # # #
-     #
-# # # # # #
 
 GNU GPLv3 GENERAL PUBLIC LICENSE
 This program is free software: you can redistribute it and/or modify
@@ -32,14 +34,20 @@ https://www.gnu.org/licenses/gpl-3.0.txt
 
 @oxo@qoto.org
 
-dependencies:
-source_dir, qrencode, zbarcam
 
-usage:
+# dependencies
+  source_dir, qrencode, zbarcam
+
+# usage
+
 pwgn [--optical]
-======================================================================
+
 # '
 
+
+#set -o errexit
+#set -o nounset
+#set -o pipefail
 
 # initial definitions
 

@@ -1,39 +1,48 @@
 #! /usr/bin/env sh
-#
-##
+
 ###  _                 _
 ### | |_ _ __ __ _ ___| |__
 ### | __| '__/ _` / __| '_ \
 ### | |_| | | (_| \__ \ | | |
 ###  \__|_|  \__,_|___/_| |_|
 ###
-### # # # # # #
-###      #
-### # # # # # #
+###  # # # # # #
+###       #
+###  # # # # # #
 ###
-### trash
-### remove files to an intermediate location
-### copyright (c) 2020 - 2023  |  oxo
-###
-### usage:
-### actions:
-###             trash [-options] $filepath
-###		trash rm|empty|clear
-### information:
-###		trash
-###		trash info|status (more info; requires sudo privileges)
-###		trash size (only size)
-###		trash ls
-### recommended:
-###             alias rm="trash"
-###
-##
-#
 
-### known issues:
-### trash /file_under_root
-###  is being moved to /file_under_root_$epoch
-### NOTICE source as sudo takes sudos XDG_DATA_HOME
+: '
+trash
+remove files to an intermediate location
+copyright (c) 2020 - 2023  |  oxo
+
+# usage
+
+actions:
+    trash [-options] $filepath
+    trash rm|empty|clear
+
+information:
+    trash
+    trash info|status (more info; requires sudo privileges)
+    trash size (only size)
+    trash ls
+
+recommended:
+    alias rm="trash"
+
+known issues:
+    trash /file_under_root
+    is being moved to /file_under_root_$epoch
+
+    NOTICE source as sudo takes sudos XDG_DATA_HOME
+
+# '
+
+
+#set -o errexit
+#set -o nounset
+set -o pipefail
 
 # items to trash array
 items=( "$@" )

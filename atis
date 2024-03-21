@@ -1,45 +1,49 @@
 #! /usr/bin/env sh
-#
-#set -o errexit
-#set -o nounset
-set -o pipefail
-#
-##
+
 ###        _   _
 ###   __ _| |_(_)___
 ###  / _` | __| / __|
 ### | (_| | |_| \__ \
 ###  \__,_|\__|_|___/
 ###
-### # # # # # #
-###      #
-### # # # # # #
 ###
-### atis
-### create atis
-### copyright (c) 2023 - 2024  |  oxo
+###  # # # # # #
+###       #
+###  # # # # # #
 ###
-### GNU GPLv3 GENERAL PUBLIC LICENSE
-### This program is free software: you can redistribute it and/or modify
-### it under the terms of the GNU General Public License as published by
-### the Free Software Foundation, either version 3 of the License, or
-### (at your option) any later version.
-###
-### This program is distributed in the hope that it will be useful,
-### but WITHOUT ANY WARRANTY; without even the implied warranty of
-### MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-### GNU General Public License for more details.
-###
-### You should have received a copy of the GNU General Public License
-### along with this program.  If not, see <https://www.gnu.org/licenses/>.
-### https://www.gnu.org/licenses/gpl-3.0.txt
-###
-### @oxo@qoto.org
-###
-##
-#
 
-# usage: atis [$location]
+: '
+atis
+create atis for a given location
+copyright (c) 2023 - 2024  |  oxo
+
+GNU GPLv3 GENERAL PUBLIC LICENSE
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+https://www.gnu.org/licenses/gpl-3.0.txt
+
+@oxo@qoto.org
+
+
+# usage
+atis [$location]
+
+# '
+
+
+#set -o errexit
+#set -o nounset
+set -o pipefail
 
 args="$@"
 #timestamp=$(date +%s)
@@ -58,27 +62,29 @@ get_location()
 
 lat=50
 lon=10
-api_key='85a4e3c55b73909f42c6a23ec35b714'
+api_key='31a8cd6ba495fe2c561066c65a2cfb2e'
 curl='curl --silent --fail'
-https='https://api.openweathermap.org/data/2.5/'
-products='weather forecast forecast/daily'
+https='https://api.openweathermap.org/data/2.5'
+products=(weather forecast forecast/daily)
 
 
 get_owm_data()
 {
-    for product in "$products"; do
+    for product in "${products[@]}"; do
 
+	printf "DEV75 $https/$product?lat=$lat&lon=$lon&appid=$api_key\n"
 	data="$($curl $https/$product?lat=$lat&lon=$lon&appid=$api_key)"
-	owm_$product="$data"
+	owm_${product}="$data"
 
     done
 
-    head $owm_weather
+    printf "$owm_weather" | head
     head $owm_forecast
     head ${owm_forecast/daily}
 }
 
-exit 255
+# DEV
+#exit 255
 # openweathermap api call (other_api_key)
 #https://api.openweathermap.org/data/2.5/weather?lat=50&lon=10&appid=85a4e3c55b73909f42c6a23ec35b7147
 
