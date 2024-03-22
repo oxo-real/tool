@@ -1,9 +1,5 @@
 #! /usr/bin/env sh
 
-#set -o errexit
-#set -o nounset
-set -o pipefail
-
 ###
 ###  _
 ### | |__   ___ ___  _ ____   __
@@ -45,6 +41,10 @@ https://www.gnu.org/licenses/gpl-3.0.txt
 
 : '
 
+
+#set -o errexit
+#set -o nounset
+set -o pipefail
 
 echo "obase=$3; ibase=$2; \
 	$( printf $1 | \
