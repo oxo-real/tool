@@ -40,10 +40,8 @@ https://www.gnu.org/licenses/gpl-3.0.txt
 
 # usage
 
-NOTICE: to run without pwgn: export PWGN_OFF=1
-
 vault action   	        target		arg3
-
+-------------------     --------        ------------------
 vault list     (l)
 vault status   (s)	[target]
 vault create   (n)	target		[size]
@@ -56,11 +54,6 @@ vault_file	  (create, open),
 vlt_mapper_id	  (status, close), or
 mountpoint	  (status, close)
 
-## examples
-% vault create secure_container 18M
-% vault open $XDG_DATA_HOME/c/keys/pass/vlt_pass $HOME/dock/vlt/pass
-% vault ca -y
-
 NOTICE on arg3 size
 * required if target is a non-existent file
 * is an integer with an optional unit
@@ -70,10 +63,17 @@ NOTICE on arg3 size
     binary prefixes	(KiB=K, MiB=M,...)
 * size minimum is 18M
 
+# examples
+% vault create secure_container 18M
+% vault open $XDG_DATA_HOME/c/keys/pass/vlt_pass $HOME/dock/vlt/pass
+% vault ca -y
+## to run without pwgn execute:
+% export PWGN_OFF=1: vault open $vault_file $mountpoint
+
 # '
 
 
-set -o errexit
+#set -o errexit
 #set -o nounset
 set -o pipefail
 
@@ -117,7 +117,8 @@ arg_target="$2"
 arg_3="$3"
 
 
-check_target_validity() {
+check_target_validity()
+{
     [[ $action != 'close' ]] && target=$arg_target
 
     case $action in
@@ -158,7 +159,7 @@ check_target_validity() {
 		[[ ! -b $target ]]; then
 
 		echo
-		printf "$target ${MAGENTA}no target or permissions${NOC}\n"
+		printf "$target ${fg_magenta}no target or permissions${st_def}\n"
 		exit 22
 
 	    fi
@@ -168,13 +169,15 @@ check_target_validity() {
 }
 
 
-create_new_vault_file() {
+create_new_vault_file()
+{
     truncate -s $size $target
     target_just_created=1
 }
 
 
-check_target_status() {
+check_target_status()
+{
     if [[ $action == "create" ]]; then
 
 	# target_c_type (target create type)
@@ -184,7 +187,7 @@ check_target_status() {
 
 	    target_c_type="block_device"
 
-	    printf "${MAGENTA}$target${NOC} is a $target_c_type "
+	    printf "${fg_magenta}$target${st_def} is a $target_c_type "
 
 	    ## warn if target is luks device
 	    sudo cryptsetup isLuks $target
@@ -192,7 +195,7 @@ check_target_status() {
 	    case $? in
 
 		0)
-		    printf "and contains a ${MAGENTA}LUKS device${NOC}\n"
+		    printf "and contains a ${fg_magenta}LUKS device${st_def}\n"
 		    ;;
 
 		*)
@@ -208,12 +211,12 @@ check_target_status() {
 
 	    if printf "$reply" | grep -iq "^y"; then
 
-		printf "about to ${MAGENTA}overwrite${NOC} $target_c_type $target\n"
+		printf "about to ${fg_magenta}overwrite${st_def} $target_c_type $target\n"
 
 		# human info
 		echo
 		blk_dev_info=$(lsblk -i --tree -o name,fstype,uuid,path,size,fsuse%,fsused,label,mountpoint | grep $target)
-		printf "${BOLD}$blk_dev_info${NORMAL}\n"
+		printf "${st_bold}$blk_dev_info${st_def}\n"
 
 		printf "please confirm? (y/N) "
 		reply_single
@@ -246,14 +249,14 @@ check_target_status() {
 
 	    target_c_type="partition"
 
-	    printf "${MAGENTA}$target is a $target_c_type!${NOC}\n"
+	    printf "${fg_magenta}$target is a $target_c_type!${st_def}\n"
 	    printf "are you sure to overwrite an entire $target_c_type? (y/N) "
 	    reply_single
 	    echo
 
 	    if printf "$reply" | grep -iq "^y"; then
 
-		printf "${MAGENTA}about to overwrite $target_c_type $target${NOC}\n"
+		printf "${fg_magenta}about to overwrite $target_c_type $target${st_def}\n"
 		printf "really sure? (y/N) "
 		reply_single
 		echo
@@ -305,7 +308,7 @@ check_target_status() {
 
 	    target_c_type="file"
 
-	    printf "${MAGENTA}$target already exists!${NOC}\n"
+	    printf "${fg_magenta}$target already exists!${st_def}\n"
 	    printf "overwrite? (y/N) "
 	    reply_single
 	    echo
@@ -343,7 +346,8 @@ check_target_status() {
 }
 
 
-check_container_size() {
+check_container_size()
+{
     ## minimum size 18M
     if [[ $target_c_type == "file" ]] && [ $size -lt 18 ]; then
 
@@ -351,13 +355,14 @@ check_container_size() {
 	# same error?:
 	# WARNING: Data offset is outside of currently available data device.
 
-	printf "${MAGENTA}minimum vault size is 18 MB${NOC}\n" && exit 18
+	printf "${fg_magenta}minimum vault size${st_def} 18 MB\n" && exit 18
 
     fi
 }
 
 
-create_vlt_mapper_id_name() {
+create_vlt_mapper_id_name()
+{
     # create pretty unique and traceable /dev/mapper/vlt_* name
 
     random_hex="$(< /dev/random tr -d -c "[:xdigit:]" | head -c 8)"
@@ -368,7 +373,8 @@ create_vlt_mapper_id_name() {
 }
 
 
-write_random_data() {
+write_random_data()
+{
     printf "$target writing zero data\n"
 
     case $target_c_type in
@@ -427,7 +433,8 @@ write_random_data() {
 }
 
 
-create_vault() {
+create_vault()
+{
     write_random_data
 
     printf "$target setting up crypto\n"
@@ -479,10 +486,10 @@ create_vault() {
 }
 
 
-open_luks() {
+open_luks()
+{
     echo
-    #printf "open vault\n"
-    printf "\n${YELLOW}%s${NOC}\n" 'open vault'
+    printf "\n${fg_yellow}%s${st_def}\n" 'vault open'
     sudo cryptsetup open --type luks2 $target $mapping_name
     # DEBUG
     #sudo cryptsetup open --type luks2 $target $mapping_name --debug
@@ -496,7 +503,8 @@ open_luks() {
 }
 
 
-make_fs () {
+make_fs ()
+{
     printf "writing ext4 filesystem to $vlt_mapper_id\n"
 
     sudo mkfs.ext4 -L VAULT -j $vlt_mapper_id
@@ -505,13 +513,15 @@ make_fs () {
 }
 
 
-permissions() {
+permissions()
+{
     group="wheel"
     sudo chown -R $USER:$group $mountpoint
 }
 
 
-close_luks() {
+close_luks()
+{
     sudo cryptsetup close $vlt_mapper_id
 
     printf "cryptsetup closed $vlt_mapper_id\n"
@@ -520,7 +530,8 @@ close_luks() {
 }
 
 
-clean_up() {
+clean_up()
+{
     if [[ $action == "create" ]] && [[ -d $mountpoint ]]; then
 
 	rmdir "$mountpoint"
@@ -529,20 +540,21 @@ clean_up() {
 }
 
 
-check_mp_dir() {
+check_mp_dir()
+{
     # existence & emptyness (for mounting)
 
     ## no mountpoint entry
     if [[ -z $mountpoint ]]; then
 
-	printf "${MAGENTA}empty mountpoint entry${NOC}\n"
+	printf "${fg_magenta}empty mountpoint entry${st_def}\n"
 	printf "vault open <vault_file> <mountpoint>\n"
 	exit 3
 
     ## mountpoint directory does not exist
     elif [[ ! -d $mountpoint ]]; then
 
-	printf "${MAGENTA}$mountpoint does not exist!${NOC}\n" && exit 3
+	printf "${fg_magenta}$mountpoint does not exist!${st_def}\n" && exit 3
 
     ## directory does exist
     elif [[ -d $mountpoint ]]; then
@@ -550,7 +562,7 @@ check_mp_dir() {
     	## and is a mountpoint already
 	if mount | awk '{print $3}' | grep -x $mountpoint > /dev/null; then
 
-	    printf "${MAGENTA}$mountpoint is already a mountpoint${NOC}\n" && exit 3
+	    printf "${fg_magenta}$mountpoint is already a mountpoint${st_def}\n" && exit 3
 
 	fi
 
@@ -563,15 +575,15 @@ check_mp_dir() {
 }
 
 
-erase_line() {
-
+erase_line()
+{
     printf "\r"
     tput el
 }
 
 
-generate_pw() {
-
+generate_pw()
+{
     ## run without pwgn: 'export PWGN_OFF=1'
     if [[ -z "$PWGN_OFF" ]]; then
 
@@ -582,12 +594,14 @@ generate_pw() {
 }
 
 
-mounting() {
+mounting()
+{
     sudo mount $vlt_mapper_id $mountpoint
 }
 
 
-get_vault_data() {
+get_vault_data()
+{
     # single target (vault close 'target')
     ## target is a luks container, mountpoint or vlt_mapper_id
 
@@ -790,18 +804,19 @@ get_vault_data() {
 }
 
 
-show_spec_info() {
+show_spec_info()
+{
     if [[ -z $target_type ]]; then
 
 	## get_vault_data could not assign a target_type
 	printf "\n%s\n" "no specific info available"
-	printf "no valid target_type ${MAGENTA}$target${NOC}\n"
+	printf "no valid target_type ${fg_magenta}$target${st_def}\n"
 
 	exit 77
 
     else
 
-	printf "\n%20s${BLUE} %s${NOC}\n" "specific info for:" "$target_type $target"
+	printf "\n%20s${fg_blue} %s${st_def}\n" "specific info for:" "$target_type $target"
 
 	echo
 	printf "%20s %s\n" "luks_uuid:" $luks_uuid
@@ -819,7 +834,7 @@ show_spec_info() {
 
 	else
 
-	    printf "%20s${MAGENTA} %s${NOC}\n" "vlt_mapper_id:" $vlt_mapper_id
+	    printf "%20s${fg_magenta} %s${st_def}\n" "vlt_mapper_id:" $vlt_mapper_id
 
 	fi
 
@@ -829,7 +844,7 @@ show_spec_info() {
 
 	else
 
-	    printf "%20s${MAGENTA} %s${NOC}\n" "mountpoint:" $mountpoint
+	    printf "%20s${fg_magenta} %s${st_def}\n" "mountpoint:" $mountpoint
 
 	fi
 
@@ -839,13 +854,15 @@ show_spec_info() {
 }
 
 
-check_target_exists() {
+check_target_exists()
+{
     # for close
     b=1
 }
 
 
-check_no_confirm() {
+check_no_confirm()
+{
     if [[ -z $no_confirm ]]; then
 
 	# no_confirm is empty;
@@ -859,7 +876,7 @@ check_no_confirm() {
 	if printf "$reply" | grep -iq "^n"; then
 
 	    confirmation="negative"
-	    printf "${MAGENTA}aborted${NOC} by user\n"
+	    printf "${fg_magenta}aborted${st_def} by user\n"
 
 	else
 
@@ -872,8 +889,8 @@ check_no_confirm() {
 }
 
 
-fzf_select_target() {
-
+fzf_select_target()
+{
     case $action in
 
 	status)
@@ -896,14 +913,15 @@ fzf_select_target() {
     else
 
 	#[TODO] umounted vault but still a dev_mapper_vlt
-	printf "${BLUE}empty${NOC}\n"
+	printf "${fg_blue}empty${st_def}\n"
 	exit
 
     fi
 }
 
 
-close_target() {
+close_target()
+{
     # all (vault close all)
 
     if [[ $target == "all" ]]; then
@@ -986,12 +1004,13 @@ close_target() {
 }
 
 
-unmount() {
+unmount()
+{
     # if pwd is inside mountpoint on close
     if [[ $action == "close" ]] && \
 	[[ -n $(echo $PWD | grep $mountpoint) ]]; then
 
-	printf "${MAGENTA}cannot unmount myself!${NOC}\n"
+	printf "${fg_magenta}cannot unmount myself!${st_def}\n"
 	printf "please change directory\n"
 	exit 66
 
@@ -1019,13 +1038,15 @@ unmount() {
 }
 
 
-clear_cache() {
+clear_cache()
+{
     sudo sysctl --write vm/drop_caches=3
-    printf "${BLUE}vault closed${NOC}\n"
+    printf "${fg_blue}vault closed${st_def}\n"
 }
 
 
-get_all_vlt_mapper_ids() {
+get_all_vlt_mapper_ids()
+{
     vlt_mapper_ids=$(\lsblk -rp | grep 'vlt_' | sort -k 7 | awk '{print $1}')
 
     if [[ -z "$vlt_mapper_ids" ]]; then
@@ -1037,16 +1058,17 @@ get_all_vlt_mapper_ids() {
 }
 
 
-vault_list() {
+vault_list()
+{
     # show list of all vlt mapped devices with their mountpoints
 
     if [[ -z $(df -h | grep 'vlt_') ]]; then
 
-	printf "${MAGENTA}no mapped vaults mounted${NOC}\n"
+	printf "${fg_magenta}no mapped vaults mounted${st_def}\n"
 
     else
 
-	printf "${BLUE}mapped vaults mounted${NOC}\n"
+	printf "${fg_blue}mapped vaults mounted${st_def}\n"
 
 	## this awk contains headers (instead of grep vlt_)
 	list=$(df -h | awk 'NR==1 || /\/vlt_/')
@@ -1056,7 +1078,8 @@ vault_list() {
 }
 
 
-vault_spec_info() {
+vault_spec_info()
+{
     # show info about specific target / target_list
 
     if [[ -n $target ]]; then
@@ -1082,7 +1105,8 @@ vault_spec_info() {
 }
 
 
-close_luks_all() {
+close_luks_all()
+{
     get_all_vlt_mapper_ids
     vault_list
 
@@ -1129,8 +1153,8 @@ close_luks_all() {
 }
 
 
-check_no_confirm_flag() {
-
+check_no_confirm_flag()
+{
     ## set no_confirm to '' or 1
     case $action in
 
@@ -1147,7 +1171,7 @@ check_no_confirm_flag() {
                 	;;
 
                     *)
-                	printf "${MAGENTA}no valid option:${NOC} '$no_confirm'\n"
+                	printf "${fg_magenta}no valid option:${st_def} '$no_confirm'\n"
                 	printf "exiting\n"
                 	exit 72
                 	;;
@@ -1167,7 +1191,8 @@ check_no_confirm_flag() {
 }
 
 
-fzf_target_mountpoint() {
+fzf_target_mountpoint()
+{
     if [[ -z $target ]]; then
 
 	target=$(fd -uu . \/ | fzf --prompt='target ' $fzf_options)
@@ -1178,7 +1203,8 @@ fzf_target_mountpoint() {
 }
 
 
-get_target_luks_uuid() {
+get_target_luks_uuid()
+{
     luks_uuid=$(sudo cryptsetup luksUUID $target)
 
     case $luks_uuid in
@@ -1196,7 +1222,8 @@ get_target_luks_uuid() {
 }
 
 
-set_close_args() {
+set_close_args()
+{
     # getting the right arguments for all scenarios
 
     case $arg_action in
@@ -1227,7 +1254,8 @@ set_close_args() {
 }
 
 
-main() {
+main()
+{
     case $arg_action in
 
 	list | l)
@@ -1301,7 +1329,7 @@ main() {
 	    ;;
 
 	*)
-	    printf "${MAGENTA}no valid action${NOC}\n"
+	    printf "${fg_magenta}no valid action${st_def}\n"
 	    exit 40
 	    ;;
 
