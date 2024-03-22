@@ -35,11 +35,14 @@ https://www.gnu.org/licenses/gpl-3.0.txt
 @oxo@qoto.org
 
 
+# dependencies
+  /usr/share/zoneinfo/posix/
+
 # usage
 % tzoner [$part_of_zoneinfo_filename]
 % tzoner | fzf [-m]
 
-# explanation
+## explanation
 caclulate local tz correction to get foreign time
 
 formula:
