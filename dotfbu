@@ -1,21 +1,44 @@
 #! /usr/bin/env sh
-#
-##
+
 ###      _       _    __ _
 ###   __| | ___ | |_ / _| |__  _   _
 ###  / _` |/ _ \| __| |_| '_ \| | | |
 ### | (_| | (_) | |_|  _| |_) | |_| |
 ###  \__,_|\___/ \__|_| |_.__/ \__,_|
-###  _    _
-### (_)><(_)
 ###
-### dotfbu
-### public backup of configuration files
-### copyright (c) 2020 - 2023  |  oxo
 ###
-### usage: dotfbu backup  [<bu_src> <bu_dest>]
-###	   dotfbu restore [<rs_src> <rs_dest>]
+###  # # # # # #
+###       #
+###  # # # # # #
 ###
+
+: '
+dotfbu
+public backup of configuration files
+copyright (c) 2020 - 2024  |  oxo
+
+GNU GPLv3 GENERAL PUBLIC LICENSE
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+https://www.gnu.org/licenses/gpl-3.0.txt
+
+@oxo@qoto.org
+
+
+# usage
+dotfbu backup  [<bu_src> <bu_dest>]
+dotfbu restore [<rs_src> <rs_dest>]
+
 ### i.e.: dotfbu backup $XDG_CONFIG_HOME $XDG_DATA_HOME/c/git/dotf
 ###	  dotfbu restore $XDG_DATA_HOME/c/git/dotf $XDG_CONFIG_HOME
 ##
@@ -23,8 +46,7 @@
 
 
 # dependencies
-
-## openssl, source/functions, file process list (fpcl)
+  openssl, source/functions, file process list (fpcl)
 
 
 # functionality
@@ -37,6 +59,12 @@
 ##	1. copy directories from source to destination directory
 ##	2. decrypt files or directories
 
+: '
+
+
+#set -o errexit
+#set -o nounset
+set -o pipefail
 
 # arguments
 
@@ -91,7 +119,7 @@ initialize()
 
     esac
 
-    printf "\nmode:   ${INV}${BOLD} $mode ${NOC}\n"
+    printf "\nmode:   ${INV}${st_bold} $mode ${st_def}\n"
 }
 
 
@@ -109,9 +137,9 @@ validate_source()
 
     if [[ ! -d $src ]]; then
 
-    	printf "source:		${MAGENTA}$src${NOC}\n\n"
+    	printf "source:		${fg_magenta}$src${st_def}\n\n"
 
-	printf "${MAGENTA}$src${NOC} does not exist\n"
+	printf "${fg_magenta}$src${st_def} does not exist\n"
 	printf "exiting, bye!\n"
 	exit 11
 
@@ -132,18 +160,18 @@ validate_destination()
 
 	    backup)
 
-		printf "${MAGENTA}empty destination argument${NOC}, exiting, bye!\n"
+		printf "${fg_magenta}empty destination argument${st_def}, exiting, bye!\n"
 		exit 11
 		;;
 
 	    restore)
 
 		re_dest=$(head -n 1 $src/.sync_info)
-		printf "destination:	${MAGENTA}empty argument${NOC}\n"
+		printf "destination:	${fg_magenta}empty argument${st_def}\n"
 
 		if [[ ! -z $re_dest ]]; then
 
-		    printf "		${BOLD}$re_dest${NOC}\n\n"
+		    printf "		${st_bold}$re_dest${st_def}\n\n"
 		    printf "is this okay? (y/N) "
 		    reply_read_single
 		    #reply_single
@@ -161,7 +189,7 @@ validate_destination()
 
 		else
 
-		    printf "\n${MAGENTA}no valid destination argument${NOC}, exiting, bye!\n"
+		    printf "\n${fg_magenta}no valid destination argument${st_def}, exiting, bye!\n"
 		    exit 12
 
 		fi
@@ -171,9 +199,9 @@ validate_destination()
 
     elif [[ ! -d $dest ]]; then
 
-	printf "destination:	${MAGENTA}$dest${NOC}\n\n"
+	printf "destination:	${fg_magenta}$dest${st_def}\n\n"
 
-	printf "destination ${MAGENTA}does not exist${NOC}\n\n"
+	printf "destination ${fg_magenta}does not exist${st_def}\n\n"
 	printf "create? (y/N) "
 	reply_read_single
 	#reply_single
@@ -181,7 +209,7 @@ validate_destination()
 
 	if printf "$reply" | grep -iq "^y"; then
 
-	    printf "about to create ${YELLOW}$dest${NOC}\n\n"
+	    printf "about to create ${YELLOW}$dest${st_def}\n\n"
 	    printf "sure? (y/N) "
 	    reply_read_single
 	    #reply_single
@@ -189,7 +217,7 @@ validate_destination()
 
 	    if printf "$reply" | grep -iq "^y"; then
 
-		printf "creating	${GREEN}$dest${NOC}\n"
+		printf "creating	${GREEN}$dest${st_def}\n"
 		mkdir -p $dest
 
 	    else
@@ -220,18 +248,18 @@ validate_destination()
 
 	    ## req: .fpcl_file in source
 	    [[ ! -f $src/.fpcl ]] && \
-		printf "no .fpcl file found in ${MAGENTA}$bu_src${NOC}\n" && exit 21
+		printf "no .fpcl file found in ${fg_magenta}$bu_src${st_def}\n" && exit 21
 	    ;;
 
 	restore)
 
 	    ## req: .sync_info file in source
 	    [[ ! -f $src/.sync_info ]] && \
-		printf "no .sync_info file found in $${MAGENTA}re_src${NOC}\n" && exit 22
+		printf "no .sync_info file found in $${fg_magenta}re_src${st_def}\n" && exit 22
 
 	    ## req: .fpcl_file in source
 	    [[ ! -f $src/.fpcl ]] && \
-		printf "no .fpcl file found in ${MAGENTA}$bu_src${NOC}\n" && exit 22
+		printf "no .fpcl file found in ${fg_magenta}$bu_src${st_def}\n" && exit 22
 	    ;;
 
     esac
@@ -240,7 +268,7 @@ validate_destination()
     : '
     if [[ ! -z $(ls -A $dest 2>/dev/null) ]]; then
 
-	printf "${YELLOW}destination${NOC} directory is ${BOLD}NOT${NORMAL} empty${NOC}\n\n"
+	printf "${YELLOW}destination${st_def} directory is ${st_bold}NOT${NORMAL} empty${st_def}\n\n"
 
 	printf "destroy $dest? (y/n) "
 	reply_read_single
@@ -250,7 +278,7 @@ validate_destination()
 
 	    # 'n' entered
 	    echo
-	    printf "starting $mode operation\n${YELLOW}CAUTION!${NOC} without destroying $dest\n"
+	    printf "starting $mode operation\n${YELLOW}CAUTION!${st_def} without destroying $dest\n"
 	    sleep 5
 
 	elif printf "$reply" | grep -iq "^y"; then
@@ -290,7 +318,7 @@ validate_destination()
 	else
 
 	    # no 'n' or 'y' entered
-	    printf "operation ${MAGENTA}aborted${NOC}, exiting, bye!\n"
+	    printf "operation ${fg_magenta}aborted${st_def}, exiting, bye!\n"
 	    exit 23
 
 	fi
@@ -307,7 +335,7 @@ validate_destination()
 
 	#else
 
-	#    printf "operation ${MAGENTA}aborted${NOC}, exiting, bye!\n"
+	#    printf "operation ${fg_magenta}aborted${st_def}, exiting, bye!\n"
 	#    exit 23
 
 	#fi
@@ -391,6 +419,7 @@ copy()
     case $mode in
 
 	backup)
+	    #TODO check what rsync does with aes files
 
 	    # copy all files to destination
 	    rsync -aAXv \
@@ -425,7 +454,7 @@ report_plain()
             	if [[ ! -d "$src/$file_2_copy" ]] && \
             		[[ ! -f "$src/$file_2_copy" ]]; then
 
-        	   printf "${MAGENTA}$src/$file_2_copy${NOC} source not found\n"
+        	   printf "${fg_magenta}$src/$file_2_copy${st_def} source not found\n"
         	   continue
 
             	else
@@ -500,7 +529,7 @@ crypt()
 		elif [[ ! -d "$src/$file_2_crypt" ]] && \
 		    [[ ! -f "$src/$file_2_crypt" ]]; then
 
-		    printf "${MAGENTA}$src/$file_2_crypt${NOC} location not found\n"
+		    printf "${fg_magenta}$src/$file_2_crypt${st_def} location not found\n"
 
 		    continue
 
@@ -578,7 +607,7 @@ crypt()
 			    ## remove the unencrypted tar archive
 			    destroy $tar_name
 
-			    printf " ${BOLD}unchanged hash${NOC}\n"
+			    printf " ${st_bold}unchanged hash${st_def}\n"
 
 			    continue
 
@@ -645,7 +674,7 @@ crypt()
 			    ## remove the unencrypted file
 			    destroy $file_name
 
-			    printf " ${BOLD}unchanged hash${NOC}\n"
+			    printf " ${st_bold}unchanged hash${st_def}\n"
 
 			    continue
 
@@ -658,7 +687,7 @@ crypt()
 
 		    else
 
-			printf "${MAGENTA}$crypt_loc${NOC} is not a file or directory\n"
+			printf "${fg_magenta}$crypt_loc${st_def} is not a file or directory\n"
 
 			continue
 
@@ -798,7 +827,7 @@ crypt()
 
 		else
 
-		    printf "${MAGENTA}$crypt_loc${NOC} is not a file or directory\n"
+		    printf "${fg_magenta}$crypt_loc${st_def} is not a file or directory\n"
 
 		    continue
 
@@ -870,15 +899,15 @@ verify()
 
 		### loc_verify is existing file
 		[[ -f $loc_verify ]] || \
-		    printf "${BOLD}CRITICAL ERROR${NOC} ${MAGENTA}$loc_verify${NOC} file does not exist\n"
+		    printf "${st_bold}CRITICAL ERROR${st_def} ${fg_magenta}$loc_verify${st_def} file does not exist\n"
 
 		### loc_verify has openssl encryption
 		file $loc_verify | grep -q 'openssl enc' || \
-		    printf "${BOLD}CRITICAL ERROR${NOC} ${MAGENTA} $loc_verify${NOC} not openssl encrypted\n"
+		    printf "${st_bold}CRITICAL ERROR${st_def} ${fg_magenta} $loc_verify${st_def} not openssl encrypted\n"
 
 		### unencrypted location "$fpcl_line" does exist
 		[[ -f "$bu_dest/$fpcl_location" ]] || \
-		    printf "${BOLD}CRITICAL ERROR${NOC} ${MAGENTA} $bu_dest/$fpcl_location${NOC} exist\n"
+		    printf "${st_bold}CRITICAL ERROR${st_def} ${fg_magenta} $bu_dest/$fpcl_location${st_def} exist\n"
 
 	    done < $fpcl_file
 
@@ -894,7 +923,7 @@ verify()
 
 		*)
 		    # no git repo
-		    printf "${BOLD}WARNING${NOC} ${MAGENTA}$bu_dest${NOC} is no git repo\n"
+		    printf "${st_bold}WARNING${st_def} ${fg_magenta}$bu_dest${st_def} is no git repo\n"
 		    printf "git init and remote add? (Y/n)"
 
 		    reply_read_single
@@ -948,7 +977,7 @@ generate_pw()
 {
     echo
 
-    printf "starting pwgn... ${YELLOW}A${NOC}bort "
+    printf "starting pwgn... ${YELLOW}A${st_def}bort "
 
     reply_read_single_hidden_timer
 

@@ -40,6 +40,9 @@ https://www.gnu.org/licenses/gpl-3.0.txt
   pwgn, vault, source functions
 
 # usage
+  passr [action|object] [element|object|other_arguments]
+
+# examples
 
 NOTICE to run without pwgn set: export PWGN_OFF=1
 
@@ -89,9 +92,10 @@ NOTICE to run without pwgn set: export PWGN_OFF=1
 
 ## data manipulation
 
-### add object data
+### add object
 % passr [$object_non_existing]
 or
+#TODO passr create
 % passr new [$object]
 % passr n [$object]
 
