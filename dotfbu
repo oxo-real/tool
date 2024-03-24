@@ -93,7 +93,8 @@ initialize()
     ##
     ## lines starting with:
     ##	'#'	are skipped and not published
-    ##	'c '	are en-/decrypted
+    ##	'c '	are published encrypted
+    ##	all other lines are published in plain
 
     case $mode in
 
@@ -119,7 +120,7 @@ initialize()
 
     esac
 
-    printf "\nmode:   ${INV}${st_bold} $mode ${st_def}\n"
+    printf "\nmode:   ${st_inv} $mode ${st_def}\n"
 }
 
 
@@ -172,7 +173,7 @@ validate_destination()
 		if [[ ! -z $re_dest ]]; then
 
 		    printf "		${st_bold}$re_dest${st_def}\n\n"
-		    printf "is this okay? (y/N) "
+		    printf "is this okay? [y/N] "
 		    reply_read_single
 		    #reply_single
 		    echo
@@ -199,25 +200,24 @@ validate_destination()
 
     elif [[ ! -d $dest ]]; then
 
-	printf "destination:	${fg_magenta}$dest${st_def}\n\n"
+	printf "destination:	${fg_amber}$dest${st_def}\n\n"
 
-	printf "destination ${fg_magenta}does not exist${st_def}\n\n"
-	printf "create? (y/N) "
+	printf "create destination? [y/N] "
 	reply_read_single
 	#reply_single
 	echo
 
 	if printf "$reply" | grep -iq "^y"; then
 
-	    printf "about to create ${YELLOW}$dest${st_def}\n\n"
-	    printf "sure? (y/N) "
+	    printf "about to create ${fg_yellow}$dest${st_def}\n\n"
+	    printf "sure? [y/N] "
 	    reply_read_single
 	    #reply_single
 	    echo
 
 	    if printf "$reply" | grep -iq "^y"; then
 
-		printf "creating	${GREEN}$dest${st_def}\n"
+		printf "creating	${fg_green}$dest${st_def}\n"
 		mkdir -p $dest
 
 	    else
@@ -248,18 +248,18 @@ validate_destination()
 
 	    ## req: .fpcl_file in source
 	    [[ ! -f $src/.fpcl ]] && \
-		printf "no .fpcl file found in ${fg_magenta}$bu_src${st_def}\n" && exit 21
+		printf "no .fpcl file found in ${fg_amber}$bu_src${st_def}\n" && exit 21
 	    ;;
 
 	restore)
 
 	    ## req: .sync_info file in source
 	    [[ ! -f $src/.sync_info ]] && \
-		printf "no .sync_info file found in $${fg_magenta}re_src${st_def}\n" && exit 22
+		printf "no .sync_info file found in ${fg_amber}re_src${st_def}\n" && exit 22
 
 	    ## req: .fpcl_file in source
 	    [[ ! -f $src/.fpcl ]] && \
-		printf "no .fpcl file found in ${fg_magenta}$bu_src${st_def}\n" && exit 22
+		printf "no .fpcl file found in ${fg_amber}$bu_src${st_def}\n" && exit 22
 	    ;;
 
     esac
@@ -268,9 +268,9 @@ validate_destination()
     : '
     if [[ ! -z $(ls -A $dest 2>/dev/null) ]]; then
 
-	printf "${YELLOW}destination${st_def} directory is ${st_bold}NOT${NORMAL} empty${st_def}\n\n"
+	printf "${fg_yellow}destination${st_def} directory is ${st_bold}NOT empty${st_def}\n\n"
 
-	printf "destroy $dest? (y/n) "
+	printf "destroy $dest? [y/n] "
 	reply_read_single
 	echo
 
@@ -278,7 +278,7 @@ validate_destination()
 
 	    # 'n' entered
 	    echo
-	    printf "starting $mode operation\n${YELLOW}CAUTION!${st_def} without destroying $dest\n"
+	    printf "starting $mode operation\n${fg_yellow}CAUTION!${st_def} without destroying $dest\n"
 	    sleep 5
 
 	elif printf "$reply" | grep -iq "^y"; then
@@ -309,7 +309,6 @@ validate_destination()
 
 	    esac
 
-	    #printf "DEV $dest $location_git_status"; exit 255
 	    ## remove local
 	    rm -rf $dest >/dev/null 2>&1
 
@@ -323,7 +322,7 @@ validate_destination()
 
 	fi
 
-	#printf "continue? (y/N) "
+	#printf "continue? [y/N] "
 	#reply_read_single
 	##reply_single
 	#echo
@@ -419,11 +418,13 @@ copy()
     case $mode in
 
 	backup)
-	    #TODO check what rsync does with aes files
 
-	    # copy all files to destination
+	    # copy all files (.alll) to destination ($bu_dest)
+	    ## filter rules prevent receiver side files from being deleted
 	    rsync -aAXv \
 		--delete \
+		-f'P *.aes' \
+		-f'P *.hash' \
 		--files-from=$all_files_list \
 		--recursive \
 		$bu_src/ $bu_dest
@@ -436,34 +437,6 @@ copy()
 	restore)
 
 	    rsync -aAXv $re_src/ $re_dest
-	    ;;
-
-    esac
-}
-
-report_plain()
-{
-    case $mode in
-
-	backup)
-
-            ## report not to be TODO(en?)decrypted copied files
-            while IFS= read -r file_2_copy; do
-
-            	## location does exist
-            	if [[ ! -d "$src/$file_2_copy" ]] && \
-            		[[ ! -f "$src/$file_2_copy" ]]; then
-
-        	   printf "${fg_magenta}$src/$file_2_copy${st_def} source not found\n"
-        	   continue
-
-            	else
-
-        	   printf "$dest/$file_2_copy\n"
-
-            	fi
-
-            done < $plain_list
 	    ;;
 
     esac
@@ -501,13 +474,91 @@ modify()
 }
 
 
+generate_pw()
+{
+    echo
+
+    printf "starting pwgn... ${fg_yellow}A${st_def}bort "
+
+    reply_read_single_hidden_timer
+
+    # erase line
+    printf "\r"
+    tput el
+
+    if printf "$reply" | grep -iq "^a"; then
+
+	#pwgn(r5r6)
+        read pw
+
+        # erase entry line
+	tput cuu1
+	printf "\r"
+        tput el
+
+    else
+
+        sh "$pwgn"
+	pw=$(wl-paste -n)
+	echo
+
+    fi
+}
+
+
+report_plain()
+{
+    case $mode in
+
+	backup)
+
+	    ## all files (.alll) were copied, now
+            ## list (report) plain files that will not be encrypted
+            while IFS= read -r file_2_copy; do
+
+            	## location does exist
+            	if [[ ! -d "$src/$file_2_copy" ]] && \
+            		[[ ! -f "$src/$file_2_copy" ]]; then
+
+        	   printf "${fg_magenta}$src/$file_2_copy${st_def} source not found\n"
+        	   continue
+
+            	else
+
+        	   printf "$dest/$file_2_copy\n"
+
+            	fi
+
+            done < $plain_list
+	    ;;
+
+            ## TODO? decrypted copied files?
+    esac
+}
+
+
+: '
+NOTICE on runtime an old version of the destination exists
+steps:
+1. rsync all files and directories to destination;
+-  for all directories to be encrypted:
+    2. create tar of directories;
+    3. remove rsynced directory from destination;
+7. create hash of (tar)file;
+5. if hash has changed; then reencrypt (tar)file & update hashfile;
+6. if hash is the same; then remove tar;
+
+    8. if hash has changed; then update hashfile & reencrypt tar;
+    9. if hash is the same; then remove tar;
+10. remove unencrypted file.
+# '
+
 crypt()
 {
     case $mode in
 
 
 	backup)
-
 
 	    # encrypt locations (lines) in crypt_list
 
@@ -525,21 +576,22 @@ crypt()
 
 		    continue
 
-		## location does exist
+		## location does not exist
 		elif [[ ! -d "$src/$file_2_crypt" ]] && \
 		    [[ ! -f "$src/$file_2_crypt" ]]; then
 
-		    printf "${fg_magenta}$src/$file_2_crypt${st_def} location not found\n"
+		    printf "${fg_amber}$src/$file_2_crypt${st_def} location not found\n"
 
 		    continue
 
-		## then; encrypt
+		## else; encrypt
 		else
 
 		    # make relative location in fpcl_file absolute to destination
 		    # (bu_dest), because files are already copied at this point
 		    # and encryption has to be done in destination, not source!
 
+		    # crypt_loc is alredy rsynched via copy()
 		    # crypt_loc is the location (file/dir) that has to be encrypted
 		    crypt_loc="$bu_dest/$file_2_crypt"
 
@@ -559,7 +611,7 @@ crypt()
 			[[ -d $tar_name_dir ]] || mkdir -p $tar_name_dir
 
 			## create a tar archive with directory contents
-			tar -czf $tar_name -C $bu_src $file_2_crypt  1>&2 2>/dev/null
+			tar -czf $tar_name -C $bu_src $file_2_crypt 1>&2 2>/dev/null
 
 			## feedback to human being
 			printf ".tar"
@@ -568,6 +620,7 @@ crypt()
 			destroy $crypt_loc
 
 			## calculate new $tar_name hash
+			## this is a hash of the plain tar file
 			tar_name_hash_new=$(openssl sha3-512 $tar_name | awk '{print $2}')
 
 			## get existing $tar_name hash
@@ -576,15 +629,12 @@ crypt()
 			    tar_name_hash_exist=0
 
 			## compare hash_new with hash_exist
-			## if they differ; write hash and encrypted file
+			## if they differ; encrypt file and update hash file
 			if [[ "$tar_name_hash_new" != "$tar_name_hash_exist" ]]; then
 
 			    # on unequality:
 
-			    ## update the tar_name.hash file
-			    printf "$tar_name_hash_new" > "$tar_name.hash"
-
-			    ## update encrypted tar archive
+			    ## encrypt changed tar archive
 			    openssl enc \
 				-e \
 				-aes-256-cbc \
@@ -599,13 +649,18 @@ crypt()
 			    ## feedback to human being
 			    printf ".aes\n"
 
-			elif [[ "$tar_name_hash_new" = "$tar_name_hash_exist" ]]; then
+			    ## update the tar_name.hash file
+			    printf "$tar_name_hash_new" > "$tar_name.hash"
+
+			elif [[ "$tar_name_hash_new" == "$tar_name_hash_exist" ]]; then
 			#elif [[ "$tar_name_hash_new" == "$tar_name_hash_exist" ]]; then
 
 			    # on equality:
 
+			    ## feedback to human being
+
 			    ## remove the unencrypted tar archive
-			    destroy $tar_name
+			    #destroy $tar_name
 
 			    printf " ${st_bold}unchanged hash${st_def}\n"
 
@@ -636,22 +691,23 @@ crypt()
 			## tar creation not necessary; single file
 
 			## calculate new $file_name hash
+			## this is a hash of the plain file
  			file_name_hash_new=$(openssl sha3-512 $file_name | awk '{print $2}')
+
 			## get existing $file_name hash
-			[[ -f "$file_name.hash" ]] && \
-			    file_name_hash_exist=$(command cat "$file_name.hash") || \
-			    file_name_hash_exist=0
+			if [[ -f "$file_name".hash ]]; then
+
+			    file_name_hash_exist=$(command cat "$file_name".hash)
+
+			fi
 
 			## compare hash_new with hash_exist
-			## if they differ; write hash and encrypted file
+			## if they differ; encrypt changed file and update hash file
 			if [[ "$file_name_hash_new" != "$file_name_hash_exist" ]]; then
 
 			    # on unequality:
 
-			    ## update the file_name.hash file
-			    printf "$file_name_hash_new" > "$file_name.hash"
-
-			    ## update encrypted file
+			    ## encrypt changed file
 			    openssl enc \
 				-e \
 				-aes-256-cbc \
@@ -666,13 +722,18 @@ crypt()
 			    ## feedback to human being
 			    printf ".aes\n"
 
-			elif [[ "$file_name_hash_new" = "$file_name_hash_exist" ]]; then
+			    ## update the file_name.hash file
+			    printf "$file_name_hash_new" > "$file_name.hash"
+
+			elif [[ "$file_name_hash_new" == "$file_name_hash_exist" ]]; then
 			#elif [[ "$file_name_hash_new" == "$file_name_hash_exist" ]]; then
 
 			    # on equality:
 
+			    ## feedback to human being
+
 			    ## remove the unencrypted file
-			    destroy $file_name
+			    #destroy $file_name
 
 			    printf " ${st_bold}unchanged hash${st_def}\n"
 
@@ -923,17 +984,15 @@ verify()
 
 		*)
 		    # no git repo
-		    printf "${st_bold}WARNING${st_def} ${fg_magenta}$bu_dest${st_def} is no git repo\n"
-		    printf "git init and remote add? (Y/n)"
+		    echo
+		    echo
+		    printf "${fg_blue}$bu_dest${st_def} ${fg_amber}${st_bold}no_git${st_def}\n"
+		    printf "git init and remote add? [y/N] "
 
 		    reply_read_single
 		    echo
 
-		    if printf "$reply" | grep -iq "^n"; then
-
-			:
-
-		    else
+		    if printf "$reply" | grep -iq "^y"; then
 
 			cd $bu_dest
 			git init
@@ -943,7 +1002,9 @@ verify()
 
 			read -p 'create remote repo, press Enter when ready '
 
+		    else
 
+			:
 
 		    fi
 		    ;;
@@ -970,38 +1031,6 @@ cleanup()
 	    ;;
 
     esac
-}
-
-
-generate_pw()
-{
-    echo
-
-    printf "starting pwgn... ${YELLOW}A${st_def}bort "
-
-    reply_read_single_hidden_timer
-
-    # erase line
-    printf "\r"
-    tput el
-
-    if printf "$reply" | grep -iq "^a"; then
-
-	#pwgn(r5r6)
-        read pw
-
-        # erase entry line
-	tput cuu1
-	printf "\r"
-        tput el
-
-    else
-
-        sh "$pwgn"
-	pw=$(wl-paste -n)
-	echo
-
-    fi
 }
 
 
