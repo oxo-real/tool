@@ -544,13 +544,10 @@ steps:
 -  for all directories to be encrypted:
     2. create tar of directories;
     3. remove rsynced directory from destination;
-7. create hash of (tar)file;
+4. create hash of (tar)file;
 5. if hash has changed; then reencrypt (tar)file & update hashfile;
-6. if hash is the same; then remove tar;
-
-    8. if hash has changed; then update hashfile & reencrypt tar;
-    9. if hash is the same; then remove tar;
-10. remove unencrypted file.
+6. if hash is the same; then remove tar(file);
+7. remove unencrypted (tar)file.
 # '
 
 crypt()
@@ -560,7 +557,7 @@ crypt()
 
 	backup)
 
-	    # encrypt locations (lines) in crypt_list
+	    # looping through fpcl_file
 
 	    while IFS= read -r file_2_crypt; do
 
@@ -584,8 +581,8 @@ crypt()
 
 		    continue
 
-		## else; encrypt
 		else
+		    # encrypt locations (lines in crypt_list effectively)
 
 		    # make relative location in fpcl_file absolute to destination
 		    # (bu_dest), because files are already copied at this point
@@ -653,14 +650,13 @@ crypt()
 			    printf "$tar_name_hash_new" > "$tar_name.hash"
 
 			elif [[ "$tar_name_hash_new" == "$tar_name_hash_exist" ]]; then
-			#elif [[ "$tar_name_hash_new" == "$tar_name_hash_exist" ]]; then
 
 			    # on equality:
 
 			    ## feedback to human being
 
 			    ## remove the unencrypted tar archive
-			    #destroy $tar_name
+			    destroy $tar_name
 
 			    printf " ${st_bold}unchanged hash${st_def}\n"
 
@@ -726,14 +722,13 @@ crypt()
 			    printf "$file_name_hash_new" > "$file_name.hash"
 
 			elif [[ "$file_name_hash_new" == "$file_name_hash_exist" ]]; then
-			#elif [[ "$file_name_hash_new" == "$file_name_hash_exist" ]]; then
 
 			    # on equality:
 
 			    ## feedback to human being
 
 			    ## remove the unencrypted file
-			    #destroy $file_name
+			    destroy $file_name
 
 			    printf " ${st_bold}unchanged hash${st_def}\n"
 
