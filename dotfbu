@@ -1052,6 +1052,12 @@ destroy()
 }
 
 
+alert_user()
+{
+    beep
+}
+
+
 main()
 {
     sourcing
@@ -1068,6 +1074,7 @@ main()
     verify
     # '
     cleanup
+    alert_user
 }
 
 main
