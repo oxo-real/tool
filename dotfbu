@@ -476,31 +476,37 @@ modify()
 
 generate_pw()
 {
-    echo
+    ## permanently run without pwgn set environment variable PWGN_OFF
+    if [[ -z "$PWGN_OFF" ]]; then
 
-    printf "starting pwgn... ${fg_yellow}A${st_def}bort "
-
-    reply_read_single_hidden_timer
-
-    # erase line
-    printf "\r"
-    tput el
-
-    if printf "$reply" | grep -iq "^a"; then
-
-	#pwgn(r5r6)
-        read pw
-
-        # erase entry line
-	tput cuu1
-	printf "\r"
-        tput el
-
-    else
-
-        sh "$pwgn"
-	pw=$(wl-paste -n)
+	# run pwgn
 	echo
+
+	printf "starting pwgn... ${fg_black}${bg_yellow}A${st_def}bort "
+
+	reply_read_single_hidden_timer
+
+	# erase line
+	printf "\r"
+	tput el
+
+	if printf "$reply" | grep -iq "^a"; then
+
+	    #pwgn(r5r6)
+            read pw
+
+            # erase entry line
+	    tput cuu1
+	    printf "\r"
+            tput el
+
+	else
+
+            sh "$pwgn"
+	    pw=$(wl-paste -n)
+	    echo
+
+	fi
 
     fi
 }

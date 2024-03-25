@@ -67,7 +67,7 @@ NOTICE on arg3 size
 % vault create secure_container 18M
 % vault open $XDG_DATA_HOME/c/keys/pass/vlt_pass $HOME/dock/vlt/pass
 % vault ca -y
-## to run without pwgn execute:
+## to permanently run without pwgn set environment variable PWGN_OFF:
 % export PWGN_OFF=1: vault open $vault_file $mountpoint
 
 # '
@@ -488,7 +488,7 @@ create_vault()
 
 open_luks()
 {
-    echo
+    #echo
     printf "\n${fg_yellow}%s${st_def}\n" 'vault open'
     sudo cryptsetup open --type luks2 $target $mapping_name
     # DEBUG
@@ -582,16 +582,82 @@ erase_line()
 }
 
 
+keyboard_input()
+{
+    #read input
+    askpass_exist=$(command -v askpass >/dev/null 2>&1; echo $?)
+
+    case $askpass_exist in
+	# if askpass exists; then use it
+
+	0)
+	    input=$(askpass)
+	    ;;
+
+	*)
+	    printf "🔐  [echo_off]"
+	    read -e -r -s -n 1 char1
+	    tput cuu1
+	    erase_line
+	    printf "🔐  "
+	    read -e -r -s input2
+	    input="$char1$input2"
+	    ## remove eol
+	    input=$(echo $input | tr -d '\n')
+	    echo
+	    ;;
+
+    esac
+}
+
+
 generate_pw()
 {
-    ## run without pwgn: 'export PWGN_OFF=1'
+    ## permanently run without pwgn set environment variable PWGN_OFF
     if [[ -z "$PWGN_OFF" ]]; then
 
-	sh $pwgn
+	echo
 
-	tput cuu 1
+	printf "starting pwgn... ${fg_black}${bg_yellow}A${st_def}bort "
+
+	reply_read_single_hidden_timer
+
+	# erase line
+	erase_line
+
+	if printf "$reply" | grep -iq "^a"; then
+
+	    # enter password w/o pwgn
+	    :
+	    #keyboard_input
+            #pw="$input"
+
+            # erase entry line
+	    #tput cuu1
+	    #erase_line
+
+	else
+
+	    # run pwgn
+            sh "$pwgn"
+	    ## pwgn has output wl-copy
+	    #pw=$(wl-paste -n)
+	    #echo
+
+	fi
+
     fi
 }
+#generate_pw()
+#{
+#    ## permanently run without pwgn set environment variable PWGN_OFF
+#    if [[ -z "$PWGN_OFF" ]]; then
+#
+#	sh $pwgn
+#
+#	tput cuu 1
+#    fi
+#}
 
 
 mounting()

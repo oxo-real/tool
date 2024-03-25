@@ -132,7 +132,7 @@ erase_line()
 
 input_type()
 {
-    # always keyboard input, unless --optical is given as arg1
+    # keyboard input, unless --optical is given as arg1
     case $arg_optical in
 
 	'--optical')

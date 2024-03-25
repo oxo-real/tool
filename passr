@@ -600,11 +600,11 @@ pass_mount() {
     ## pass crypto source location
 
     ## pass mount destination
-    ## via $LS_COLORS symlink color:
-    ## vlt_pass not mounted => $HOME/.password-store is red
-    ## vlt_pass mounted => $HOME/.password-store becomes pale
-    pass_mount="$HOME/dock/vlt/pass"
-    [[ -d $pass_mount ]] || mkdir -p $pass_mount
+    ## via $LS_COLORS symlink color $HOME/.password-store:
+    ## red (or=40;31;01) orphaned symlink => vlt_pass not mounted
+    ## cyan (ln=01;36) valid symlink => vlt_pass mounted
+    pass_mount_pt="$HOME/dock/vlt/pass"
+    [[ -d $pass_mount_pt ]] || mkdir -p $pass_mount_pt
 
     get_sudo
 
@@ -620,7 +620,7 @@ pass_mount() {
 
     if [[ -z "$mountpoint" ]]; then
 
-	vault open $crypto_source $pass_mount
+	vault open $crypto_source $pass_mount_pt
 
     elif [[ -n "$mountpoint" ]]; then
 
@@ -647,7 +647,7 @@ gpg_decrypt() {
     get_sudo
 
     erase_line
-    printf "\n${YELLOW}%s${NOC}" 'OpenPGP  O--,'
+    printf "\n${fg_yellow}%s${st_def}" 'OpenPGP  O--,'
 
     echo
     generate_pw
@@ -681,7 +681,7 @@ process_reply() {
 
 
 generate_pw() {
-    ## run without pwgn: 'export PWGN_OFF=1'
+    ## permanently run without pwgn set environment variable PWGN_OFF
     if [[ -z "$PWGN_OFF" ]]; then
 
     	sh $pwgn

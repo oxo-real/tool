@@ -374,14 +374,11 @@ devs_and_mps_param()
 fzf_choose()
 {
     # fzf selection without tabs (from mount_to_select_param)
-    fzf_select=$(printf "$fzf_input" | fzf -m --header "source device			      mountpoint" --prompt "$fzf_prompt " $fzf_options | tr -d '\t')
-    #fzf_select=$(printf "$fzf_input" | fzf -m --header="\033[1msource device			      mountpoint\033[0m" --prompt="$fzf_prompt " $fzf_options | tr -d '\t')
-    #fzf_select=$(printf "$fzf_input" | fzf -m --header="${BOLD}source device			      mountpoint${NOC}" --prompt="$fzf_prompt " $fzf_options | tr -d '\t')
-    #fzf_select=$(printf "$fzf_input" | fzf -m --header="\e[1msource device			      mountpoint\e[0m" --prompt="$fzf_prompt " $fzf_options | tr -d '\t')
-    #fzf_select=$(printf "$fzf_input" | fzf -m --header="\033[1msource device			      mountpoint\033[0m" --prompt="$fzf_prompt " $fzf_options | tr -d '\t')
-    #fzf_select=$(printf "$fzf_input" | fzf -m --header='\033[1msource device			      mountpoint\033[0m' --prompt="$fzf_prompt " $fzf_options | tr -d '\t')
-    #fzf_select=$(printf "$fzf_input" | fzf -m --header='${st_bold}source device			      mountpoint${st_def}' --prompt="$fzf_prompt " $fzf_options | tr -d '\t')
-    #fzf_select=$(printf "$fzf_input" | fzf -m --header "${st_bold}source device			      mountpoint${st_def}" --prompt "$fzf_prompt " $fzf_options | tr -d '\t')
+    fzf_select=$(printf "$fzf_input" | \
+     fzf -m --color 'header:bold' \
+     --header "source device			      mountpoint" \
+     --prompt "$fzf_prompt " $fzf_options | \
+    tr -d '\t')
 
     # no choice: print status of available source devices and umountable mountpoints
     case $fzf_select in
@@ -399,7 +396,7 @@ fzf_choose()
 
 	    fi
 
-	    printf "$mps_umount"
+	    printf '%s\n' "$mps_umount"
 
 	    exit 0
 	    ;;
