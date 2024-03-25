@@ -673,7 +673,8 @@ process_reply() {
 	    ;;
 
 	*)
-	    sh $pwgn
+	    generate_pw
+	    #sh $pwgn
 	    ;;
 
     esac
