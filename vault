@@ -628,36 +628,19 @@ generate_pw()
 	if printf "$reply" | grep -iq "^a"; then
 
 	    # enter password w/o pwgn
-	    :
-	    #keyboard_input
-            #pw="$input"
 
-            # erase entry line
-	    #tput cuu1
-	    #erase_line
+	    tput cuu1
+	    erase_line
 
 	else
 
 	    # run pwgn
             sh "$pwgn"
-	    ## pwgn has output wl-copy
-	    #pw=$(wl-paste -n)
-	    #echo
 
 	fi
 
     fi
 }
-#generate_pw()
-#{
-#    ## permanently run without pwgn set environment variable PWGN_OFF
-#    if [[ -z "$PWGN_OFF" ]]; then
-#
-#	sh $pwgn
-#
-#	tput cuu 1
-#    fi
-#}
 
 
 mounting()

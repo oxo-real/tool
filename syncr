@@ -377,7 +377,7 @@ report_log_file()
 }
 
 
-main()
+default_backup()
 {
     config_fpcl
 
@@ -394,6 +394,19 @@ main()
     ## ## local_share_all
 
     report_log_file
+}
+
+
+
+archive_backup()
+{
+    local_share_archive
+}
+
+main()
+{
+    #default_backup
+    archive_backup
 }
 
 main
