@@ -1052,14 +1052,15 @@ destroy()
 }
 
 
-alert_user()
+beep()
 {
-    beep
+    pw-play $XDG_DATA_HOME/a/media/audio/sound/airbus/da.ogg
 }
 
 
 main()
 {
+    #: '
     sourcing
     initialize
     validate_source
@@ -1069,12 +1070,11 @@ main()
     modify
     generate_pw
     report_plain
-    #: '
     crypt
     verify
-    # '
     cleanup
-    alert_user
+    # '
+    beep
 }
 
 main
