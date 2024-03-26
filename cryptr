@@ -61,6 +61,9 @@ cryptr crypttext.tarx
 WARNING! risk in multi-user systems!
          writing temporary files
 
+NOTICE	 some available (unsecure) ciphers may not be used for encryption
+	 available are all versions of: AES, TWOFISH and CAMELIA
+
 # '
 
 
@@ -77,12 +80,7 @@ cipher_suite="gnupg"
 
 cgc_dir="$XDG_DATA_HOME/c/git/code"
 source_dir="$cgc_dir/source/function"
-
-## read elements non-accociative array $args_arr
-## [SC2206 · koalaman/shellcheck Wiki · GitHub](https://github.com/koalaman/shellcheck/wiki/SC2206)
-IFS=" " read -r -a args_arr <<< "$args"
-args_arr_length="${#args_arr[@]}"
-last_element_index=$(( args_arr_length - 1 ))
+timestamp="$(date +'%Y%m%d_%H%M%S')"
 
 
 sourcing()
@@ -92,6 +90,16 @@ sourcing()
 
     ## text appearance
     source $source_dir/text_appearance
+}
+
+
+read_args_array()
+{
+    ## read elements non-accociative array $args_arr
+    ## [SC2206 · koalaman/shellcheck Wiki · GitHub](https://github.com/koalaman/shellcheck/wiki/SC2206)
+    IFS=" " read -r -a args_arr <<< "$args"
+    args_arr_length="${#args_arr[@]}"
+    last_element_index=$(( args_arr_length - 1 ))
 }
 
 
@@ -105,6 +113,27 @@ initialize()
     [[ ! -d $tmp_dir ]] && mkdir -p $tmp_dir
 
     pw_dir="$PWD"
+
+    read_args_array
+}
+
+
+get_args_arr_index()
+{
+    ## get current index number of $args_arr
+    for i in "${!args_arr[@]}"; do
+
+	if [[ "${args_arr[$i]}" == "${arg}" ]]; then
+
+	    arg_index="${i}"
+
+	    ## when having current args index
+	    ## then stop iteration over !args_arr[@]
+	    break
+
+	fi
+
+    done
 }
 
 
@@ -237,109 +266,99 @@ operation()
 }
 
 
-get_args_arr_index()
+dst_validate()
 {
-    ## get current index number of $args_arr
-    for i in "${!args_arr[@]}"; do
+    if [[ -n $dst_arg ]]; then
 
-	if [[ "${args_arr[$i]}" == "${arg}" ]]; then
+	dst_arg="$(realpath $dst_arg)"
+	dst_sub_dir=$(dirname $dst_arg)
+	dst_tar_get=$(basename $dst_arg)
 
-	    arg_index="${i}"
+	case $oper in
 
-	    ## when having current args index
-	    ## then stop iteration over !args_arr[@]
-	    break
+	    encr)
+		## encrypt to destination file
 
-	fi
+		## dst_arg has to be a non-existent file ...
+		if [[ ! -f $dst_arg ]]; then
 
-    done
-}
+		    ## ... with an valid absolute filepath ...
+		    if [[ -d "$dst_sub_dir" ]]; then
 
+			dst_arg="$(realpath $dst_arg)"
 
-arguments()
-{
-    ## getting operation, source and destination
+		    ## ... or a valid relative path to pwd
+		    elif [[ -d "$pw_dir/$dst_arg" ]]; then
 
-    src_arr=()
+			dst_arg="$pw_dir/$dst_arg"
 
-    ## iterate over (non-associative) array ($args_arr)
-    ## which values are entered arguments
-    for arg in "${args_arr[@]}"; do
+		    fi
 
-	get_args_arr_index
+		    ## dst_arg contains subdir(s)
+		    if [[ "$dst_sub_dir" != "." ]]; then
 
-	unset arguments_continue
-	unset arg_was_src
-	unset src_is_dst
-	unset custom_dst
+			## dst_sub_dir exist otherwise mkdir it
+			[[ -d $dst_sub_dir ]] || mkdir -p $dst_sub_dir
 
-	## determine operation if not already known
-	[[ -z "$oper" ]] && operation
+		    fi
 
-	[[ $arguments_continue == 1 ]] && continue
-	## if arg was -d or -e (in operation)
-	## take the next argument from ${args_arr[@]} (continue)
-	## else continue (with $arg) in this loop (with lines below)
+		fi
+		;;
 
-	## populate $src_arr (source file list) ...
-	get_source
+	    decr)
+		## decrypt to destination directory
 
-	## destination file
-	get_destination
+		dst="$dst_arg"
+		#dst="$dst_tar_get"
+		;;
 
-    done
-}
+	esac
 
+	## rewrite variables
+	dst_sub_dir=$(dirname $dst_arg)
+	dst_tar_get=$(basename $dst_arg)
 
-get_source()
-{
-    ## ... for decrypting (gnupg d or openssl b)
-    if [[ "$opr" == 'd' ]] || [[ "$opr" == 'b' ]]; then
+    else
 
-	## if already decrypt source then current $arg is $dst
-	if [[ -n "$src" ]] && \
-	       [[ "$arg_index" == "$last_element_index" ]]; then
-
-	    dst_arg="$arg"
-
-	else
-
-	    ## element is an existent file to decrypt
-	    src_validate
-
-	    if [[ -f "$arg" ]]; then
-
-		## element is an existent file to decrypt
-		## this can not be more than one file
-		## element value is source file or directory
-		src="$arg"
-
-	    fi
-
-	    ## populate src_info
-	    add_to_src_info
-
-	fi
-
-    ## ... for encrypting (gnupg e or openssl c)
-    elif [[ "$opr" == 'e' ]] || [[ "$opr" == 'c' ]]; then
-
-	## element is an existent file or directory to encrypt
-	src_validate
-
-	if [[ -z $src_is_dst ]]; then
-
-	    ## append element to (non-associative) array $src_arr
-	    src_arr+=("$src")
-
-	    ## populate src_info
-	    add_to_src_info
-
-	    arg_was_src=1
-
-	fi
+	printf 'no destination\n'
+	exit 80
 
     fi
+
+    ## rewrite dst (full path)
+    if [[ -n $custom_dst ]]; then
+
+	## a custom destination is given as argument
+	dst="$(realpath $dst_sub_dir/$dst_tar_get)"
+
+    else
+
+	## no destination argument is given
+	case $oper in
+
+	    encr)
+		dst="$(realpath $dst_sub_dir/$dst_tar_get).tarx"
+		;;
+
+	esac
+
+    fi
+
+    ## if $dst already exists
+    [[ -f $dst ]] && \
+    #[[ -d $dst ]] || [[ -f $dst ]] && \
+	printf "destination:    ${MAGENTA}$dst${NOC} already exists\n" && \
+	exit 22
+
+    ## create directory if needed
+    case $oper in
+
+	decr)
+
+	    [[ -d $dst ]] || [[ -f $dst ]] || mkdir -p $dst
+	    ;;
+
+    esac
 }
 
 
@@ -427,6 +446,14 @@ get_destination()
 }
 
 
+add_to_src_info()
+{
+    ## there can be multiple sources
+    si_line=$(printf "source:	        $src\n")
+    si_lines=$(printf "$si_lines\n%s\n" "$si_line")
+}
+
+
 src_validate()
 {
     ## write full src path
@@ -484,98 +511,96 @@ src_validate()
 }
 
 
-dst_validate()
+get_source()
 {
-    if [[ -n $dst_arg ]]; then
+    ## ... for decrypting (gnupg d or openssl b)
+    if [[ "$opr" == 'd' ]] || [[ "$opr" == 'b' ]]; then
 
-	dst_arg="$(realpath $dst_arg)"
-	dst_sub_dir=$(dirname $dst_arg)
-	dst_tar_get=$(basename $dst_arg)
+	## if already decrypt source then current $arg is $dst
+	if [[ -n "$src" ]] && \
+	       [[ "$arg_index" == "$last_element_index" ]]; then
 
-	case $oper in
+	    dst_arg="$arg"
 
-	    encr)
-		## encrypt to destination file
+	else
 
-		## dst_arg has to be a non-existent file ...
-		if [[ ! -f $dst_arg ]]; then
+	    ## element is an existent file to decrypt
+	    src_validate
 
-		    ## ... with an valid absolute filepath ...
-		    if [[ -d "$dst_sub_dir" ]]; then
+	    if [[ -f "$arg" ]]; then
 
-			dst_arg="$(realpath $dst_arg)"
+		## element is an existent file to decrypt
+		## this can not be more than one file
+		## element value is source file or directory
+		src="$arg"
 
-		    ## ... or a valid relative path to pwd
-		    elif [[ -d "$pw_dir/$dst_arg" ]]; then
+	    fi
 
-			dst_arg="$pw_dir/$dst_arg"
+	    ## populate src_info
+	    add_to_src_info
 
-		    fi
+	fi
 
-		    ## dst_arg contains subdir(s)
-		    if [[ "$dst_sub_dir" != "." ]]; then
+    ## ... for encrypting (gnupg e or openssl c)
+    elif [[ "$opr" == 'e' ]] || [[ "$opr" == 'c' ]]; then
 
-			## dst_sub_dir exist otherwise mkdir it
-			[[ -d $dst_sub_dir ]] || mkdir -p $dst_sub_dir
+	## element is an existent file or directory to encrypt
+	src_validate
 
-		    fi
+	if [[ -z $src_is_dst ]]; then
 
-		fi
-		;;
+	    ## append element to (non-associative) array $src_arr
+	    src_arr+=("$src")
 
-	    decr)
-		## decrypt to destination directory
+	    ## populate src_info
+	    add_to_src_info
 
-		dst="$dst_arg"
-		#dst="$dst_tar_get"
-		;;
+	    arg_was_src=1
 
-	esac
-
-	## rewrite variables
-	dst_sub_dir=$(dirname $dst_arg)
-	dst_tar_get=$(basename $dst_arg)
-
-    else
-
-	printf 'no destination\n'
-	exit 80
+	fi
 
     fi
+}
 
-    ## rewrite dst (full path)
-    if [[ -n $custom_dst ]]; then
 
-	## a custom destination is given as argument
-	dst="$(realpath $dst_sub_dir/$dst_tar_get)"
+arguments()
+{
+    ## getting operation, source and destination
 
-    else
+    src_arr=()
 
-	## no destination argument is given
-	case $oper in
+    ## iterate over (non-associative) array ($args_arr)
+    ## which values are entered arguments
+    for arg in "${args_arr[@]}"; do
 
-	    encr)
-		dst="$(realpath $dst_sub_dir/$dst_tar_get).tarx"
-		;;
+	get_args_arr_index
 
-	esac
+	unset arguments_continue
+	unset arg_was_src
+	unset src_is_dst
+	unset custom_dst
 
-    fi
+	## determine operation if not already known
+	[[ -z "$oper" ]] && operation
 
-    ## if $dst already exists
-    [[ -d $dst ]] || [[ -f $dst ]] && \
-	printf "destination:    ${MAGENTA}$dst${NOC} already exists\n" && \
-	exit 22
+	[[ $arguments_continue == 1 ]] && continue
+	## if arg was -d or -e (in operation)
+	## take the next argument from ${args_arr[@]} (continue)
+	## else continue (with $arg) in this loop (with lines below)
 
-    ## create directory if needed
-    case $oper in
+	## populate $src_arr (source file list) ...
+	get_source
 
-	decr)
+	## destination file
+	get_destination
 
-	    [[ -d $dst ]] || [[ -f $dst ]] || mkdir -p $dst
-	    ;;
+    done
+}
 
-    esac
+
+src_info()
+{
+    printf '%s\n' "$si_lines"
 }
 
 
@@ -599,20 +624,6 @@ dst_info()
     fi
 
     echo
-}
-
-
-add_to_src_info()
-{
-    ## there can be multiple sources
-    si_line=$(printf "source:	        $src\n")
-    si_lines=$(printf "$si_lines\n%s\n" "$si_line")
-}
-
-
-src_info()
-{
-    printf '%s\n' "$si_lines"
 }
 
 
@@ -950,7 +961,7 @@ crypt_exec()
 tar_extract()
 {
     ## extract tar archive
-    tar --extract --file $file_out --directory $dst
+    tar --extract --one-top-level="$timestamp" --file $file_out --directory $dst
 }
 
 

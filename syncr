@@ -379,6 +379,10 @@ report_log_file()
 
 default_backup()
 {
+    printf "${st_bold}%s${st_def} " 'default backup'
+    reply_read_single_hidden_timer
+    echo
+
     config_fpcl
 
     logs
@@ -400,6 +404,10 @@ default_backup()
 
 archive_backup()
 {
+    printf "${st_bold}%s${st_def} " 'archive backup'
+    reply_read_single_hidden_timer
+    echo
+
     local_share_archive
 }
 
