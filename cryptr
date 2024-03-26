@@ -35,6 +35,10 @@ https://www.gnu.org/licenses/gpl-3.0.txt
 @oxo@qoto.org
 
 
+# dependencies
+gpg, [openssl]
+reply_functions, text_appearance
+
 # usage
 
 NOTICE compulsory argument order
@@ -45,6 +49,14 @@ cryptr [-e] $src [$srcs] [$dst_file]
 
 -d decrypt a tarx file
 cryptr [-d] $src [$dst_dir]
+
+# examples
+## encryption
+cryptr plaintext
+
+## decryption
+cryptr crypttext.tarx
+
 
 WARNING! risk in multi-user systems!
          writing temporary files
@@ -551,7 +563,7 @@ dst_validate()
     fi
 
     ## if $dst already exists
-    [[ -f $dst ]] && \
+    [[ -d $dst ]] || [[ -f $dst ]] && \
 	printf "destination:    ${MAGENTA}$dst${NOC} already exists\n" && \
 	exit 22
 

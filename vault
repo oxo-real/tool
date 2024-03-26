@@ -785,8 +785,19 @@ get_vault_data()
 
 	luks_uuid=$(lsblk -parf | grep $loop_device | awk '{print $4}')
 
-	loop_ctime=$(ls -ila --time ctime \
-	    --time-style=+%Y%m%d_%H%M%S $loop_device | awk '{print $8}')
+	loop_ctime=$(command ls -ila --time ctime $loop_device | awk '{print $8 " " $9 " " $10}')
+	#loop_ctime=$(ls -ila --time ctime \
+	#    --time-style=+%Y%m%d_%H%M%S $loop_device | awk '{print $8}')
+	loop_ctime_pretty=$(date -d "$loop_ctime" '+%Y%m%d_%H%M%S')
+	loop_ctime_sec=$(date -d "$loop_ctime" +'%s')
+
+	time_now=$(date +'%s')
+	loop_ctime_elapsed=$(( time_now - loop_ctime_sec ))
+	loop_ctime_elapsed_pretty=$(date -d @"$loop_ctime_elapsed" -u +'%T')
+
+	#TODO: better loop_ctime_elapsed_pretty
+	# days hours minutes seconds ; where irrelevant numbers fall away (i.e. days if < 1 day)
+	#loop_ctime_elapsed_pretty="$(echo $(($loop_ctime_elapsed/86400))days:$(($(($loop_ctime_elapsed - $loop_ctime_elapsed/86400*86400))/3600))hours:$(($(($loop_ctime_elapsed - $loop_ctime_elapsed/86400*86400))%3600/60))min:$(($(($loop_ctime_elapsed - $loop_ctime_elapsed/86400*86400))%60))sec)"
 
 	# losetup error test
 	tput sc
@@ -858,42 +869,42 @@ show_spec_info()
     if [[ -z $target_type ]]; then
 
 	## get_vault_data could not assign a target_type
-	printf "\n%s\n" "no specific info available"
-	printf "no valid target_type ${fg_magenta}$target${st_def}\n"
+	printf '\n%s\n' 'no specific info available'
+	printf "no valid target_type ${fg_magenta}%s${st_def}\n" $target
 
 	exit 77
 
     else
 
-	printf "\n%20s${fg_blue} %s${st_def}\n" "specific info for:" "$target_type $target"
+	printf "\n%20s %s ${fg_blue}%s${st_def}\n" 'specific info for:' $target_type $target
 
 	echo
-	printf "%20s %s\n" "luks_uuid:" $luks_uuid
-	printf "%20s %s\n" "crypto source:" $luks_container
+	printf '%20s %s\n' 'luks_uuid:' $luks_uuid
+	printf '%20s %s\n' 'crypto source:' $luks_container
 
 	echo
-	printf "%20s %s\n" "loop_uuid:" $loop_uuid
-	printf "%20s %s\n" "up since:" $loop_ctime
-	printf "%20s %s\n" "loop device:" $loop_device
+	printf '%20s %s\n' 'loop_uuid:' $loop_uuid
+	printf '%20s %s (%s)\n' 'up since:' $loop_ctime_pretty $loop_ctime_elapsed_pretty
+	printf '%20s %s\n' 'loop device:' $loop_device
 
 	echo
 	if [ $vlt_mapper_id != "n/a" ]; then
 
-	    printf "%20s %s\n" "vlt_mapper_id:" $vlt_mapper_id
+	    printf '%20s %s\n' 'vlt_mapper_id:' $vlt_mapper_id
 
 	else
 
-	    printf "%20s${fg_magenta} %s${st_def}\n" "vlt_mapper_id:" $vlt_mapper_id
+	    printf "%20s ${fg_magenta}%s${st_def}\n" 'vlt_mapper_id:' $vlt_mapper_id
 
 	fi
 
 	if [ $mountpoint != "n/a" ]; then
 
-	    printf "%20s %s\n" "mountpoint:" $mountpoint
+	    printf '%20s %s\n' 'mountpoint:' $mountpoint
 
 	else
 
-	    printf "%20s${fg_magenta} %s${st_def}\n" "mountpoint:" $mountpoint
+	    printf "%20s ${fg_magenta}%s${st_def}\n" "mountpoint:" $mountpoint
 
 	fi
 
@@ -1378,7 +1389,7 @@ main()
 	    ;;
 
 	*)
-	    printf "${fg_magenta}no valid action${st_def}\n"
+	    printf "no valid action: ${fg_magenta}%s${st_def}\n" $arg_action
 	    exit 40
 	    ;;
 

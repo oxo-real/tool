@@ -405,8 +405,8 @@ archive_backup()
 
 main()
 {
-    #default_backup
-    archive_backup
+    default_backup
+    #archive_backup
 }
 
 main
