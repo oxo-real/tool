@@ -58,6 +58,8 @@ set -o pipefail
 
 # initial general definitions
 
+args="$@"
+
 ## initialize hardcoded variables
 script_name="mountr"
 initial_release_year="2020"
@@ -68,16 +70,26 @@ crypto_source="$XDG_DATA_HOME/c/keys/pass/vlt_pass"
 password_store_lnk="$HOME/.password-store"
 
 
-text_appearance()
+sourcing()
 {
     source $source_dir/text_appearance
+    source $source_dir/reply_functions
+
+    #source $source_dir/get_sudo
+    #get_sudo
 }
 
 
-get_sudo()
+no_args()
 {
-    source $source_dir/get_sudo
-    get_sudo
+    if [[ -n "$args" ]]; then
+
+	printf "%s ${fg_magenta}%s${st_def} " 'ignoring arguments:' "$args"
+	reply_read_single_hidden_timer
+	echo
+	echo
+
+    fi
 }
 
 
@@ -177,6 +189,9 @@ remove_from_list ()
 
 
 get_source_devs() {
+
+    # no arguments
+    no_args
 
     # create a starting point
 
@@ -584,7 +599,7 @@ dev_is_vlt_pass()
 
 main()
 {
-    text_appearance
+    sourcing
     #get_sudo
 
     get_source_devs
