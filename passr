@@ -685,7 +685,28 @@ generate_pw() {
     ## permanently run without pwgn set environment variable PWGN_OFF
     if [[ -z "$PWGN_OFF" ]]; then
 
-    	sh $pwgn
+	echo
+
+	printf "starting pwgn... ${fg_black}${bg_yellow}A${st_def}bort "
+
+	reply_read_single_hidden_timer
+
+	# erase line
+	erase_line
+
+	if printf "$reply" | grep -iq "^a"; then
+
+	    # enter password w/o pwgn
+
+	    tput cuu1
+	    erase_line
+
+	else
+
+	    # run pwgn
+            sh "$pwgn"
+
+	fi
 
     fi
 }

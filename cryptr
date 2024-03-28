@@ -179,6 +179,17 @@ operation()
 	    arguments_continue=1
 	    ;;
 
+	-a|--add|add)
+	    ## adding to encrypted container
+	    # decrypt argn to tempdest
+	    # add arg1 - argn-1 to tempdest/temptar
+	    # encrypt tempdest/temptar to argn
+	    # remove tempdest/temptar
+	    add=1
+	    arg='-d'
+	    operation
+	    ;;
+
 	*)
 	    ## argument is other than -d or -e
 	    if [[ -f "$arg" ]] || [[ -d "$arg" ]]; then
@@ -309,7 +320,6 @@ dst_validate()
 		## decrypt to destination directory
 
 		dst="$dst_arg"
-		#dst="$dst_tar_get"
 		;;
 
 	esac
@@ -409,8 +419,16 @@ get_destination()
 	    ## if element is the last element (last argument)
 	    if [[ "$arg_index" == "$last_element_index" ]]; then
 
+		## 'add' argument is given
+		if [[ "$add" == '1' ]]; then
+
+		    add_ts=$(date +'%s')
+		    temp_dest="${arg}_${add_ts}"
+		    dst_arg="$temp_dest"
+		    mkdir -p "$dst_arg"
+
 		## element is (same as) $src
-		if [[ "$arg" == "$src" ]]; then
+		elif [[ "$(realpath "$arg")" == "$src" ]]; then
 
 		    ## no destination is given
 		    ## decrypting in current directory
@@ -448,8 +466,9 @@ get_destination()
 
 add_to_src_info()
 {
-    ## there can be multiple sources
+    ## current element / arg / src
     si_line=$(printf "source:	        $src\n")
+    ## there can be multiple sources
     si_lines=$(printf "$si_lines\n%s\n" "$si_line")
 }
 
@@ -457,6 +476,7 @@ add_to_src_info()
 src_validate()
 {
     ## write full src path
+    ## src is current argument from loop
     src="$(realpath "$arg")"
 
     case $oper in
@@ -513,11 +533,13 @@ src_validate()
 
 get_source()
 {
+    ## get_source is called for every arg (element) via for loop in arguments()
+
     ## ... for decrypting (gnupg d or openssl b)
     if [[ "$opr" == 'd' ]] || [[ "$opr" == 'b' ]]; then
 
 	## if already decrypt source then current $arg is $dst
-	if [[ -n "$src" ]] && \
+	if [[ "$add" != '1' ]] && [[ -n "$src" ]] && \
 	       [[ "$arg_index" == "$last_element_index" ]]; then
 
 	    dst_arg="$arg"
@@ -527,7 +549,8 @@ get_source()
 	    ## element is an existent file to decrypt
 	    src_validate
 
-	    if [[ -f "$arg" ]]; then
+	    if [[ "$add" != '1' ]] && [[ -f "$arg" ]] && \
+	      [[ "$arg_index" != "$last_element_index" ]]; then
 
 		## element is an existent file to decrypt
 		## this can not be more than one file
@@ -535,6 +558,9 @@ get_source()
 		src="$arg"
 
 	    fi
+
+	    ## append element to (non-associative) array $src_arr
+	    src_arr+=("$src")
 
 	    ## populate src_info
 	    add_to_src_info
@@ -642,7 +668,7 @@ show_info()
 all source elements "${src_arr[@]}"
 number of elements "${#src_arr[@]}"
 first element "${src_arr[0]}"
-last element "${src_arr[@]}"
+last element "${src_arr[-1]}"
 
 ## destination
 path and filename "$dst"
@@ -670,7 +696,7 @@ file_out="$tmp_dir/${dst_tar_get}.crypt"
 tar_append()
 {
     ## temporary (source) tar file
-    ## will encrypted and wrapped in tarx
+    ## will be encrypted and wrapped in tarx
     [[ -d $tmp_dir ]] || mkdir -p $tmp_dir
     tar_src=$tmp_dir/${dst_tar_get}_src.tar
 
@@ -962,6 +988,47 @@ tar_extract()
 {
     ## extract tar archive
     tar --extract --one-top-level="$timestamp" --file $file_out --directory $dst
+
+    case $add in
+
+	1)
+	    copy_to_dest_temp_ts
+
+	    ## TODO remove
+	    : '
+	    case "$err" in
+
+		'')
+		    rm -rf $dest_temp
+		    ;;
+
+	    esac
+	    # '
+	    ;;
+
+    esac
+}
+
+
+copy_to_dest_temp_ts()
+{
+    err=''
+
+    ## adding to temporary directory
+    for src_elem in "${src_arr[@]}"; do
+
+	cp -r $src_elem $dst/$timestamp
+	[[ "$?" != '0' ]] && err='1'
+
+    done
+
+    ## encrypt temporary directory
+    cryptr -e $dst/$timestamp
+    [[ "$?" != '0' ]] && err='1'
+
+    ## remove temporary directory
+    command rm -rf $dst/$timestamp
+    [[ "$?" != '0' ]] && err='1'
 }
 
 
