@@ -363,7 +363,6 @@ dst_validate()
     case $oper in
 
 	decr)
-
 	    [[ -d $dst ]] || [[ -f $dst ]] || mkdir -p $dst
 	    ;;
 
@@ -987,8 +986,8 @@ crypt_exec()
 tar_extract()
 {
     ## extract tar archive
-
     case $add in
+
 	'')
 	    ## extraction to destination directory (dst)
 	    tar --extract --file $file_out --directory $dst
@@ -997,9 +996,8 @@ tar_extract()
 	1)
 	    ## extraction to temporary directory (tmp_dir)
 	    tar --extract --file $file_out --directory $tmp_dir
-	    printf "996DEV $dst/$timestamp\n"
-	    printf "996DEV $tmp_dir\n"
 
+	    ## move updated tmp_dir to src
 	    back_to_source
 	    ;;
 
@@ -1009,19 +1007,17 @@ tar_extract()
 
 back_to_source()
 {
-    #err=''
-
     ### adding new files to temporary directory
-    #printf "1025DEV copying files to $tmp_dir\n"
+    for src_elem in "${src_arr[@]}"; do
 
-    #for src_elem in "${src_arr[@]}"; do
+	## src (.tarx) is last element and included in src_arr, filter it out
+	if [[ "$src_elem" != "$(realpath ${args_arr[-1]})" ]]; then
 
-    #	rsync -aAXv $src_elem $tmp_dir
-    #	#cp -r $src_elem $dst/$timestamp
-    #	printf "1029DEV $src_elem\n"
-    #	[[ "$?" != '0' ]] && err='1'
+    	    rsync -aAXv $src_elem $tmp_dir
 
-    #done
+	fi
+
+    done
 
     ## remove cryptr system files from temporary directory
     rm -rf "${tmp_dir}/$(basename "${src/%.tarx/}")".csf
@@ -1035,7 +1031,7 @@ back_to_source()
     ## remove source so it can be rewritten
     rm -rf $src
     ## rewrite src crypto
-    cryptr -e $tmp_dir $src
+    cryptr -e $tmp_dir/* $src
     #cryptr -e $dst/$timestamp
     [[ "$?" != '0' ]] && err='1'
 
