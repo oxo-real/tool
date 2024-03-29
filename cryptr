@@ -80,7 +80,6 @@ cipher_suite="gnupg"
 
 cgc_dir="$XDG_DATA_HOME/c/git/code"
 source_dir="$cgc_dir/source/function"
-timestamp="$(date +'%Y%m%d_%H%M%S')"
 
 
 sourcing()
@@ -107,7 +106,7 @@ initialize()
 {
     sourcing
 
-    timestamp="$(date "+%Y%m%d_%H%M%S")"
+    timestamp="$(date +'%Y%m%d_%H%M%S')"
 
     tmp_dir="$XDG_CACHE_HOME/temp/cryptr/$timestamp"
     [[ ! -d $tmp_dir ]] && mkdir -p $tmp_dir
@@ -419,16 +418,8 @@ get_destination()
 	    ## if element is the last element (last argument)
 	    if [[ "$arg_index" == "$last_element_index" ]]; then
 
-		## 'add' argument is given
-		if [[ "$add" == '1' ]]; then
-
-		    add_ts=$(date +'%s')
-		    temp_dest="${arg}_${add_ts}"
-		    dst_arg="$temp_dest"
-		    mkdir -p "$dst_arg"
-
 		## element is (same as) $src
-		elif [[ "$(realpath "$arg")" == "$src" ]]; then
+		if [[ "$(realpath "$arg")" == "$src" ]]; then
 
 		    ## no destination is given
 		    ## decrypting in current directory
@@ -467,9 +458,18 @@ get_destination()
 add_to_src_info()
 {
     ## current element / arg / src
-    si_line=$(printf "source:	        $src\n")
-    ## there can be multiple sources
-    si_lines=$(printf "$si_lines\n%s\n" "$si_line")
+	si_line=$(printf "source:	        $src\n")
+
+    if [[ "$arg_index" -gt '0' && "$arg_index" != "$last_element_index" ]]; then
+
+	## there can be multiple sources
+	si_lines=$(printf "$si_lines\n%s\n" "$si_line")
+
+    else
+
+	si_lines="$si_line"
+
+    fi
 }
 
 
@@ -987,56 +987,62 @@ crypt_exec()
 tar_extract()
 {
     ## extract tar archive
-    tar --extract --one-top-level="$timestamp" --file $file_out --directory $dst
 
     case $add in
+	'')
+	    ## extraction to destination directory (dst)
+	    tar --extract --file $file_out --directory $dst
+	    ;;
 
 	1)
-	    copy_to_dest_temp_ts
+	    ## extraction to temporary directory (tmp_dir)
+	    tar --extract --file $file_out --directory $tmp_dir
+	    printf "996DEV $dst/$timestamp\n"
+	    printf "996DEV $tmp_dir\n"
 
-	    ## TODO remove
-	    : '
-	    case "$err" in
-
-		'')
-		    rm -rf $dest_temp
-		    ;;
-
-	    esac
-	    # '
+	    back_to_source
 	    ;;
 
     esac
 }
 
 
-copy_to_dest_temp_ts()
+back_to_source()
 {
-    err=''
+    #err=''
 
-    ## adding to temporary directory
-    for src_elem in "${src_arr[@]}"; do
+    ### adding new files to temporary directory
+    #printf "1025DEV copying files to $tmp_dir\n"
 
-	cp -r $src_elem $dst/$timestamp
-	[[ "$?" != '0' ]] && err='1'
+    #for src_elem in "${src_arr[@]}"; do
 
-    done
+    #	rsync -aAXv $src_elem $tmp_dir
+    #	#cp -r $src_elem $dst/$timestamp
+    #	printf "1029DEV $src_elem\n"
+    #	[[ "$?" != '0' ]] && err='1'
 
-    ## encrypt temporary directory
-    cryptr -e $dst/$timestamp
+    #done
+
+    ## remove cryptr system files from temporary directory
+    rm -rf "${tmp_dir}/$(basename "${src/%.tarx/}")".csf
+    rm -rf "${tmp_dir}/$(basename "${src/%.tarx/}")".crypt
+    rm -rf "${tmp_dir}/$(basename "${src/%.tarx/}")".crypt_temp.tar
+
+    ## encrypt temporary directory back to src
+    add=''
+    printf "1033DEV $tmp_dir\n"
+    printf "1034DEV $src\n"
+    ## remove source so it can be rewritten
+    rm -rf $src
+    ## rewrite src crypto
+    cryptr -e $tmp_dir $src
+    #cryptr -e $dst/$timestamp
     [[ "$?" != '0' ]] && err='1'
 
     ## remove temporary directory
-    command rm -rf $dst/$timestamp
+    command rm -rf $tmp_dir
+    #command rm -rf $dst/$timestamp
     [[ "$?" != '0' ]] && err='1'
-}
-
-
-tar_destroy()
-{
-    tmp_dir_del=$(printf $tmp_dir | cut -d / -f -6)
-    # command prevents using aliases
-    command rm -rf $tmp_dir_del
 }
 
 
@@ -1234,6 +1240,13 @@ get_pass()
 }
 
 
+tar_destroy()
+{
+    # command prevnts using aliases
+    command rm -rf "$(dirname "$tmp_dir")"
+}
+
+
 cleanup()
 {
     case $oper in
@@ -1245,7 +1258,7 @@ cleanup()
 
 	decr)
 
-	    tar_destroy
+	    [[ "$add" == '1' ]] || tar_destroy
 	    ;;
 
     esac
@@ -1293,7 +1306,7 @@ main()
 
 	    decrypt
 	    tar_extract
-	    #cleanup
+	    cleanup
 	    ;;
 
     esac

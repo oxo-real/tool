@@ -1,4 +1,5 @@
-#!/usr/bin/env bash
+#! /usr/bin/env bash
+
 set -o errexit
 #set -o nounset
 set -o pipefail
@@ -34,7 +35,7 @@ timestamp=$(date +%Y%m%d_%H%M%S)
 
 
 # set html file location
-html_file="$XDG_CACHE_HOME/temp/${timestamp}_chua.html"
+html_file="$XDG_CACHE_HOME/temp/chua_${timestamp}.html"
 
 
 # get api data
@@ -70,10 +71,13 @@ qb_string_2_change=$(printf "$qb_line_2_change" | awk -F "'" '{print $2}')
 sed -i "s|$qb_string_2_change|$ua|" $qb_conf
 
 
-# envirnment variable is changed via .zshenv (restart zsh)
+# environment variable is changed via .zshenv (restart zsh)
 ## only info here if ua is changed:
 if [[ "$USER_AGENT" != "$ua" ]]; then
 
     printf "new USER_AGENT:\n   ${BLUE}%s${NOC}\n" "$ua"
 
 fi
+
+# cleanup
+rm -rf "$html_file"
