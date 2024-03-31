@@ -476,6 +476,7 @@ validity_check()
 
 	    case $mount_to in
 
+		#TODO check if not in $HOME
                 available_HOME)
 		    ## not hidden empty directories from $HOME
 		    mount_to=$(fd --type empty --type directory --full-path "$HOME" | fzf --prompt "mount $device to ")

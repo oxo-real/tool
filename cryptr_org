@@ -92,9 +92,20 @@ sourcing()
 }
 
 
+read_args_array()
+{
+    ## read elements non-accociative array $args_arr
+    ## [SC2206 · koalaman/shellcheck Wiki · GitHub](https://github.com/koalaman/shellcheck/wiki/SC2206)
+    IFS=" " read -r -a args_arr <<< "$args"
+    args_arr_length="${#args_arr[@]}"
+    last_element_index=$(( args_arr_length - 1 ))
+}
+
+
 initialize()
 {
-    ## initialization of (static) variables
+    sourcing
+
     timestamp="$(date +'%Y%m%d_%H%M%S')"
 
     tmp_dir="$XDG_CACHE_HOME/temp/cryptr/$timestamp"
@@ -102,92 +113,14 @@ initialize()
 
     pw_dir="$PWD"
 
-    src_arr=()
-}
-
-
-read_args_array()
-{
-    ## read elements non-accociative array $args_arr
-    ## [SC2206 · koalaman/shellcheck Wiki · GitHub](https://github.com/koalaman/shellcheck/wiki/SC2206)
-
-    ## create args_arr array
-    IFS=" " read -r -a args_arr <<< "$args"
-
-    args_arr_length="${#args_arr[@]}"
-    last_element_index=$(( args_arr_length - 1 ))
-}
-
-
-evaluate_args()
-{
-    ## number of arguments
-    case $args_arr_length in
-
-	0|'')
-	    ## no args
-	    exit 14
-	    ;;
-
-	1)
-	    ## single arg
-	    evaluate_single_arg
-	    ;;
-
-	*)
-	    ## multiple args
-	    ### first get operation, because that determines which
-	    ### arguments are sources and which is destination
-	    evaluate_multiple_args
-	    ;;
-
-    esac
-
-    deduct_dst
-}
-
-
-evaluate_single_arg()
-{
-    arg="${args_arr[0]}"
-
-    if [[ -d "$arg" ]]; then
-	### is an existing directory
-
-	set_opr_e
-
-    elif [[ -f "$arg" ]]; then
-	### is an existing file
-
-	# check if single arg is filetype tarx
-	check_if_tarx "$arg"
-
-	if [[ -n $is_tarx ]]; then
-
-	    set_opr_d
-
-	elif [[ -z $is_tarx ]]; then
-
-	    set_opr_e
-
-	fi
-
-    else
-
-	exit 14
-
-    fi
-
-    src="$(realpath "$arg")"
-    src_arr+=("$src")
-    dst="$PWD"
+    read_args_array
 }
 
 
 get_args_arr_index()
 {
-    ## get current arg $args_arr index number
-    for i in "$args_arr_length"; do
+    ## get current index number of $args_arr
+    for i in "${!args_arr[@]}"; do
 
 	if [[ "${args_arr[$i]}" == "${arg}" ]]; then
 
@@ -203,257 +136,61 @@ get_args_arr_index()
 }
 
 
-check_if_tarx()
+operation()
 {
-    unset is_tar
-    unset is_tarx
-    unset contains_crypt
-    unset contains_csf
-
-    location=$(realpath "$1")
-
-    [[ -n "$(file -b "$location" | grep 'tar archive')" ]] && is_tar=1
-
-    if [[ -z "$is_tar" ]]; then
-	## no tar file
-
-	return
-
-    elif [[ -n "$is_tar" ]]; then
-	## a tar file
-
-	contains_crypt="$(tar -tvf "$location" | cut -d . -f 3- | grep 'crypt')"
-	contains_csf="$(tar -tvf "$location" | cut -d . -f 3- | grep 'csf')"
-
-	[[ -n "$contains_crypt" && -n "$contains_csf" ]] && is_tarx='1'
-
-    fi
-}
-
-
-set_opr_d()
-{
-    case $cipher_suite in
-
-	gnupg)
-	    opr='d'
-	    ;;
-
-	openssl)
-	    opr='b'
-	    ;;
-
-    esac
-}
-
-
-set_opr_e()
-{
-    case $cipher_suite in
-
-	gnupg)
-	    opr='e'
-	    ;;
-
-	openssl)
-	    opr='c'
-	    ;;
-
-    esac
-}
-
-
-set_opr_a()
-{
-    ## adding to encrypted container
-    # decrypt argn to tempdest
-    # add arg1 - argn-1 to tempdest/temptar
-    # encrypt tempdest/temptar to argn
-    # remove tempdest/temptar
-    add=1
-
-    arg='-d'
-    ## run operation again, now with arg -d
-    check_if_option
-}
-
-
-evaluate_multiple_args()
-{
-    # j is element index of args_arr
-    for (( j=0; j<=$last_element_index; j++ )); do
-    #while (( j<=$args_array_length )); do list done
-
-	printf "DEV275 j: $j\n"
-
-	arg=$(realpath "${args_arr["$j"]}")
-
-	case $j in
-
-	    0)
-		# first argument -from multiple- (i = 0)
-
-		check_if_option "$arg"
-
-		## no explicit option is given
-		if [[ -z "$opr" ]]; then
-
-		    ## first argument is no option, then must be source
-		    src="$(realpath "$arg")"
-		    src_arr+=("$src")
-
-		    deduct_operation
-
-		fi
-		;;
-
-	    $last_element_index)
-		# last argument -from multiple- (i = n)
-
-		check_if_tarx "$arg"
-
-		if [[ -n "$is_tarx" ]]; then
-		    ## add to an existing tarx file
-		    dst="$(realpath "$arg")"
-
-		    set_opr_a
-
-		elif [[ -f "$arg" ]]; then
-
-		    src="$(realpath "$arg")"
-		    src_arr+=("$src")
-
-		    set_opr_e
-
-		elif [[ -d "$arg" ]]; then
-
-		    ## directory can be src or dst
-		    printf 'please add operation option\n'
-		    exit 30
-
-		elif [[ ! -d "$arg" ]]; then
-
-		    ## arg is non exixtend
-		    ## presume it is a new dst directory
-		    dst="$(realpath "$arg")"
-		    mkdir -p "$dst"
-
-		fi
-		;;
-
-	    *)
-		# argument(s) between first and last (0 < i <= n)
-
-		## these are always sources
-		src="$(realpath "$arg")"
-		src_arr+=("$src")
-		;;
-
-	esac
-
-    done
-}
-
-
-deduct_dst()
-{
-    if [[ -z $dst ]]; then
-
-	if [[ ! -f ${args_arr[-1]} ]]; then
-
-	    dst=$(realpath ${args_arr[-1]})
-
-	elif [[ -f ${args_arr[-1]} ]]; then
-
-	    dst="$PWD"
-
-	fi
-
-    elif [[ -n $dst ]]; then
-
-	## already have a destination
-	return
-
-    fi
-}
-
-
-deduct_operation()
-{
-    check_if_tarx "$arg"
-
-    if [[ -n "$is_tarx" ]]; then
-	## last argument is tarx file
-
-	if [[ $j == 0 ]]; then
-	    ## first argument -from multiple- is tarx file
-	    ## j from evaluate_multiple_args()
-
-	    ## example: cryptr vault.tarx $HOME
-	    #TODO nested tarx files
-	    set_opr_d
-	    return
-
-	elif [[ $j == $last_element_index ]]; then
-	    ## last argument -from multiple- is tarx file
-	    ## j from evaluate_multiple_args()
-
-	    ## example: cryptr s1 s2 vault.tarx
-	    set_opr_a
-	    return
-
-	fi
-
-    elif [[ -z "$is_tarx" ]]; then
-
-	## no other option than to encrypt
-	set_opr_e
-	return
-
-    fi
-}
-
-
-check_if_option()
-{
-    # determine option
+    # determine operation
 
     case "$arg" in
 
-	-d|--decr|decr)
+	-d)
 	    ## explicit decrypt
-	    set_opr_d
+	    case $cipher_suite in
+
+		gnupg)
+		    opr='d'
+		    ;;
+
+		openssl)
+		    opr='b'
+		    ;;
+
+	    esac
+
+	    ## next argument
+	    arguments_continue=1
 	    ;;
 
-	-e|--encr|encr)
+	-e)
 	    ## explicit encrypt
-	    set_opr_e
+	    case $cipher_suite in
+
+		gnupg)
+		    opr='e'
+		    ;;
+
+		openssl)
+		    opr='c'
+		    ;;
+
+	    esac
+
+	    ## next argument
+	    arguments_continue=1
 	    ;;
 
 	-a|--add|add)
-	    ## explicit add
-	    set_opr_a
+	    ## adding to encrypted container
+	    # decrypt argn to tempdest
+	    # add arg1 - argn-1 to tempdest/temptar
+	    # encrypt tempdest/temptar to argn
+	    # remove tempdest/temptar
+	    add=1
+	    arg='-d'
+	    operation
 	    ;;
 
-    esac
-}
-
-
-: '
-########################
-check_if_tarx "$arg"
-
-		[[ -n $is_tarx ]] && \
-
-		    ## conclusion
-		    set_opr_d
-		    src_arr+="$(realpath "$arg")"
-
-
-
-	    ## check if current argument (of multiple) is a source or a destination
-	    arg_src_dst
-
+	*)
+	    ## argument is other than -d or -e
 	    if [[ -f "$arg" ]] || [[ -d "$arg" ]]; then
 		## $arg is an existent file or directory
 
@@ -537,7 +274,6 @@ check_if_tarx "$arg"
 
     fi
 }
-# '
 
 
 dst_validate()
@@ -857,12 +593,9 @@ get_source()
 
 arguments()
 {
-    ## evaluate arguments and
-    ## getting operation, source(s) and destination
+    ## getting operation, source and destination
 
     src_arr=()
-    dst=''
-    oper=''
 
     ## iterate over (non-associative) array ($args_arr)
     ## which values are entered arguments
@@ -1554,38 +1287,7 @@ decrypt()
 }
 
 
-print_entire_array()
-{
-    declare -n array_name="$1"
-
-    for k in "${!array_namep[@]}"; do
-
-	printf "%s=%s\n" "$k" "${array_name[$k]}"
-
-    done
-}
-
-
-debug_info()
-{
-    printf '=========================================\n'
-    printf "DEBUG "
-    declare -p args_arr
-
-    printf '=========================================\n'
-    printf "DEBUG "
-    declare -p src_arr
-
-    printf '=========================================\n'
-    printf "DEBUG opr: $opr\n"
-
-    printf '=========================================\n'
-    printf "DEBUG dst: $dst\n"
-    printf '=========================================\n'
-}
-
-
-Xmain()
+main()
 {
     initialize
     arguments
@@ -1608,18 +1310,6 @@ Xmain()
 	    ;;
 
     esac
-}
-
-
-main()
-{
-    sourcing
-    initialize
-
-    read_args_array
-    evaluate_args
-
-    debug_info
 }
 
 main
