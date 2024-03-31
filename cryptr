@@ -154,7 +154,7 @@ evaluate_single_arg()
     if [[ -d "$arg" ]]; then
 	### is an existing directory
 
-	set_opr_e
+	set_oper_encr
 
     elif [[ -f "$arg" ]]; then
 	### is an existing file
@@ -164,11 +164,11 @@ evaluate_single_arg()
 
 	if [[ -n $is_tarx ]]; then
 
-	    set_opr_d
+	    set_oper_decr
 
 	elif [[ -z $is_tarx ]]; then
 
-	    set_opr_e
+	    set_oper_encr
 
 	fi
 
@@ -231,8 +231,10 @@ check_if_tarx()
 }
 
 
-set_opr_d()
+set_oper_decr()
 {
+    oper='decr'
+
     case $cipher_suite in
 
 	gnupg)
@@ -244,18 +246,13 @@ set_opr_d()
 	    ;;
 
     esac
-
-    ## derive $oper variable from $opr
-    if [[ "$opr" == 'd' || "$opr" == 'b' ]]; then
-
-	oper='decr'
-
-    fi
 }
 
 
-set_opr_e()
+set_oper_encr()
 {
+    oper='encr'
+
     case $cipher_suite in
 
 	gnupg)
@@ -267,17 +264,10 @@ set_opr_e()
 	    ;;
 
     esac
-
-    ## derive $oper variable from $opr
-    if [[ "$opr" == 'e' || "$opr" == 'c' ]]; then
-
-	oper='encr'
-
-    fi
 }
 
 
-set_opr_a()
+set_oper_add()
 {
     ## adding to encrypted container
     # decrypt argn to tempdest
@@ -308,7 +298,7 @@ evaluate_multiple_args()
 		check_if_option "$arg"
 
 		## no explicit option is given
-		if [[ -z "$opr" ]]; then
+		if [[ -z "$oper" ]]; then
 
 		    ## first argument is no option, then must be source
 		    src="$(realpath "$arg")"
@@ -328,14 +318,14 @@ evaluate_multiple_args()
 		    ## add to an existing tarx file
 		    dst="$(realpath "$arg")"
 
-		    set_opr_a
+		    set_oper_add
 
 		elif [[ -f "$arg" ]]; then
 
 		    src="$(realpath "$arg")"
 		    src_arr+=("$src")
 
-		    set_opr_e
+		    set_oper_encr
 
 		elif [[ -d "$arg" ]]; then
 
@@ -347,7 +337,8 @@ evaluate_multiple_args()
 		    ## arg is non exixtend
 		    ## presume it is a new dst directory
 		    dst="$(realpath "$arg")"
-		    mkdir -p "$dst"
+		    #DEV TODO mkdir after info screen
+		    #mkdir -p "$dst"
 
 		fi
 		;;
@@ -402,7 +393,7 @@ deduct_operation()
 
 	    ## example: cryptr vault.tarx $HOME
 	    #TODO nested tarx files
-	    set_opr_d
+	    set_oper_decr
 	    return
 
 	elif [[ $j == $last_element_index ]]; then
@@ -410,7 +401,7 @@ deduct_operation()
 	    ## j from evaluate_multiple_args()
 
 	    ## example: cryptr s1 s2 vault.tarx
-	    set_opr_a
+	    set_oper_add
 	    return
 
 	fi
@@ -418,7 +409,7 @@ deduct_operation()
     elif [[ -z "$is_tarx" ]]; then
 
 	## no other option than to encrypt
-	set_opr_e
+	set_oper_encr
 	return
 
     fi
@@ -433,56 +424,37 @@ check_if_option()
 
 	-d|--decr|decr)
 	    ## explicit decrypt
-	    set_opr_d
+	    set_oper_decr
 	    ;;
 
 	-e|--encr|encr)
 	    ## explicit encrypt
-	    set_opr_e
+	    set_oper_encr
 	    ;;
 
 	-a|--add|add)
 	    ## explicit add
-	    set_opr_a
+	    set_oper_add
 	    ;;
 
     esac
 }
 
 
-add_to_src_info()
-{
-    ## current element / arg / src
-	si_line=$(printf "source:	        $src\n")
-
-    if [[ "$args_arr_length" -gt '0' && "$i" != "$last_element_index" ]]; then
-
-	## there can be multiple sources
-	si_lines=$(printf "$si_lines\n%s\n" "$si_line")
-
-    else
-
-	si_lines="$si_line"
-
-    fi
-}
-
-
 src_info()
 {
     #declare -p src_arr
-    printf "source"
-    [[
+    printf "${st_bold}source"
+    [[ "${#src_arr[@]}" -gt 1 ]] && printf 's'
+    printf ":${st_def}\n"
     printf "%s\n" "${src_arr[@]}"
-
-    echo
 }
 
 
 oper_info()
 {
     ## user feedback
-    printf "\noperation:	${st_inv}$st_bold} %sypt ${st_def}\n\n" "$oper"
+    printf "\n${st_bold}operation:${st_def}	${st_rev}${st_bold} %sypt ${st_def}\n\n" "$oper"
 }
 
 
@@ -490,11 +462,11 @@ dst_info()
 {
     if [[ -d $dst ]] || [[ -f $dst ]]; then
 
-	printf "destination:	${fg_magenta}$dst${st_def}\n"
+	printf "${st_bold}destination:${st_def}	$dst\n"
 
     else
 
-	printf "destination:	$dst\n"
+	printf "${st_bold}destination:${st_def}	${fg_amber}$dst${st_def}\n"
 
     fi
 
@@ -798,14 +770,14 @@ crypt_exec()
 
 	gnupg)
 
-	    [[ $opr == 'e' ]] && gnupg_opr='symmetric'
-	    [[ $opr == 'd' ]] && gnupg_opr='decrypt'
+	    [[ $oper == 'e' ]] && gnupg_oper='symmetric'
+	    [[ $oper == 'd' ]] && gnupg_oper='decrypt'
 
 		#pass $pass_object | \
 	        printf "$ropa" | \
 	    	gpg \
 		    --quiet \
-	    	    --$gnupg_opr \
+	    	    --$gnupg_oper \
 	    	    --armor \
 	    	    --cipher-algo $cipher \
 	    	    --pinentry-mode loopback \
@@ -818,7 +790,7 @@ crypt_exec()
 	openssl)
 
 	    openssl enc \
-		    -$opr \
+		    -$oper \
 		    -base64 \
 		    -pbkdf2 \
 		    -$cipher \
@@ -1157,7 +1129,7 @@ debug_info()
     declare -p src_arr
 
     printf '=========================================\n'
-    printf "DEBUG opr: $opr\n"
+    printf "DEBUG oper: $oper\n"
 
     printf '=========================================\n'
     printf "DEBUG dst: $dst\n"
