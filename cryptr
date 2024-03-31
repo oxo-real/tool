@@ -244,6 +244,13 @@ set_opr_d()
 	    ;;
 
     esac
+
+    ## derive $oper variable from $opr
+    if [[ "$opr" == 'd' || "$opr" == 'b' ]]; then
+
+	oper='decr'
+
+    fi
 }
 
 
@@ -260,6 +267,13 @@ set_opr_e()
 	    ;;
 
     esac
+
+    ## derive $oper variable from $opr
+    if [[ "$opr" == 'e' || "$opr" == 'c' ]]; then
+
+	oper='encr'
+
+    fi
 }
 
 
@@ -283,8 +297,6 @@ evaluate_multiple_args()
     # j is element index of args_arr
     for (( j=0; j<=$last_element_index; j++ )); do
     #while (( j<=$args_array_length )); do list done
-
-	printf "DEV275 j: $j\n"
 
 	arg=$(realpath "${args_arr["$j"]}")
 
@@ -327,9 +339,8 @@ evaluate_multiple_args()
 
 		elif [[ -d "$arg" ]]; then
 
-		    ## directory can be src or dst
-		    printf 'please add operation option\n'
-		    exit 30
+		    #TODO directory can be src or dst
+		    dst="$(realpath "$arg")"
 
 		elif [[ ! -d "$arg" ]]; then
 
@@ -439,291 +450,12 @@ check_if_option()
 }
 
 
-: '
-########################
-check_if_tarx "$arg"
-
-		[[ -n $is_tarx ]] && \
-
-		    ## conclusion
-		    set_opr_d
-		    src_arr+="$(realpath "$arg")"
-
-
-
-	    ## check if current argument (of multiple) is a source or a destination
-	    arg_src_dst
-
-	    if [[ -f "$arg" ]] || [[ -d "$arg" ]]; then
-		## $arg is an existent file or directory
-
-		file_type=$(file "$arg")
-		file_name=$(basename -- "$arg")
-
-		if [[ $(printf '%s' "$file_type" | grep 'tar archive') ]]; then
-
-		    unset tar_content_crypt
-		    unset tar_content_csf
-		    file_tar_content=$(tar --list --verbose --file "$arg")
-
-		    tar_content_crypt="$(printf '%s' "$file_tar_content" | grep 'crypt')"
-		    tar_content_csf="$(printf '%s' "$file_tar_content" | grep 'csf')"
-
-		fi
-
-		if [[ -n "$tar_content_crypt" && -n "$tar_content_csf" ]]; then
-		    ## $arg is a tarx file
-		    ## to be decrypted
-
-		    case $cipher_suite in
-
-			gnupg)
-			    opr='d'
-			    ;;
-
-			openssl)
-			    opr='b'
-			    ;;
-
-		    esac
-
-		else
-		    ## $arg is a file or directory
-		    ## to be encrypted
-
-		    case $cipher_suite in
-
-			gnupg)
-			    opr='e'
-			    ;;
-
-			openssl)
-			    opr='c'
-			    ;;
-
-		    esac
-
-		fi
-
-	    else
-		## $arg is non-existent file or directory
-
-		case $cipher_suite in
-
-		    gnupg)
-			opr='e'
-			;;
-
-		    openssl)
-			opr='c'
-			;;
-
-		esac
-
-	    fi
-	    ;;
-
-    esac
-
-
-    ## derive $oper variable from $opr
-    if [[ "$opr" == 'e' ]] || [[ "$opr" == 'c' ]]; then
-
-	oper='encr'
-
-    elif [[ "$opr" == 'd' ]] || [[ "$opr" == 'b' ]]; then
-
-	oper='decr'
-
-    fi
-}
-# '
-
-
-dst_validate()
-{
-    if [[ -n $dst_arg ]]; then
-
-	dst_arg="$(realpath $dst_arg)"
-	dst_sub_dir=$(dirname $dst_arg)
-	dst_tar_get=$(basename $dst_arg)
-
-	case $oper in
-
-	    encr)
-		## encrypt to destination file
-
-		## dst_arg has to be a non-existent file ...
-		if [[ ! -f $dst_arg ]]; then
-
-		    ## ... with an valid absolute filepath ...
-		    if [[ -d "$dst_sub_dir" ]]; then
-
-			dst_arg="$(realpath $dst_arg)"
-
-		    ## ... or a valid relative path to pwd
-		    elif [[ -d "$pw_dir/$dst_arg" ]]; then
-
-			dst_arg="$pw_dir/$dst_arg"
-
-		    fi
-
-		    ## dst_arg contains subdir(s)
-		    if [[ "$dst_sub_dir" != "." ]]; then
-
-			## dst_sub_dir exist otherwise mkdir it
-			[[ -d $dst_sub_dir ]] || mkdir -p $dst_sub_dir
-
-		    fi
-
-		fi
-		;;
-
-	    decr)
-		## decrypt to destination directory
-
-		dst="$dst_arg"
-		;;
-
-	esac
-
-	## rewrite variables
-	dst_sub_dir=$(dirname $dst_arg)
-	dst_tar_get=$(basename $dst_arg)
-
-    else
-
-	printf 'no destination\n'
-	exit 80
-
-    fi
-
-    ## rewrite dst (full path)
-    if [[ -n $custom_dst ]]; then
-
-	## a custom destination is given as argument
-	dst="$(realpath $dst_sub_dir/$dst_tar_get)"
-
-    else
-
-	## no destination argument is given
-	case $oper in
-
-	    encr)
-		dst="$(realpath $dst_sub_dir/$dst_tar_get).tarx"
-		;;
-
-	esac
-
-    fi
-
-    ## if $dst already exists
-    [[ -f $dst ]] && \
-    #[[ -d $dst ]] || [[ -f $dst ]] && \
-	printf "destination:    ${MAGENTA}$dst${NOC} already exists\n" && \
-	exit 22
-
-    ## create directory if needed
-    case $oper in
-
-	decr)
-	    [[ -d $dst ]] || [[ -f $dst ]] || mkdir -p $dst
-	    ;;
-
-    esac
-}
-
-
-get_destination()
-{
-    # destination file or directory
-
-    ## do run get_destination() for last ($arg) element
-    if [[ "$arg_index" == "$last_element_index" ]]; then
-
-	unset arg_was_src
-
-    fi
-
-    ## run only if $arg was no source
-    if [[ -z "$arg_was_src" ]]; then
-
-	## in case of encryption
-
-	if [[ "$opr" == 'e' ]] || [[ "$opr" == 'c' ]]; then
-
-	    ## if element is the last element
-	    if [[ "$arg_index" == "$last_element_index" ]]; then
-
-		## if element is a non existent file and directory
-		if [[ ! -f "$arg" ]] && [[ ! -d "$arg" ]]; then
-
-		    ## declare $arg as destination
-		    dst_arg="$arg"
-		    custom_dst=1
-
-		else
-
-		    ## no destination given
-		    ## first source element value
-		    ## will be the name of the destination
-		    dst_arg="${src_arr[0]}"
-
-		fi
-
-	    fi
-
-	fi
-
-	## in case of decryption
-	if [[ "$opr" == 'd' ]] || [[ "$opr" == 'b' ]]; then
-
-	    ## if element is the last element (last argument)
-	    if [[ "$arg_index" == "$last_element_index" ]]; then
-
-		## element is (same as) $src
-		if [[ "$(realpath "$arg")" == "$src" ]]; then
-
-		    ## no destination is given
-		    ## decrypting in current directory
-		    dst_arg="$pw_dir"
-
-		    ## if element is a non existent directory
-		elif [[ ! -d "$arg" ]]; then
-
-		    ## make the directory
-		    mkdir -p "$arg"
-		    ## declare $arg as destination
-		    dst_arg="$arg"
-
-		    ## if element is an existent directory
-		elif [[ -d "$arg" ]]; then
-
-		    ## declare $arg as destination
-		    dst_arg="$arg"
-
-		fi
-
-	    fi
-
-	fi
-
-	if [[ -n $dst_arg ]]; then
-
-	    dst_validate
-
-	fi
-
-    fi
-}
-
-
 add_to_src_info()
 {
     ## current element / arg / src
 	si_line=$(printf "source:	        $src\n")
 
-    if [[ "$arg_index" -gt '0' && "$arg_index" != "$last_element_index" ]]; then
+    if [[ "$args_arr_length" -gt '0' && "$i" != "$last_element_index" ]]; then
 
 	## there can be multiple sources
 	si_lines=$(printf "$si_lines\n%s\n" "$si_line")
@@ -736,173 +468,21 @@ add_to_src_info()
 }
 
 
-src_validate()
-{
-    ## write full src path
-    ## src is current argument from loop
-    src="$(realpath "$arg")"
-
-    case $oper in
-
-	encr)
-	    ## src does not exist
-	    if [[ ! -f $src ]] && [[ ! -d $src ]] ; then
-
-		## if element is the last element (last argument)
-		## but not the only argument
-		if [[ "$arg_index" == "$last_element_index" ]] && \
-		       [[ "$last_element_index" -gt 0 ]]; then
-
-		    ## current $arg should be destination
-		    src_is_dst=1
-		    get_destination
-		    continue
-
-		else
-
-		    printf "${MAGENTA}%s${NOC} source file not found\n" "$src"
-		    exit 5
-
-		fi
-
-	    elif [[ -z $src ]]; then
-
-		printf "${MAGENTA}source & destination${NOC} files missing\n"
-		exit 5
-
-	    else
-
-		## set source directory and target names
-		src_sub_dir=$(dirname $src)
-		src_tar_get=$(basename $src)
-
-	    fi
-	    ;;
-
-	decr)
-	    ## decrypting to custom path
-
-	    ######## DEV
-	    if [[ -d $src && $add != '1' ]]; then
-	    #if [[ -d $src ]]; then
-		# DEV ?!?!?
-		src_is_dst=1
-		unset src
-		dst="$src"
-
-	    fi
-	    ;;
-
-    esac
-}
-
-
-get_source()
-{
-    ## get_source is called for every arg (element) via for loop in arguments()
-
-    ## ... for decrypting (gnupg d or openssl b)
-    if [[ "$opr" == 'd' ]] || [[ "$opr" == 'b' ]]; then
-
-	## if already decrypt source then current $arg is $dst
-	if [[ "$add" != '1' ]] && [[ -n "$src" ]] && \
-	       [[ "$arg_index" == "$last_element_index" ]]; then
-
-	    dst_arg="$arg"
-
-	else
-
-	    ## element is an existent file to decrypt
-	    src_validate
-
-	    if [[ "$add" != '1' ]] && [[ -f "$arg" ]] && \
-	      [[ "$arg_index" != "$last_element_index" ]]; then
-
-		## element is an existent file to decrypt
-		## this can not be more than one file
-		## element value is source file or directory
-		src="$arg"
-
-	    fi
-
-	    ## append element to (non-associative) array $src_arr
-	    src_arr+=("$src")
-
-	    ## populate src_info
-	    add_to_src_info
-
-	fi
-
-    ## ... for encrypting (gnupg e or openssl c)
-    elif [[ "$opr" == 'e' ]] || [[ "$opr" == 'c' ]]; then
-
-	## element is an existent file or directory to encrypt
-	src_validate
-
-	if [[ -z $src_is_dst ]]; then
-
-	    ## append element to (non-associative) array $src_arr
-	    src_arr+=("$src")
-
-	    ## populate src_info
-	    add_to_src_info
-
-	    arg_was_src=1
-
-	fi
-
-    fi
-}
-
-
-arguments()
-{
-    ## evaluate arguments and
-    ## getting operation, source(s) and destination
-
-    src_arr=()
-    dst=''
-    oper=''
-
-    ## iterate over (non-associative) array ($args_arr)
-    ## which values are entered arguments
-    for arg in "${args_arr[@]}"; do
-
-	get_args_arr_index
-
-	unset arguments_continue
-	unset arg_was_src
-	unset src_is_dst
-	unset custom_dst
-
-	## determine operation if not already known
-	[[ -z "$oper" ]] && operation
-
-	[[ $arguments_continue == 1 ]] && continue
-	## if arg was -d or -e (in operation)
-	## take the next argument from ${args_arr[@]} (continue)
-	## else continue (with $arg) in this loop (with lines below)
-
-	## populate $src_arr (source file list) ...
-	get_source
-
-	## destination file
-	get_destination
-
-    done
-}
-
-
 src_info()
 {
-    printf '%s\n' "$si_lines"
+    #declare -p src_arr
+    printf "source"
+    [[
+    printf "%s\n" "${src_arr[@]}"
+
+    echo
 }
 
 
 oper_info()
 {
     ## user feedback
-    printf "\noperation:	${INV}${BOLD} %sypt ${NOC}\n\n" "$oper"
+    printf "\noperation:	${st_inv}$st_bold} %sypt ${st_def}\n\n" "$oper"
 }
 
 
@@ -910,7 +490,7 @@ dst_info()
 {
     if [[ -d $dst ]] || [[ -f $dst ]]; then
 
-	printf "destination:	${MAGENTA}$dst${NOC}\n"
+	printf "destination:	${fg_magenta}$dst${st_def}\n"
 
     else
 
@@ -1585,10 +1165,14 @@ debug_info()
 }
 
 
-Xmain()
+main()
 {
+    sourcing
     initialize
-    arguments
+
+    read_args_array
+    evaluate_args
+
     show_info
 
     case $oper in
@@ -1608,16 +1192,6 @@ Xmain()
 	    ;;
 
     esac
-}
-
-
-main()
-{
-    sourcing
-    initialize
-
-    read_args_array
-    evaluate_args
 
     debug_info
 }
