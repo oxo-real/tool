@@ -143,14 +143,24 @@ evaluate_args()
 
     esac
 
-    deduct_dst
+    #deduct_dst
     autocreate_filename
 }
 
 
 evaluate_single_arg()
 {
-    arg="${args_arr[0]}"
+    ## if coming from evaluate_multiple_args case j=0
+    ## the call gives arg as argument ($1)
+    if [[ -n "$1" ]]; then
+
+	arg="$1"
+
+    else
+
+	arg="${args_arr[0]}"
+
+    fi
 
     # check if single arg is filetype tarx
     check_if_tarx "$arg"
@@ -193,7 +203,7 @@ evaluate_multiple_args()
 		    #arg=$(realpath "${args_arr["$j"]}")
 
 		    ## first argument is no option
-		    evaluate_single_arg
+		    evaluate_single_arg "$arg"
 
 		fi
 		;;
@@ -206,7 +216,7 @@ evaluate_multiple_args()
 		    decr)
 			arg=$(realpath "$arg")
 			dst="$arg"
-			[[ -d "$dst" ]] || dir_to_make="$dst"
+			#[[ -d "$dst" ]] || dir_to_make="$dst"
 			;;
 
 		    encr)
@@ -224,6 +234,8 @@ evaluate_multiple_args()
 			;;
 
 		esac
+
+		[[ -z "$dst" ]] && dst="$PWD"
 		;;
 
 	    *)
@@ -237,51 +249,14 @@ evaluate_multiple_args()
 
 	esac
 
+	#DEV TODO if colon is not here
+	# script does not return to evaluate_args; why?
+	#return
+	:
+
     done
 }
 
-: '
-		#arg=$(realpath "${args_arr["$j"]}")
-		if [[ ! -d "$(realpath "${args_arr["$j"]}")" ]]; then
-
-		    dir_to_make="$(realpath "${args_arr["$j"]}")"
-		    dst="$dir_to_make"
-		    #mkdir -p "$dst"
-
-		fi
-
-		check_if_tarx "$arg"
-
-		if [[ -n "$is_tarx" ]]; then
-		    ## add to an existing tarx file
-		    [[ -z "$dst" ]] && dst="$(realpath "$arg")"
-
-		    set_oper_add
-
-		elif [[ -f "$arg" ]]; then
-
-		    src="$(realpath "$arg")"
-		    src_arr+=("$src")
-
-		    set_oper_encr
-
-		elif [[ -d "$arg" ]]; then
-
-		    #TODO directory can be src or dst
-		    dst="$(realpath "$arg")"
-
-		elif [[ ! -d "$arg" ]]; then
-
-		    ## arg is non exixtend
-		    ## presume it is a new dst directory
-		    dst="$(realpath "$arg")"
-		    #DEV TODO mkdir after info screen
-		    #mkdir -p "$dst"
-
-		fi
-
-		deduct_oper
-# '
 
 get_args_arr_index()
 {
@@ -381,89 +356,6 @@ set_oper_add()
 }
 
 
-deduct_dst()
-{
-    if [[ -z $dst ]]; then
-
-	case $oper in
-
-	    decr)
-		## decrypt to a directory
-		if [[ ! -f ${args_arr[-1]} ]]; then
-
-		    dst=$(realpath ${args_arr[-1]})
-
-		elif [[ -f ${args_arr[-1]} ]]; then
-
-		    dst="$PWD"
-
-		fi
-		;;
-
-	    encr)
-		## encrypt to a file
-		if [[ ! -f ${args_arr[-1]} ]]; then
-
-		    dst=$(realpath ${args_arr[-1]})
-
-		fi
-		;;
-
-	esac
-
-    elif [[ -n $dst ]]; then
-
-	## already have a destination
-	return
-
-    fi
-    ###############
-: '
-    [if [[ -z $dst ]]; then
-
-	case $oper in
-
-	    decr)
-		## decrypt to a directory
-		last_arg="${args_arr[-1]}"
-
-		[[ -d "$last_arg" ]] || mkdir -p "$last_arg"
-		;;
-
-	    encr)
-		## encrypt to a file
-
-	    ;;
-
-	esac
-
-	if [[ ! -f ${args_arr[-1]} ]]; then
-
-	    if [[ ! -d ${args_arr[-1]} ]]; then
-
-		mkdir -p "$(realpath ${args_arr[-1]})"
-
-		dst=$(realpath ${args_arr[-1]})
-
-	    fi
-
-	elif [[ -f ${args_arr[-1]} ]]; then
-
-	    dst="$PWD"
-
-	fi
-
-    elif [[ -n $dst ]]; then
-
-	## already have a destination
-	#DEV remove this if branch
-	:
-
-    fi
-     # '
-}
-
-
 autocreate_filename()
 {
     if [[ -d "$dst" ]]; then
@@ -480,48 +372,6 @@ autocreate_filename()
 }
 
 
-deduct_oper()
-{
-    if [[ -z $oper ]]; then
-
-	check_if_tarx "$arg"
-
-	if [[ -n "$is_tarx" ]]; then
-	    ## last argument is tarx file
-
-	    if [[ $j == 0 ]]; then
-		## first argument -from multiple- is tarx file
-		## j from evaluate_multiple_args()
-
-		## example: cryptr vault.tarx $HOME
-		#TODO nested tarx files
-		set_oper_decr
-		## NOTICE $j <= 1 (not more than 2 args)
-		## second arg is optional dst
-		return
-
-	    elif [[ $j == $last_element_index ]]; then
-		## last argument -from multiple- is tarx file
-		## j from evaluate_multiple_args()
-
-		## example: cryptr s1 s2 vault.tarx
-		set_oper_add
-		return
-
-	    fi
-
-	elif [[ -z "$is_tarx" ]]; then
-
-	    ## no other option than to encrypt
-	    set_oper_encr
-	    return
-
-	fi
-
-    fi
-}
-
-
 check_if_option()
 {
     # determine option
@@ -531,16 +381,25 @@ check_if_option()
 	-d|--decr|decr)
 	    ## explicit decrypt
 	    set_oper_decr
+
+	    ## remove first element from args_arr
+	    unset args_arr[0]
 	    ;;
 
 	-e|--encr|encr)
 	    ## explicit encrypt
 	    set_oper_encr
+
+	    ## remove first element from args_arr
+	    unset args_arr[0]
 	    ;;
 
 	-a|--add|add)
 	    ## explicit add
 	    set_oper_add
+
+	    ## remove first element from args_arr
+	    unset args_arr[0]
 	    ;;
 
     esac
@@ -574,9 +433,30 @@ dst_info()
 
 	printf "${st_bold}destination:${st_def}	${fg_amber}$dst${st_def}\n"
 
-    fi
+	case $oper in
 
-    echo
+	    decr)
+		## decrypt to directory
+
+		printf "\ncreate? [y/N] "
+
+		reply_read_single
+
+		if printf "$reply" | grep -iq "^y"; then
+
+		    erase_line 1
+		    mkdir -p "$dst"
+
+		else
+
+		    exit 44
+
+		fi
+		;;
+
+	esac
+
+    fi
 }
 
 
