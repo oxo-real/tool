@@ -44,10 +44,10 @@ reply_functions, text_appearance
 NOTICE compulsory argument order
 cryptr [operation] source(s) [destination]
 
--e encrypt a file or directory
+-e encrypt to a file
 cryptr [-e] $src [$srcs] [$dst_file]
 
--d decrypt a tarx file
+-d decrypt to a directory
 cryptr [-d] $src [$dst_dir]
 
 # examples
@@ -144,6 +144,7 @@ evaluate_args()
     esac
 
     deduct_dst
+    autocreate_filename
 }
 
 
@@ -151,30 +152,16 @@ evaluate_single_arg()
 {
     arg="${args_arr[0]}"
 
-    if [[ -d "$arg" ]]; then
-	### is an existing directory
+    # check if single arg is filetype tarx
+    check_if_tarx "$arg"
 
-	set_oper_encr
+    if [[ -n $is_tarx ]]; then
 
-    elif [[ -f "$arg" ]]; then
-	### is an existing file
-
-	# check if single arg is filetype tarx
-	check_if_tarx "$arg"
-
-	if [[ -n $is_tarx ]]; then
-
-	    set_oper_decr
-
-	elif [[ -z $is_tarx ]]; then
-
-	    set_oper_encr
-
-	fi
+	set_oper_decr
 
     else
 
-	exit 14
+	set_oper_encr
 
     fi
 
@@ -183,6 +170,118 @@ evaluate_single_arg()
     dst="$PWD"
 }
 
+
+evaluate_multiple_args()
+{
+    # j is element index of args_arr
+    for (( j=0; j<=$last_element_index; j++ )); do
+    #while (( j<=$args_array_length )); do list done
+
+	arg="${args_arr["$j"]}"
+
+	case $j in
+
+	    0)
+		# first argument -from multiple- (j = 0)
+
+		check_if_option "$arg"
+
+		## no explicit option is given
+		if [[ -z "$oper" ]]; then
+
+		    arg=$(realpath "$arg")
+		    #arg=$(realpath "${args_arr["$j"]}")
+
+		    ## first argument is no option
+		    evaluate_single_arg
+
+		fi
+		;;
+
+	    $last_element_index)
+		# last argument -from multiple- (j = n)
+
+		case $oper in
+
+		    decr)
+			arg=$(realpath "$arg")
+			dst="$arg"
+			[[ -d "$dst" ]] || dir_to_make="$dst"
+			;;
+
+		    encr)
+			arg=$(realpath "$arg")
+			if [[ -f "$arg" || -d "$arg" ]]; then
+
+			    src="$arg"
+			    src_arr+=("$src")
+
+			elif [[ ! -f "$arg" && ! -d "$arg" ]]; then
+
+			    dst="$arg"
+
+			fi
+			;;
+
+		esac
+		;;
+
+	    *)
+		# argument(s) between first and last (0 < j <= n)
+
+		## these are always sources
+		arg=$(realpath "$arg")
+		src="$arg"
+		src_arr+=("$src")
+		;;
+
+	esac
+
+    done
+}
+
+: '
+		#arg=$(realpath "${args_arr["$j"]}")
+		if [[ ! -d "$(realpath "${args_arr["$j"]}")" ]]; then
+
+		    dir_to_make="$(realpath "${args_arr["$j"]}")"
+		    dst="$dir_to_make"
+		    #mkdir -p "$dst"
+
+		fi
+
+		check_if_tarx "$arg"
+
+		if [[ -n "$is_tarx" ]]; then
+		    ## add to an existing tarx file
+		    [[ -z "$dst" ]] && dst="$(realpath "$arg")"
+
+		    set_oper_add
+
+		elif [[ -f "$arg" ]]; then
+
+		    src="$(realpath "$arg")"
+		    src_arr+=("$src")
+
+		    set_oper_encr
+
+		elif [[ -d "$arg" ]]; then
+
+		    #TODO directory can be src or dst
+		    dst="$(realpath "$arg")"
+
+		elif [[ ! -d "$arg" ]]; then
+
+		    ## arg is non exixtend
+		    ## presume it is a new dst directory
+		    dst="$(realpath "$arg")"
+		    #DEV TODO mkdir after info screen
+		    #mkdir -p "$dst"
+
+		fi
+
+		deduct_oper
+# '
 
 get_args_arr_index()
 {
@@ -282,88 +381,71 @@ set_oper_add()
 }
 
 
-evaluate_multiple_args()
-{
-    # j is element index of args_arr
-    for (( j=0; j<=$last_element_index; j++ )); do
-    #while (( j<=$args_array_length )); do list done
-
-	arg=$(realpath "${args_arr["$j"]}")
-
-	case $j in
-
-	    0)
-		# first argument -from multiple- (i = 0)
-
-		check_if_option "$arg"
-
-		## no explicit option is given
-		if [[ -z "$oper" ]]; then
-
-		    ## first argument is no option, then must be source
-		    src="$(realpath "$arg")"
-		    src_arr+=("$src")
-
-		    deduct_operation
-
-		fi
-		;;
-
-	    $last_element_index)
-		# last argument -from multiple- (i = n)
-
-		check_if_tarx "$arg"
-
-		if [[ -n "$is_tarx" ]]; then
-		    ## add to an existing tarx file
-		    dst="$(realpath "$arg")"
-
-		    set_oper_add
-
-		elif [[ -f "$arg" ]]; then
-
-		    src="$(realpath "$arg")"
-		    src_arr+=("$src")
-
-		    set_oper_encr
-
-		elif [[ -d "$arg" ]]; then
-
-		    #TODO directory can be src or dst
-		    dst="$(realpath "$arg")"
-
-		elif [[ ! -d "$arg" ]]; then
-
-		    ## arg is non exixtend
-		    ## presume it is a new dst directory
-		    dst="$(realpath "$arg")"
-		    #DEV TODO mkdir after info screen
-		    #mkdir -p "$dst"
-
-		fi
-		;;
-
-	    *)
-		# argument(s) between first and last (0 < i <= n)
-
-		## these are always sources
-		src="$(realpath "$arg")"
-		src_arr+=("$src")
-		;;
-
-	esac
-
-    done
-}
-
-
 deduct_dst()
 {
     if [[ -z $dst ]]; then
 
+	case $oper in
+
+	    decr)
+		## decrypt to a directory
+		if [[ ! -f ${args_arr[-1]} ]]; then
+
+		    dst=$(realpath ${args_arr[-1]})
+
+		elif [[ -f ${args_arr[-1]} ]]; then
+
+		    dst="$PWD"
+
+		fi
+		;;
+
+	    encr)
+		## encrypt to a file
+		if [[ ! -f ${args_arr[-1]} ]]; then
+
+		    dst=$(realpath ${args_arr[-1]})
+
+		fi
+		;;
+
+	esac
+
+    elif [[ -n $dst ]]; then
+
+	## already have a destination
+	return
+
+    fi
+    ###############
+: '
+    [if [[ -z $dst ]]; then
+
+	case $oper in
+
+	    decr)
+		## decrypt to a directory
+		last_arg="${args_arr[-1]}"
+
+		[[ -d "$last_arg" ]] || mkdir -p "$last_arg"
+		;;
+
+	    encr)
+		## encrypt to a file
+
+	    ;;
+
+	esac
+
 	if [[ ! -f ${args_arr[-1]} ]]; then
 
-	    dst=$(realpath ${args_arr[-1]})
+	    if [[ ! -d ${args_arr[-1]} ]]; then
+
+		mkdir -p "$(realpath ${args_arr[-1]})"
+
+		dst=$(realpath ${args_arr[-1]})
+
+	    fi
 
 	elif [[ -f ${args_arr[-1]} ]]; then
 
@@ -374,43 +456,67 @@ deduct_dst()
     elif [[ -n $dst ]]; then
 
 	## already have a destination
-	return
+	#DEV remove this if branch
+	:
+
+    fi
+     # '
+}
+
+
+autocreate_filename()
+{
+    if [[ -d "$dst" ]]; then
+
+	if [[ $oper == 'encr' ]]; then
+
+	    ## autocreate filename
+	    auto_tarx="$(basename ${src_arr[0]}.tarx)"
+	    dst="${dst}/$auto_tarx"
+
+	fi
 
     fi
 }
 
 
-deduct_operation()
+deduct_oper()
 {
-    check_if_tarx "$arg"
+    if [[ -z $oper ]]; then
 
-    if [[ -n "$is_tarx" ]]; then
-	## last argument is tarx file
+	check_if_tarx "$arg"
 
-	if [[ $j == 0 ]]; then
-	    ## first argument -from multiple- is tarx file
-	    ## j from evaluate_multiple_args()
+	if [[ -n "$is_tarx" ]]; then
+	    ## last argument is tarx file
 
-	    ## example: cryptr vault.tarx $HOME
-	    #TODO nested tarx files
-	    set_oper_decr
-	    return
+	    if [[ $j == 0 ]]; then
+		## first argument -from multiple- is tarx file
+		## j from evaluate_multiple_args()
 
-	elif [[ $j == $last_element_index ]]; then
-	    ## last argument -from multiple- is tarx file
-	    ## j from evaluate_multiple_args()
+		## example: cryptr vault.tarx $HOME
+		#TODO nested tarx files
+		set_oper_decr
+		## NOTICE $j <= 1 (not more than 2 args)
+		## second arg is optional dst
+		return
 
-	    ## example: cryptr s1 s2 vault.tarx
-	    set_oper_add
+	    elif [[ $j == $last_element_index ]]; then
+		## last argument -from multiple- is tarx file
+		## j from evaluate_multiple_args()
+
+		## example: cryptr s1 s2 vault.tarx
+		set_oper_add
+		return
+
+	    fi
+
+	elif [[ -z "$is_tarx" ]]; then
+
+	    ## no other option than to encrypt
+	    set_oper_encr
 	    return
 
 	fi
-
-    elif [[ -z "$is_tarx" ]]; then
-
-	## no other option than to encrypt
-	set_oper_encr
-	return
 
     fi
 }
@@ -447,7 +553,7 @@ src_info()
     printf "${st_bold}source"
     [[ "${#src_arr[@]}" -gt 1 ]] && printf 's'
     printf ":${st_def}\n"
-    printf "%s\n" "${src_arr[@]}"
+    printf "\t\t%s\n" "${src_arr[@]}"
 }
 
 
@@ -519,7 +625,7 @@ tar_append()
     ## temporary (source) tar file
     ## will be encrypted and wrapped in tarx
     [[ -d $tmp_dir ]] || mkdir -p $tmp_dir
-    tar_src=$tmp_dir/${dst_tar_get}_src.tar
+    tar_src=$tmp_dir/$(basename $dst)_src.tar
 
     for src_elem in "${src_arr[@]}"; do
 
@@ -584,7 +690,7 @@ select_cipher()
 cipher_select_file()
 {
     ## cipher select file (csf)
-    cipher_select_file="$tmp_dir/$(basename $src).csf"
+    cipher_select_file="$tmp_dir/$(basename $dst).csf"
     printf "%s\n" ${cipher_select[@]} > "$cipher_select_file"
 
     printf 'cipher:		%s\n' "$(tr '\n' ' ' < $cipher_select_file)($cipher_select_amount)"
@@ -745,7 +851,7 @@ crypt_once()
 	encr)
 
 	    file_in="$tar_src"
-	    file_out="$tmp_dir/$dst_tar_get.crypt"
+	    file_out="$tmp_dir/$(basename $dst).crypt"
 	    ;;
 
 	decr)
@@ -770,8 +876,8 @@ crypt_exec()
 
 	gnupg)
 
-	    [[ $oper == 'e' ]] && gnupg_oper='symmetric'
-	    [[ $oper == 'd' ]] && gnupg_oper='decrypt'
+	    [[ $opr == 'e' ]] && gnupg_oper='symmetric'
+	    [[ $opr == 'd' ]] && gnupg_oper='decrypt'
 
 		#pass $pass_object | \
 	        printf "$ropa" | \
