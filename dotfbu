@@ -78,6 +78,7 @@ sourcing()
     # external code sources
     source_dir="$XDG_DATA_HOME/c/git/code/source/function"
     source $source_dir/reply_functions
+    source $source_dir/get_sudo
     source $source_dir/text_appearance
     pwgn="$XDG_DATA_HOME/c/git/code/tool/pwgn"
     fpcl_file="$src/.fpcl"
@@ -86,6 +87,9 @@ sourcing()
 
 initialize()
 {
+    # aquire privileges
+    get_sudo
+
     # initializing variables
 
     ## not all of .config has to be uploaded to the public repository;
