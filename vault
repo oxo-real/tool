@@ -123,7 +123,7 @@ check_target_validity()
 
     case $action in
 
-	create)
+	create|new)
 	    if [[ -f $target ]]; then
 
 	        printf "${fg_amber}$target${st_def} already exist, exiting\n"
@@ -1071,7 +1071,7 @@ unmount()
 	[[ -n $(echo $PWD | grep $mountpoint) ]]; then
 
 	printf "${fg_magenta}cannot unmount myself!${st_def}\n"
-	printf "please change directory\n"
+	printf "please change working directory\n"
 	exit 66
 
     fi
