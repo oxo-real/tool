@@ -103,6 +103,7 @@ get_mps_mount()
 	 $HOME/dock/3 \
 	 $HOME/dock/4 \
 	 $HOME/dock/transfer \
+	 available_PWD\
 	 available_HOME\
 	 available_ROOT\
 	 )
@@ -477,16 +478,22 @@ validity_check()
 	    case $mount_to in
 
 		#TODO check if not in $HOME
+                available_PWD)
+		    ## not hidden empty directories from $HOME
+		    mount_to=$(fd --type empty --type directory --full-path "$PWD" --relative-path | fzf --prompt "mount $device to ")
+		    validity_check
+          	    ;;
+
                 available_HOME)
 		    ## not hidden empty directories from $HOME
-		    mount_to=$(fd --type empty --type directory --full-path "$HOME" | fzf --prompt "mount $device to ")
+		    mount_to=$(fd --type empty --type directory --full-path "$HOME" "$HOME" | fzf --prompt "mount $device to ")
 		    #mount_to=$(find $HOME -type d -empty 2> /dev/null | sed '/\/\./d' | fzf --prompt "mount $device to ")
 		    validity_check
           	    ;;
 
 		available_ROOT)
 		    ## all empty directories from root
-		    mount_to=$(fd --hidden --type empty --type directory --full-path '/' | fzf --prompt "mount $device to ")
+		    mount_to=$(fd --hidden --type empty --type directory --full-path '/' '/' | fzf --prompt "mount $device to ")
 		    validity_check
 		    ;;
             esac
