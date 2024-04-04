@@ -479,6 +479,12 @@ debugging()
 }
 
 
+audio_alert()
+{
+    beep
+}
+
+
 exit_main()
 {
     exit 0
@@ -503,6 +509,7 @@ main()
     running_rounds
     #output_console
     output_wlcopy
+    audio_alert
     exit_main
 }
 
