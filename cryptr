@@ -15,7 +15,7 @@
 : '
 cryptr
 crypto with optional cipher cascade
-copyright (c) 2021 - 2023  |  oxo
+copyright (c) 2021 - 2024  |  oxo
 
 GNU GPLv3 GENERAL PUBLIC LICENSE
 This program is free software: you can redistribute it and/or modify
@@ -359,9 +359,12 @@ set_oper_add()
     add=1
     oper='add'
 
+    ## subloop
     ## decrypt tarx file for adding to
-    src="$arg"
-    decrypt "$arg"
+    tarx_2_add_2="${args_arr[-1]}"
+    decrypt "$tarx_2_add_2"
+    rm $tmp_dir/*.crypt
+    ## to prevent:
 
     set_oper_encr
 }
@@ -436,38 +439,55 @@ oper_info()
 
 dst_info()
 {
-    if [[ -d $dst ]] || [[ -f $dst ]]; then
+    case $oper in
 
-	printf "${st_bold}destination:${st_def}	$dst\n"
+	add)
 
-    else
+	    dst="$(realpath ${args_arr[-1]})"
 
-	printf "${st_bold}destination:${st_def}	${fg_amber}$dst${st_def}\n"
+	    printf "${st_bold}destination:${st_def}	${fg_amber}$dst${st_def}\n"
+	    ;;
 
-	case $oper in
+	*)
 
-	    decr)
-		## decrypt to directory
+	    if [[ -d $dst ]] || [[ -f $dst ]]; then
+		## exists
 
-		printf "\ncreate? [y/N]   "
 
-		reply_read_single
+		printf "${st_bold}destination:${st_def}	$dst\n"
 
-		if printf "$reply" | grep -iq "^y"; then
+	    else
+		## about to be created
 
-		    erase_line 2
-		    mkdir -p "$dst"
+		printf "${st_bold}destination:${st_def}	${fg_amber}$dst${st_def}\n"
 
-		else
+		case $oper in
 
-		    exit 44
+		    decr)
+			## decrypt to directory
 
-		fi
-		;;
+			printf "\ncreate? [y/N]   "
 
-	esac
+			reply_read_single
 
-    fi
+			if printf "$reply" | grep -iq "^y"; then
+
+			    erase_line 2
+			    mkdir -p "$dst"
+
+			else
+
+			    exit 44
+
+			fi
+			;;
+
+		esac
+
+	    fi
+	    ;;
+
+    esac
 
     echo
 }
@@ -749,7 +769,7 @@ crypt_once()
 	    file_out="$tmp_dir/$(basename $dst).crypt"
 	    ;;
 
-	decr)
+	decr|add)
 
 	    file_in=$crypt_file
 
@@ -901,6 +921,7 @@ tarx_check()
 	encr)
 
 	    if [[ "$tarx_exist" == "1" ]]; then
+		#DEV deprecated because of oper can be add?
 
 		printf "\ntarx file:	${fg_amber}%s${st_def}\n" "$tarx_file"
 		printf '                overwrite? [y/N] '
@@ -1105,15 +1126,30 @@ encrypt()
     get_pass
     running_rounds
     tarx_define
-    #tarx_check
     tarx_create
+}
+
+check_args()
+{
+    case $oper in
+
+	add)
+
+	    show_info
+	    :
+	    ;;
+
+    esac
+    :
 }
 
 
 decrypt()
 {
-    src="$(realpath "$1")"
-    #tarx_check
+    [[ -n "$1" ]] && src="$(realpath "$1")"
+
+    check_args
+    tarx_check
     tarx_open
     get_crypto_data
     get_pass
