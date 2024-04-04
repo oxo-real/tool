@@ -3,6 +3,7 @@
 # fzf unique words from input string
 # each word on it's own line
 # primarily designed to be used in conjuction with yank_buffer
+# i.e.: yank_buffer | fzf_word
 
 
 receive()
@@ -15,6 +16,7 @@ receive()
 
 process()
 {
+    # remove double spaces
     # create word list with only single instances
     ## tr: replace spaces with eol
     clean_uniq_word_list=$(tr ' ' '\n' <<< "$std_in" | sort | uniq)
@@ -24,7 +26,13 @@ process()
 send()
 {
     ## to fzf
-    string_select=$(printf '%s' "$clean_uniq_word_list" | fzf -d ' ')
+
+    ### as multiline
+    #string_select=$(printf '%s' "$clean_uniq_word_list" | fzf -m)
+
+    ### as single line
+    string_select=$(printf '%s' "$clean_uniq_word_list" | fzf -m | tr '\n' ' ')
+
 }
 
 

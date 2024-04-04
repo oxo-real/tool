@@ -481,7 +481,9 @@ debugging()
 
 audio_alert()
 {
-    beep
+    #TODO beep does not work, why?
+    #beep
+    pw-play $XDG_DATA_HOME/a/media/audio/sound/airbus/da.ogg
 }
 
 

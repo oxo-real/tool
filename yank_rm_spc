@@ -2,7 +2,7 @@
 
 # yank current (visible) buffer into wl-copy
 
-# dependencies: alacritty, dotool
+# dependencies: alacritty, ydotool
 
 args=$@
 arg1=$1
@@ -76,6 +76,14 @@ rm_dbl_space()
     args="$(wl-paste)"
     # removing double spaces from string
     single_space_copy=$(tr ' ' '\n' <<< "$args" | sort | uniq)
+
+    printf '%s' "$single_space_copy" | fzf -d ' '
+}
+
+
+print_fzf()
+{
+    printf '%s' "$single_space_copy" | fzf -d ' '
 }
 
 
@@ -84,6 +92,8 @@ main()
     check_service
     start_service
     yank
+    #rm_dbl_space
+    #print_fzf
 }
 
 main

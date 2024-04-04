@@ -28,7 +28,6 @@
 ├── dividir
 ├── dotfbu
 ├── dynamic_truncate
-├── emacs_start
 ├── file_select
 ├── fiot
 ├── fscu
@@ -69,7 +68,7 @@
 ├── vtxt
 ├── wtime
 ├── yank_buffer
-├── yank_buffer_old
+├── yank_rm_spc
 ├── zsh_root_like_user
 └── zzz_deprecated
     ├── backup_dot
@@ -79,6 +78,7 @@
     ├── dstruct
     │   ├── app.js
     │   └── dstruct.py
+    ├── emacs_start
     ├── hclsmvp
     ├── metar
     ├── mountr_rofi
