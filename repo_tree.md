@@ -68,7 +68,6 @@
 ├── vtxt
 ├── wtime
 ├── yank_buffer
-├── yank_rm_spc
 ├── zsh_root_like_user
 └── zzz_deprecated
     ├── backup_dot
@@ -86,5 +85,5 @@
     ├── trashOLD
     └── wfa.py
 
-4 directories, 82 files
+4 directories, 81 files
 ```
