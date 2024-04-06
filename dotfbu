@@ -92,12 +92,15 @@ initialize()
 
     # initializing variables
 
+    timestamp="$(date +%Y%m%d_%H%M%S_%N_%z_%Z_%V)"
+    dotfbu_log="$XDG_LOGS_HOME/dotfbu/rsync_$timestamp.log"
+
     ## not all of .config has to be uploaded to the public repository;
-    ## only customized files are mentioned in the file process list (fpcl)
+    ## only customized files mentioned in the file process list (fpcl)
     ##
     ## lines starting with:
     ##	'#'	are skipped and not published
-    ##	'c '	are published encrypted
+    ##	'c '	are encrypted, then published
     ##	all other lines are published in plain
 
     case $mode in
@@ -424,18 +427,22 @@ copy()
 	backup)
 
 	    # copy all files (.alll) to destination ($bu_dest)
-	    ## filter rules prevent receiver side files from being deleted
+	    ## filter rules (-f'P) prevent receiver side files from being deleted
+	    ## exclude git config directories (.git/*)
 	    rsync -aAXv \
 		--delete \
 		-f'P *.aes' \
 		-f'P *.hash' \
 		--files-from=$all_files_list \
 		--recursive \
+		--stats \
+		--log-file=$dotfbu_log \
 		$bu_src/ $bu_dest
 
+		#--exclude '.git/*' \
 	    # write .sync_info file to destination
-	    printf "$bu_src\n" > "$bu_dest/.sync_info"
-	    date +%Y%m%d_%H%M%S_%N_%z_%Z_%V >> "$bu_dest/.sync_info"
+	    printf '%s\n' "$bu_src" > "$bu_dest/.sync_info"
+	    printf '%s\n' "$timestamp" >> "$bu_dest/.sync_info"
 	    ;;
 
 	restore)
@@ -454,10 +461,22 @@ modify()
 	backup)
 
 	    # remove all nested git databases
-	    printf "removing nested .git directories ... "
+	    printf "removing nested .git directories ... \n"
 
 	    ## -mindepth 2 protects main dotfile repo .git
-	    find $bu_dest -mindepth 2 -type d -name '*.git' -exec rm -rf {} \; >/dev/null 2>&1
+	    git_dirs="$(find $bu_dest -mindepth 2 -type d -name '*.git')"
+
+	    ## remove git dirs
+	    #find $bu_dest -mindepth 2 -type d -name '*.git' -exec rm -rf {} \; >/dev/null 2>&1
+
+	    ## replace git dir by tar
+	    while read -r line; do
+
+	    	#echo $line
+	    	tar -cvzf "$line".tar.gz "$line"
+	    	rm -rf "$line"
+
+	    done <<< "$git_dirs"
 
 	    printf "complete\n"
 	    ;;
