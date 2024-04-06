@@ -15,24 +15,35 @@
 : '
 upgrader
 arch linux upgrade script
-(c) 2019 - 2024  |  oxo
-###
-##
+copyright (c) 2019 - 2024  |  oxo
 
+GNU GPLv3 GENERAL PUBLIC LICENSE
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+https://www.gnu.org/licenses/gpl-3.0.txt
+
+@oxo@qoto.org
+
+
+# dependencies:
+text_appearance, reply_functions, splash_screen, get_sudo
 
 # requirements:
 ## sudo access, internet connection & boot device at mountpoint
 
+# usage
 
-# dependencies:
-### text_appearance
-### reply_functions
-### splash_screen
-### get_sudo
-### from: https://codeberg.org/oxo/sources
-
-# usage:
-## sh upgrader
+% sh upgrader
 
 # '
 
@@ -42,23 +53,25 @@ arch linux upgrade script
 set -o pipefail
 
 # script specific constants
-
-developer="oxo"
-script_name="upgrader"
-node_name=$(uname -n)
+## script_metadata
+script_name='upgrader'
+developer='oxo'
+license='gplv3'
 initial_release_year=2019
+
+node_name=$(uname -n)
 git_code="$XDG_DATA_HOME/c/git/code"
 source_dir="$git_code/source/function"
 netconn="$git_code/netconn/netconn"
 get_newest_file="$git_code/tool/get_newest_file"
 update_dns_hosts_blocklist="$XDG_CONFIG_HOME/blocklist/update_dns_hosts"
 log_location="$XDG_LOGS_HOME/upgrader/$node_name/package_lists"
-ip_check="9.9.9.9"
-country="Germany,Netherlands,Sweden"  ## ,Germany,Denmark,Netherlands,Iceland,United States
-protocol="https"
-number_of_mirrors="5"
-age="12"  ## 12 hours
-mirror_location="/etc/pacman.d"
+ip_check='9.9.9.9'
+country='Germany,Netherlands,Sweden'  ## ,Germany,Denmark,Netherlands,Iceland,United States
+protocol='https'
+number_of_mirrors='5'
+age='12'  ## 12 hours
+mirror_location='/etc/pacman.d'
 yay_cache_dir="$XDG_CACHE_HOME/yay"
 keep_installed='3'
 keep_uninstalled='1'

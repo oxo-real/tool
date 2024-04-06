@@ -9,11 +9,11 @@
 ├── chua
 ├── COPYING
 ├── cryptr
-├── cryptr2
-├── cryptr_org
 ├── dedup_files
 ├── dedup_lines
 ├── dev
+│   ├── cryptr2
+│   ├── cryptr_add
 │   ├── data_flow_mon
 │   ├── figlet_clock
 │   ├── groff_compile
@@ -71,6 +71,7 @@
 ├── zsh_root_like_user
 └── zzz_deprecated
     ├── backup_dot
+    ├── cryptr_org
     ├── cryptr_v01
     ├── data_to
     ├── dotbu
@@ -85,5 +86,5 @@
     ├── trashOLD
     └── wfa.py
 
-4 directories, 81 files
+4 directories, 82 files
 ```

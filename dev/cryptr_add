@@ -208,6 +208,17 @@ evaluate_multiple_args()
 	    $last_element_index)
 		# last argument -from multiple- (j = n)
 
+		## implicit add
+		check_if_tarx "$arg"
+
+		if [[ -n $is_tarx ]]; then
+
+		    set_oper_add
+		    return
+
+		fi
+
+
 		case $oper in
 
 		    decr)
@@ -348,6 +359,29 @@ set_oper_encr()
 }
 
 
+set_oper_add()
+{
+    ## adding to encrypted container
+    # decrypt argn to tempdest
+    # add arg1 - argn-1 to tempdest/temptar
+    # encrypt tempdest/temptar to argn
+    # remove tempdest/temptar
+    add=1
+    oper='add'
+    opr='d'
+
+    ## subloop
+    ## decrypt tarx file for adding to
+    tarx_2_add_2="${args_arr[-1]}"
+    decrypt "$tarx_2_add_2"
+    #rm $tmp_dir/*.crypt
+    ## to prevent error file exist
+    ##TODO crypt & tar exchanged?
+
+    set_oper_encr 'from_add'
+}
+
+
 autocreate_filename()
 {
     if [[ -d "$dst" ]]; then
@@ -386,6 +420,14 @@ check_if_option()
 	    unset args_arr[0]
 	    ;;
 
+	-a|--add|add)
+	    ## explicit add
+	    set_oper_add
+
+	    ## remove first element from args_arr
+	    unset args_arr[0]
+	    ;;
+
     esac
 }
 
@@ -409,41 +451,56 @@ oper_info()
 
 dst_info()
 {
-    if [[ -d $dst ]] || [[ -f $dst ]]; then
-	## exists
+    case $oper in
+
+	add)
+
+	    dst="$(realpath ${args_arr[-1]})"
+
+	    printf "${st_bold}destination:${st_def}	${fg_amber}$dst${st_def}\n"
+	    ;;
+
+	*)
+
+	    if [[ -d $dst ]] || [[ -f $dst ]]; then
+		## exists
 
 
-	printf "${st_bold}destination:${st_def}	$dst\n"
+		printf "${st_bold}destination:${st_def}	$dst\n"
 
-    else
-	## about to be created
+	    else
+		## about to be created
 
-	printf "${st_bold}destination:${st_def}	${fg_amber}$dst${st_def}\n"
+		printf "${st_bold}destination:${st_def}	${fg_amber}$dst${st_def}\n"
 
-	case $oper in
+		case $oper in
 
-	    decr)
-		## decrypt to directory
+		    decr)
+			## decrypt to directory
 
-		printf "\ncreate? [y/N]   "
+			printf "\ncreate? [y/N]   "
 
-		reply_read_single
+			reply_read_single
 
-		if printf "$reply" | grep -iq "^y"; then
+			if printf "$reply" | grep -iq "^y"; then
 
-		    erase_line 2
-		    mkdir -p "$dst"
+			    erase_line 2
+			    mkdir -p "$dst"
 
-		else
+			else
 
-		    exit 44
+			    exit 44
 
-		fi
-		;;
+			fi
+			;;
 
-	esac
+		esac
 
-    fi
+	    fi
+	    ;;
+
+    esac
+
     echo
 }
 
@@ -493,7 +550,16 @@ tar_append()
     ## temporary (source) tar file
     ## will be encrypted and wrapped in tarx
     [[ -d $tmp_dir ]] || mkdir -p $tmp_dir
-    tar_src=$tmp_dir/$(basename $dst)_src.tar
+
+    if [[ "$from_add" == '1' ]]; then
+
+	tar_src="$tar_2add2"
+
+    else
+
+	tar_src=$tmp_dir/$(basename $dst)_src.tar
+
+    fi
 
     for src_elem in "${src_arr[@]}"; do
 
@@ -784,8 +850,60 @@ crypt_exec()
 tar_extract()
 {
     ## extract tar archive
-    ## extraction to destination directory (dst)
-    tar --extract --file $file_out --directory $dst
+    case $add in
+
+	'')
+	    ## extraction to destination directory (dst)
+	    tar --extract --file $file_out --directory $dst
+	    ;;
+
+	1)
+	    ## extraction to temporary directory (tmp_dir)
+	    tar --extract --file $file_out --directory $tmp_dir
+
+	    ## move updated tmp_dir to src
+	    back_to_source
+	    ;;
+
+    esac
+}
+
+
+back_to_source()
+{
+    ## adding new files to temporary directory
+    for src_elem in "${src_arr[@]}"; do
+
+	## src (.tarx) is last element and included in src_arr, filter it out
+	if [[ "$src_elem" != "$(realpath ${args_arr[-1]})" ]]; then
+
+    	    rsync -aAXv $src_elem $tmp_dir
+
+	fi
+
+    done
+
+    ## remove cryptr system files from temporary directory
+    #rm -rf "${tmp_dir}/$(basename "${src/%.tarx/}")".csf
+    #rm -rf "${tmp_dir}/$(basename "${src/%.tarx/}")".crypt
+    #rm -rf "${tmp_dir}/$(basename "${src/%.tarx/}")".crypt_temp.tar
+    rm -rf "${tmp_dir}"/*.crypt
+    rm -rf "${tmp_dir}"/*.crypt_temp.tar
+    rm -rf "${tmp_dir}"/*.csf
+
+
+    ## encrypt temporary directory back to src
+    ## remove add status
+    add=''
+
+    ## remove crypto source so it can be rewritten
+    rm -rf $src
+
+    ## rewrite crypto source
+    cryptr -e $tmp_dir/* $src
+
+    ## remove temporary directory
+    command rm -rf $tmp_dir
 }
 
 
@@ -1007,9 +1125,41 @@ tar_destroy()
 
 cleanup()
 {
-    tar_destroy
+    case $oper in
+
+	encr)
+	    tar_destroy
+	    ;;
+
+	decr)
+	    case $oper in
+
+		add)
+		    :
+		    ;;
+
+		*)
+		    tar_destroy
+		    ;;
+
+	    esac
+
+	    #[[ "$add" == '1' ]] || tar_destroy
+	    ;;
+
+    esac
 }
 
+
+encrypt()
+{
+    select_cipher
+    cipher_select_file
+    get_pass
+    running_rounds
+    tarx_define
+    tarx_create
+}
 
 check_args()
 {
@@ -1039,14 +1189,15 @@ decrypt()
 }
 
 
-encrypt()
+print_entire_array()
 {
-    select_cipher
-    cipher_select_file
-    get_pass
-    running_rounds
-    tarx_define
-    tarx_create
+    declare -n array_name="$1"
+
+    for k in "${!array_namep[@]}"; do
+
+	printf "%s=%s\n" "$k" "${array_name[$k]}"
+
+    done
 }
 
 
@@ -1060,6 +1211,7 @@ main()
 
     autocreate_filename
     show_info
+    #tarx_check "$dst"
 
     case $oper in
 
