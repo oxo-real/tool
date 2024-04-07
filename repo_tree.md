@@ -12,6 +12,7 @@
 ├── dedup_files
 ├── dedup_lines
 ├── dev
+│   ├── analog_clock
 │   ├── cryptr2
 │   ├── cryptr_add
 │   ├── data_flow_mon
@@ -86,5 +87,5 @@
     ├── trashOLD
     └── wfa.py
 
-4 directories, 82 files
+4 directories, 83 files
 ```
