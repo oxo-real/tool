@@ -435,6 +435,7 @@ copy()
 		-f'P *.hash' \
 		--files-from=$all_files_list \
 		--recursive \
+		--itemize-changes \
 		--stats \
 		--log-file=$dotfbu_log \
 		$bu_src/ $bu_dest
@@ -472,8 +473,8 @@ modify()
 	    ## replace git dir by tar
 	    while read -r line; do
 
-	    	#echo $line
-	    	tar -cvzf "$line".tar.gz "$line"
+	    	printf '%s\n' $line
+	    	tar -czf "$line".tar.gz "$line"
 	    	rm -rf "$line"
 
 	    done <<< "$git_dirs"
