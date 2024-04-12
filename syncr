@@ -87,7 +87,7 @@ source $source_dir/text_appearance
 dest=$1
 shift
 [[ ! -d $dest ]] && \
-    printf "${MAGENTA}destination not found${NOC}\n" && \
+    printf "${fg_magenta}destination not found${st_def}\n" && \
     exit 3
 
 ## added rsync options
@@ -104,7 +104,7 @@ config_fpcl()
 {
     # synchronize .config			(config_fpcl)
 
-    printf "\n${BLUE}%s${NOC}\n" "synching config_fpcl"
+    printf "\n${fg_blue}%s${st_def}\n" "synching config_fpcl"
 
     ## file process list definitions
     fpcl_file="$XDG_CONFIG_HOME/.fpcl"
@@ -142,7 +142,7 @@ logs()
 {
     # synchronize .logs				(logs)
 
-    printf "\n${BLUE}%s${NOC}\n" "synching logs"
+    printf "\n${fg_blue}%s${st_def}\n" "synching logs"
 
     local src="$XDG_LOGS_HOME"
     local dst="$dest"
@@ -160,7 +160,7 @@ local_share_archive()
 {
     # synchronize .local/share/a	(archive)
 
-    printf "\n${BLUE}%s${NOC}\n" "synching archive"
+    printf "\n${fg_blue}%s${st_def}\n" "synching archive"
 
     local src="$XDG_DATA_HOME/a"
     local dst="$dest/.local/share/"
@@ -171,7 +171,7 @@ local_share_archive()
     if [[ $(printf -- "$options" | grep -e '--delete') ]]; then
 
 	delete_option=1
-	printf "${YELLOW}rsync delete option: disabled for archive synchronization${NOC}\n"
+	printf "${fg_yellow}rsync delete option: disabled for archive synchronization${st_def}\n"
 	# remove rsync --delete option
 	options_wo_delete=$(printf -- "$options" | sed 's/--delete//')
 
@@ -188,7 +188,7 @@ local_share_archive()
 
     if [[ $delete_option -eq 1 ]]; then
 
-	printf "${YELLOW}rsync delete option: re-enabled${NOC}\n"
+	printf "${fg_yellow}rsync delete option: re-enabled${st_def}\n"
 
     fi
 }
@@ -198,7 +198,7 @@ local_share_backup()
 {
     # synchronize .local/share/b	(backup)
 
-    printf "\n${BLUE}%s${NOC}\n" "synching backup"
+    printf "\n${fg_blue}%s${st_def}\n" "synching backup"
 
     local src="$XDG_DATA_HOME/b"
     local dst="$dest/.local/share/"
@@ -216,7 +216,7 @@ local_share_current()
 {
     # synchronize .local/share/c	(share_current)
 
-    printf "\n${BLUE}%s${NOC}\n" "synching current"
+    printf "\n${fg_blue}%s${st_def}\n" "synching current"
 
     local src="$XDG_DATA_HOME/c"
     local dst="$dest/.local/share/"
@@ -237,7 +237,7 @@ password_store()
 {
     # synchronize password-store	(password_store)
 
-    printf "\n${BLUE}%s${NOC}\n" "synching password_store"
+    printf "\n${fg_blue}%s${st_def}\n" "synching password_store"
 
     if [[ -d $HOME/dock/vlt/pass ]] && \
 	   mountpoint -q $HOME/dock/vlt/pass; then
@@ -254,7 +254,7 @@ password_store()
 
     else
 
-	printf "${MAGENTA}no password_store found${NOC}\n"
+	printf "${fg_amber}no password_store found${st_def}\n"
 
     fi
 }
@@ -276,13 +276,13 @@ repo()
     case $repo_mounted in
 
 	1)
-	    printf "\n${BLUE}%s${NOC}" "updating offline recovery repo ... "
+	    printf "\n${fg_blue}%s${st_def}" "updating offline recovery repo ... "
 
 	    sh $make_offl_repo >/dev/null 2>&1
 
-	    printf "${BLUE}%s${NOC}\n" "complete"
+	    printf "${fg_blue}%s${st_def}\n" "complete"
 
-	    printf "\n${BLUE}%s${NOC}\n" "synching offline recovery repo"
+	    printf "\n${fg_blue}%s${st_def}\n" "synching offline recovery repo"
 
 	    local src="$repo_mount"
 	    local dst="$dest/repo/"
@@ -296,7 +296,7 @@ repo()
 	    ;;
 
 	*)
-	    printf "\n${YELLOW}no offline repo found${NOC}\n"
+	    printf "\n${fg_yellow}no offline repo found${st_def}\n"
 	    ;;
 
     esac
@@ -312,7 +312,7 @@ code()
     case $code_mounted in
 
 	1)
-	    printf "\n${BLUE}%s${NOC}\n" "synching offline recovery code"
+	    printf "\n${fg_blue}%s${st_def}\n" "synching offline recovery code"
 
 	    local src="$code_mount"
 	    local dst="$dest/code/"
@@ -326,7 +326,7 @@ code()
 	    ;;
 
 	*)
-	    printf "\n${YELLOW}error; no offline repo found${NOC}\n"
+	    printf "\n${fg_yellow}error; no offline repo found${st_def}\n"
 	    ;;
 
     esac
@@ -337,7 +337,7 @@ config_all()
 {
     # synchronize .config			(config_all)
 
-    printf "\n${BLUE}%s${NOC}\n" "synching config_all"
+    printf "\n${fg_blue}%s${st_def}\n" "synching config_all"
 
     local src="$XDG_CONFIG_HOME"
     local dst="$dest/.config/"
@@ -355,7 +355,7 @@ local_share_all()
 {
     # synchronize .local/share		(share_all)
 
-    printf "\n${BLUE}%s${NOC}\n" "synching local_share_all"
+    printf "\n${fg_blue}%s${st_def}\n" "synching local_share_all"
 
     local src="$XDG_DATA_HOME"
     local dst="$dest/.local/share/"
