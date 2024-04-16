@@ -84,10 +84,10 @@ aur_packages_copy()
 
     # remove all previously made symlinks in $p_dst
 
-    ## inv match to exclude offline.db and offline.files
+    ## inv match to exclude files offline.db and offline.files
     old_ln=$(fd . --max-depth 1 --type symlink $p_dst | grep --invert-match "$db_name")
 
-    [[ -n "$line" ]] && \
+    [[ -n  "$old_ln" ]] && \
 
 	while read line; do
 
@@ -148,6 +148,17 @@ copy_pkg_tar()
 
     ## newest package file
     ## create symlink in p_dst (dock/2)
+    newest_pkg_name_ver=$(command ls -t $package --time birth | sort --version-sort --reverse | grep -v PKGBUILD | grep -v debug | head -n 1)
+    newest_pkg_location=$(realpath $newest_pkg_name_ver)
+
+    ## create symlink of the latest package in the aur directory into $p_dst default: REPO (dock/2)
+    ## so that later installation is from a single directory
+    ln -s $newest_pkg_location $newest_pkg_name_ver
+
+    ## copy to $p_dst default: REPO (dock/2)
+    #cp $newest_ptg_filename $p_dst
+
+	    : '
     ## pkg_ff are package file format extensions to consider
     pkg_ff=( .pkg.tar.gz .pkg.tar.zst .zip )
 
@@ -170,6 +181,7 @@ copy_pkg_tar()
 	fi
 
     done
+# '
 }
 
 
