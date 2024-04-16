@@ -62,7 +62,7 @@ repo()
 	    ;;
 
 	*)
-	    printf "\n${YELLOW}$repo_mount${NOC} not mounted\n"
+	    printf "\n${fg_yellow}$repo_mount${st_def} not mounted\n"
 	    exit 22
 	    ;;
 
@@ -100,7 +100,7 @@ code()
     case $code_mounted in
 
     	1)
-	    printf "\n${BLUE}%s${NOC}\n" "synching offline recovery code"
+	    printf "\n${fg_blue}%s${st_def}\n" "synching offline recovery code"
 
 	    for src_key in "${!code_source[@]}"; do
 
@@ -109,7 +109,7 @@ code()
 
 		if [[ ! -d $dst ]]; then
 
-		    printf "\n${YELLOW}$dst${NOC} not a directory\n"
+		    printf "\n${fg_yellow}$dst${st_def} not a directory\n"
 		    exit 31
 
 		fi
@@ -183,7 +183,7 @@ code()
 	    ;;
 
     	*)
-	    printf "\n${YELLOW}$code_mount${NOC} not mounted\n"
+	    printf "\n${fg_yellow}$code_mount${st_def} not mounted\n"
 	    exit 32
 	    ;;
 
@@ -219,7 +219,7 @@ keys()
     case $keys_mounted in
 
     	1)
-	    printf "\n${BLUE}%s${NOC}\n" "synching offline recovery keys"
+	    printf "\n${fg_blue}%s${st_def}\n" "synching offline recovery keys"
 
 	    for src_key in "${!keys_source[@]}"; do
 
@@ -230,7 +230,7 @@ keys()
 
 		if [[ ! -d $dst ]]; then
 
-		    printf "\n${YELLOW}$dst${NOC} not a directory\n"
+		    printf "\n${fg_yellow}$dst${st_def} not a directory\n"
 		    exit 41
 
 		fi
@@ -244,7 +244,7 @@ keys()
 	    ;;
 
     	*)
-	    printf "\n${YELLOW}$keys_mount${NOC} not mounted\n"
+	    printf "\n${fg_yellow}$keys_mount${st_def} not mounted\n"
 	    exit 42
 	    ;;
 
@@ -254,9 +254,9 @@ keys()
 
 umount_rck()
 {
-    [ $repo_mounted == 1 ] && umount $repo_mount
-    [ $code_mounted == 1 ] && umount $code_mount
-    [ $keys_mounted == 1 ] && umount $keys_mount
+    [ $repo_mounted == 1 ] && sudo umount $repo_mount
+    [ $code_mounted == 1 ] && sudo umount $code_mount
+    [ $keys_mounted == 1 ] && sudo umount $keys_mount
 }
 
 

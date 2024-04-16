@@ -78,18 +78,22 @@ aur_packages_copy()
 
     [[ -d $dst_aur ]] || mkdir -p $dst_aur
 
-	rsync -aAXv --delete --info=progress2,stats --progress \
-	      --exclude='.git' "$aur_src/$package/" "$dst_aur"
+    rsync -aAXv --delete --info=progress2,stats --progress \
+	  --exclude='.git' "$aur_src/$package" "$dst_aur"
 
-    ## remove all previously made symlinks in $p_dst
-    ## exclude offline.db and offline.files
+
+    # remove all previously made symlinks in $p_dst
+
+    ## inv match to exclude offline.db and offline.files
     old_ln=$(fd . --max-depth 1 --type symlink $p_dst | grep --invert-match "$db_name")
 
-    while read line; do
+    [[ -n "$line" ]] && \
 
-	unlink $line
+	while read line; do
 
-    done <<< "$old_ln"
+	    unlink $line
+
+	done <<< "$old_ln"
 
     for package in "${aur_pkgs[@]}"; do
 
@@ -144,14 +148,17 @@ copy_pkg_tar()
 
     ## newest package file
     ## create symlink in p_dst (dock/2)
-    ## package file formats
+    ## pkg_ff are package file format extensions to consider
     pkg_ff=( .pkg.tar.gz .pkg.tar.zst .zip )
 
     for format_ext in "${pkg_ff[@]}"; do
 
-	if [[ -f $package/*$format_ext ]]; then
+	fd
 
-	    newest_ptg_loc=$(realpath $(ls $package/*$format_ext | sort --version-sort --reverse | sed -n 1p))
+	if [[ -n $(ls $aur_src/$package/*$format_ext) ]]; then
+	    ## packages from aur_src
+
+	    newest_ptg_loc=$(realpath $(ls $aur_src/$package/*$format_ext | sort --version-sort --reverse | sed -n 1p))
 	    newest_ptg_filename=$(basename $newest_ptg_loc)
 
 	    ## create symlink of the latest package in the aur directory into $p_dst default: REPO (dock/2)
