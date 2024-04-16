@@ -143,6 +143,7 @@ copy_pkg_tar()
 
 
     ## newest package file
+    ## create symlink in p_dst (dock/2)
     ## package file formats
     pkg_ff=( .pkg.tar.gz .pkg.tar.zst .zip )
 

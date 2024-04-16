@@ -440,7 +440,6 @@ copy()
 		--log-file=$dotfbu_log \
 		$bu_src/ $bu_dest
 
-		#--exclude '.git/*' \
 	    # write .sync_info file to destination
 	    printf '%s\n' "$bu_src" > "$bu_dest/.sync_info"
 	    printf '%s\n' "$timestamp" >> "$bu_dest/.sync_info"
