@@ -6,7 +6,7 @@
 ###
 ### copies pacman package cache to destination
 ###
-### (c) 2021 - 2023  |  oxo
+### copyright (c) 2021 - 2024  |  oxo
 ###
 ### usage:
 ### make_offl_repo <destination> [rsync options]
@@ -149,11 +149,11 @@ copy_pkg_tar()
     ## newest package file
     ## create symlink in p_dst (dock/2)
     newest_pkg_name_ver=$(command ls -t $package --time birth | sort --version-sort --reverse | grep -v PKGBUILD | grep -v debug | head -n 1)
-    newest_pkg_location=$(realpath $newest_pkg_name_ver)
+    newest_pkg_location=$(realpath $p_dst/aur/$newest_pkg_name_ver)
 
     ## create symlink of the latest package in the aur directory into $p_dst default: REPO (dock/2)
     ## so that later installation is from a single directory
-    ln -s $newest_pkg_location $newest_pkg_name_ver
+    ln -s $newest_pkg_location $p_dst/$newest_pkg_name_ver
 
     ## copy to $p_dst default: REPO (dock/2)
     #cp $newest_ptg_filename $p_dst

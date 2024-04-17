@@ -45,7 +45,7 @@ repo()
     repo_lbl='REPO'
     repo_dev=$(lsblk -o label,path | grep "$repo_lbl" | awk '{print $2}')
 
-    mountpoint -q $repo_dir >& /dev/null
+    mountpoint -q $repo_mount >& /dev/null
     [[ $? -eq 0 ]] || sudo mount "$repo_dev" "$repo_mount"
 
     ## dock/2 is mountpoint
@@ -79,7 +79,7 @@ code()
     code_lbl='CODE'
     code_dev=$(lsblk -o label,path | grep "$code_lbl" | awk '{print $2}')
 
-    mountpoint -q $code_dir >& /dev/null
+    mountpoint -q $code_mount >& /dev/null
     [[ $? -eq 0 ]] || sudo mount "$code_dev" "$code_mount"
 
     ## dock/3 is mountpoint
@@ -200,7 +200,7 @@ keys()
     keys_lbl='KEYS'
     keys_dev=$(lsblk -o label,path | grep "$keys_lbl" | awk '{print $2}')
 
-    mountpoint -q $code_dir >& /dev/null
+    mountpoint -q $keys_mount >& /dev/null
     [[ $? -eq 0 ]] || sudo mount "$keys_dev" "$keys_mount"
 
     # dock/4 is mountpoint
