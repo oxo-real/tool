@@ -15,35 +15,37 @@
 #
 
 
-db_name='offline'
-
-## package file source
-pmn_src='/var/cache/pacman/pkg'
-
-## aur file source
-aur_src="$HOME/.cache/yay"
-
 ## destination root
 ## i.e. from make_recov
 ## default: REPO (dock/2)
-p_dst=$1
+dst=$1
+aur_dst="$dst/aur"
+
+## create destination location if not exist
+[[ -d $aur_dst ]] || mkdir -p $aur_dst
 
 ## rsync options
 shift
 options=$@
 
 timestamp=$(date +%s)
+db_name='offline'
 
+## pacman file source
+pmn_src='/var/cache/pacman/pkg'
 
-# create destination location if not exist
-[[ -d $p_dst ]] || mkdir -p $p_dst
+## aur file source
+aur_src="$HOME/.cache/yay"
+aur_pkgs=( $(fd . --max-depth 1 --type directory $aur_src) )
+#aur_pkgs=( $(ls $aur_src) )
+#aur_pkgs=( $(yay -Qqm) )
 
 
 rsync_all_packages()
 {
     rsync -aAXv \
 	$options \
-	$pmn_src/ $p_dst
+	$pmn_src/ $dst
 	#--filter='protect aur' \
 	#--delete \
 }
@@ -51,58 +53,51 @@ rsync_all_packages()
 
 build_custom_pkg_db()
 {
-    # build custom package database
+    # build custom pacman package database
     ## .zst and older .xz packages
     ## not .sig files
     pmn_src_sort=$(ls $pmn_src | grep --invert-match '.sig$' | sort --numeric-sort)
+    echo
 
     while IFS= read -r p_curr; do
 
-	printf '\n==> %s\n' "$p_curr"
+	printf '==> adding %s\n' "$p_curr"
 
-	repo-add --new --remove $p_dst/$db_name.db.tar.zst $p_dst/$p_curr
+	repo-add --new --remove $dst/$db_name.db.tar.zst $dst/$p_curr
 
     done <<< "$pmn_src_sort"
 }
 
 
-aur_packages_copy()
+copy_aur_packages()
 {
-    #DEV
-    # compile source code from aur packages
-    ## source for hajime/4apps.sh#aur_install
-
-    aur_pkgs=( $(fd . --max-depth 1 --type directory $aur_src | sed 's/\/$//') )
-    #aur_pkgs=( $(ls $aur_src) )
-    dst_aur="$p_dst/aur"
-
-    [[ -d $dst_aur ]] || mkdir -p $dst_aur
-
+    ## sync aur_src to aur_dst
     rsync -aAXv --delete --info=progress2,stats --progress \
-	  --exclude='.git' "$aur_src/$package" "$dst_aur"
+	  --exclude='.git' "$aur_src/$package" "$aur_dst"
 
+    ## remove all previously made symlinks in $dst
+    ## inv match to exclude link files offline.db and offline.files
+    old_ln_dst=( $(fd . --max-depth 1 --type symlink $dst | grep --invert-match "$db_name") )
 
-    # remove all previously made symlinks in $p_dst
+    echo
+    for link in "${old_ln_dst[@]}"; do
 
-    ## inv match to exclude files offline.db and offline.files
-    old_ln=$(fd . --max-depth 1 --type symlink $p_dst | grep --invert-match "$db_name")
+	printf '==> unlinking %s\n' "$link"
+	unlink "$link"
 
-    [[ -n  "$old_ln" ]] && \
+    done
 
-	while read line; do
-
-	    unlink $line
-
-	done <<< "$old_ln"
-
+    echo
     for package in "${aur_pkgs[@]}"; do
 
-	printf '\n==> %s\n' "$package"
+	printf '==> copying %s\n' "$package"
+	## package i.e.: /home/oxo/.cache/yay/cava
 	#rsync -aAXv --delete --info=progress2,stats --progress \
-	#      --exclude='.git' "$aur_src/$package/" "$dst_aur"
-	#cp -r "$aur_src/$package" "$dst_aur"
+	#      --exclude='.git' "$aur_src/$package/" "$aur_dst"
+	#cp -r "$aur_src/$package" "$aur_dst"
 
-	copy_pkg_tar $package
+	## adding up-to-date links
+	ln_package_dst $package
 
     done
 
@@ -112,76 +107,22 @@ aur_packages_copy()
 }
 
 
-copy_pkg_tar()
+ln_package_dst()
 {
     package=$1
 
-    ### newest .pkg.tar.zst file
-    #if [[ -f $package/*.pkg.tar.zst ]]; then
+    ## remove trailing slash
+    package=$(printf "$package" | sed 's/\/$//')
 
-    #	newest_ptz_loc=$(realpath $(ls $package/*.pkg.tar.zst | sort --version-sort --reverse | sed -n 1p))
-    #	newest_ptz_filename=$(basename $newest_ptz_loc)
-
-    #	## create symlink of the latest package in the aur directory into $p_dst default: REPO (dock/2)
-    #	## so that later installation is from a single directory
-    #	ln -s $newest_ptz_loc $p_dst/$newest_ptz_filename
-
-    #	## copy to $p_dst default: REPO (dock/2)
-    #	#cp $newest_ptz_filename $p_dst
-    #fi
-
-
-    ### newest .pkg.tar.gz file
-    #if [[ -f $package/*.pkg.tar.gz ]]; then
-
-    #	newest_ptg_loc=$(realpath $(ls $package/*.pkg.tar.gz | sort --version-sort --reverse | sed -n 1p))
-    #	newest_ptg_filename=$(basename $newest_ptg_loc)
-
-    #	## create symlink of the latest package in the aur directory into $p_dst default: REPO (dock/2)
-    #	## so that later installation is from a single directory
-    #	ln -s $newest_ptg_loc $p_dst/$newest_ptg_filename
-
-    #	## copy to $p_dst default: REPO (dock/2)
-    #	#cp $newest_ptg_filename $p_dst
-    #fi
-
-
-    ## newest package file
-    ## create symlink in p_dst (dock/2)
+    ## find newest package file
     newest_pkg_name_ver=$(command ls -t $package --time birth | sort --version-sort --reverse | grep -v PKGBUILD | grep -v debug | head -n 1)
-    newest_pkg_location=$(realpath $p_dst/aur/$newest_pkg_name_ver)
+    newest_pkg_location=$(realpath $dst/aur/$newest_pkg_name_ver)
 
-    ## create symlink of the latest package in the aur directory into $p_dst default: REPO (dock/2)
+    ## create symlink in dst (dock/2)
+    ## create symlink of the latest package in the aur directory
+    ## into $dst default: REPO (dock/2)
     ## so that later installation is from a single directory
-    ln -s $newest_pkg_location $p_dst/$newest_pkg_name_ver
-
-    ## copy to $p_dst default: REPO (dock/2)
-    #cp $newest_ptg_filename $p_dst
-
-	    : '
-    ## pkg_ff are package file format extensions to consider
-    pkg_ff=( .pkg.tar.gz .pkg.tar.zst .zip )
-
-    for format_ext in "${pkg_ff[@]}"; do
-
-	fd
-
-	if [[ -n $(ls $aur_src/$package/*$format_ext) ]]; then
-	    ## packages from aur_src
-
-	    newest_ptg_loc=$(realpath $(ls $aur_src/$package/*$format_ext | sort --version-sort --reverse | sed -n 1p))
-	    newest_ptg_filename=$(basename $newest_ptg_loc)
-
-	    ## create symlink of the latest package in the aur directory into $p_dst default: REPO (dock/2)
-	    ## so that later installation is from a single directory
-	    ln -s $newest_ptg_loc $p_dst/$newest_ptg_filename
-
-	    ## copy to $p_dst default: REPO (dock/2)
-	    #cp $newest_ptg_filename $p_dst
-	fi
-
-    done
-# '
+    ln -s $newest_pkg_location $dst/$newest_pkg_name_ver
 }
 
 
@@ -190,20 +131,14 @@ aur_packages_build()
     # compile source code from aur packages
     ## source for hajime/4apps.sh#aur_install
 
-    aur_pkgs=( $(fd . --max-depth 1 --type directory $aur_src) )
-    #aur_pkgs=( $(ls $aur_src) )
-    #aur_pkgs=( $(yay -Qqm) )
-    dst_aur="$p_dst/aur"
-
-    [[ -d $dst_aur ]] || mkdir -p $dst_aur
-
-    cd $dst_aur
+    cd $aur_dst
     yay -Gd $(yay -Qqm)
+    echo
 
     for package in "${aur_pkgs[@]}"; do
 
-	printf '\n==> %s\n' "$package"
-	cd "$dst_aur/$package"
+	printf '==> building %s\n' "$package"
+	cd "$aur_dst/$package"
 	makepkg --syncdeps --needed --clean
 	#makepkg -sc
 
@@ -214,9 +149,9 @@ aur_packages_build()
 main()
 {
     #rsync_all_packages
-    #build_custom_pkg_db
     #aur_packages_build
-    aur_packages_copy
+    copy_aur_packages
+    build_custom_pkg_db
 }
 
 main
