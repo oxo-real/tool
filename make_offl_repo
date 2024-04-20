@@ -48,6 +48,17 @@ rsync_all_packages()
 	$pmn_src/ $dst
 	#--filter='protect aur' \
 	#--delete \
+	#
+	# DEV instead of rsync use pacman
+	#
+	# source is current package repo (v/c/p/p)
+	# cp /etc/pacman.conf $TESTDIR/pacman.conf.bu
+	#
+	# set vcpp as local mirror in /etc/pacman.conf
+	# [offline]
+	# Server = file:///var/cache/pacman/pkg
+	#
+	# pacman -Sw --cachedir $dst --dbpath $dst
 }
 
 
@@ -109,20 +120,21 @@ copy_aur_packages()
 
 ln_package_dst()
 {
-    package=$1
+    package_dir_raw=$1
 
     ## remove trailing slash
-    package=$(printf "$package" | sed 's/\/$//')
+    package_dir=$(printf "$package_dir_raw" | sed 's/\/$//')
+    ## package example: /home/oxo/dock/2/aur/yay
 
-    ## find newest package file
-    newest_pkg_name_ver=$(command ls -t $package --time birth | sort --version-sort --reverse | grep -v PKGBUILD | grep -v debug | head -n 1)
-    newest_pkg_location=$(realpath $dst/aur/$newest_pkg_name_ver)
+    ## find newest package file inside package dir
+    newest_pkg_name_ver=$(command ls -t $package_dir --time birth | sort --version-sort --reverse | grep -v PKGBUILD | grep -v debug | head -n 1)
+    newest_pkg_target_file="$package_dir/$newest_pkg_name_ver"
 
     ## create symlink in dst (dock/2)
     ## create symlink of the latest package in the aur directory
     ## into $dst default: REPO (dock/2)
     ## so that later installation is from a single directory
-    ln -s $newest_pkg_location $dst/$newest_pkg_name_ver
+    ln -s $newest_pkg_target_file $dst/$newest_pkg_name_ver
 }
 
 
@@ -148,7 +160,7 @@ aur_packages_build()
 
 main()
 {
-    #rsync_all_packages
+    rsync_all_packages
     #aur_packages_build
     copy_aur_packages
     build_custom_pkg_db
