@@ -95,7 +95,7 @@ NOTICE to run without pwgn set: export PWGN_OFF=1
 ### add object
 % passr [$object_non_existing]
 or
-#TODO passr create
+% passr create [$object]
 % passr new [$object]
 % passr n [$object]
 
@@ -223,7 +223,7 @@ get_object() {
 
     case $object in
 
-	new | n)
+	create | new | n)
 	    object='new'
 	    pass_new
 	    ;;
@@ -419,9 +419,13 @@ pass_new() {
     ## prevent 'passr non_existent_object' from being emptied out
     case $object in
 
-	new | n)
+	create | new | n)
 	    ## coming from 'passr new'
 	    object=$arg_element
+
+	    ## test for empty object
+	    [[ -z "$object" ]] && printf '%s\n' 'empty object' && exit 26
+
 	    process_object
 	    ;;
 
