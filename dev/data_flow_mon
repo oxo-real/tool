@@ -1,3 +1,4 @@
 #!/bin/bash
+#see netflow
 
 # sum of all /proc/net/dev rx and tx

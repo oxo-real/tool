@@ -1,0 +1,100 @@
+#! /usr/bin/env sh
+
+###             _    __ _
+###  _ __   ___| |_ / _| | _____      __
+### | '_ \ / _ \ __| |_| |/ _ \ \ /\ / /
+### | | | |  __/ |_|  _| | (_) \ V  V /
+### |_| |_|\___|\__|_| |_|\___/ \_/\_/
+###
+###  # # # # # #
+###       #
+###  # # # # # #
+###
+
+: '
+netflow
+monitor data flow in a network
+copyright (c) 2024  |  oxo
+
+GNU GPLv3 GENERAL PUBLIC LICENSE
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+https://www.gnu.org/licenses/gpl-3.0.txt
+
+@oxo@qoto.org
+
+# '
+
+
+set -o errexit
+#set -o nounset
+set -o pipefail
+
+
+# initial definitions
+
+## script
+script_name='netconn'
+developer='oxo'
+license='gplv3'
+initial_release='2024'
+
+interval=1
+
+#--------------------------------
+
+
+# get zero points for rx and tx
+i=$(ip route show | grep default | awk '{print $5}')
+zero_rx=$(grep $i /proc/net/dev | awk '{print $2}')
+zero_tx=$(grep $i /proc/net/dev | awk '{print $10}')
+
+export NF_ZERO_RX="$zero_rx"
+export NF_ZERO_TX="$zero_tx"
+
+
+while true; do
+
+    ## current status data
+    curr_rx=$(grep $i /proc/net/dev | awk '{print $2}')
+    curr_tx=$(grep $i /proc/net/dev | awk '{print $10}')
+    curr_time=$(date +'%s')
+
+    ## cumulative data
+    flow_cum_rx=$(( curr_rx - zero_rx ))
+    flow_cum_tx=$(( curr_tx - zero_tx ))
+
+    ## cycle data
+    flow_cyc_rx=$(( curr_rx - prev_rx ))
+    flow_cyc_tx=$(( curr_tx - prev_tx ))
+
+    ## transfer speeds
+    time_delta=$(( curr_time - prev_time ))
+    speed_rx=$(echo "$flow_cyc_rx/$time_delta" | bc)
+    speed_tx=$(echo "$flow_cyc_tx/$time_delta" | bc)
+
+    ## print line
+    printf 'rx: %s [%s bs-1] tx: %s [%s bs-1]' "$flow_cum_rx" "$speed_rx" "$flow_cum_tx" "$speed_tx"
+
+    ## prepare for deltas in next cycle
+    prev_rx=$curr_rx
+    prev_tx=$curr_tx
+    prev_time=$curr_time
+
+    sleep $interval
+
+    ## erase line
+    printf "\r"
+    tput el
+
+done
