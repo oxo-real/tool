@@ -11,6 +11,9 @@ source $source_dir/get_sudo
 
 level=$1
 
+## number of lines to show on break
+ps_lines=15
+
 # are we running elevated?
 sudo -n printf "" > /dev/null 2>&1
 
@@ -21,7 +24,7 @@ if [[ $level == "--root" ]] && [[ -z "$elevated" ]]; then
 	clear
 	# hide cursor
 	tput civis
-	printf "${RED}killing root processes requires elevated privileges!${NOC}\n"
+	printf "${RED}killing root processes requires elevated privileges!${st_def}\n"
 	sleep 2
 	clear
 	# show cursor
@@ -76,7 +79,7 @@ kill_proc() {
 		done <<< "$pid2kill"
 
 		echo
-		printf "${YELLOW}kill process(es)? (y/N):${NOC} "
+		printf "${fg_yellow}kill process(es)? (y/N):${st_def} "
 
 		reply_single
 
@@ -85,18 +88,25 @@ kill_proc() {
 			printf "\nkilling in progress... "
 			echo $pid2kill | xargs kill -${1:-9}
 			echo
-			printf "${GREEN}complete${NOC}\n"
+			printf "${fg_green}complete${st_def}\n"
 
 		else
 
 			printf "\naborted by user\n"
-			printf "${RED}no processes were killed${NOC}\n"
+			printf "${fg_amber}no processes were killed${st_def}\n"
 			exit
 
 		fi
 
-	fi
+	else
 
+	    ## reset mode automatic margins
+	    tput rmam
+	    printf '%s\n' "$fzf_input" | head -n $ps_lines
+	    ## set mode automatic margins
+	    tput smam
+
+	fi
 }
 
 
