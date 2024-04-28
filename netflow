@@ -49,19 +49,21 @@ developer='oxo'
 license='gplv3'
 initial_release='2024'
 
+source "$XDG_DATA_HOME/c/git/code/source/function/text_appearance"
+
 interval=1
-
-#--------------------------------
-
 
 # get zero points for rx and tx
 i=$(ip route show | grep default | awk '{print $5}')
 zero_rx=$(grep $i /proc/net/dev | awk '{print $2}')
 zero_tx=$(grep $i /proc/net/dev | awk '{print $10}')
 
-export NF_ZERO_RX="$zero_rx"
+NF_ZERO_RX="$zero_rx"
+export NF_ZERO_RX
 export NF_ZERO_TX="$zero_tx"
 
+#TODO rx tx color when (w/o) connection
+#TODO stty hide cursor
 
 while true; do
 
@@ -84,7 +86,11 @@ while true; do
     speed_tx=$(echo "$flow_cyc_tx/$time_delta" | bc)
 
     ## print line
-    printf 'rx: %s [%s bs-1] tx: %s [%s bs-1]' "$flow_cum_rx" "$speed_rx" "$flow_cum_tx" "$speed_tx"
+    ## ' thousands separator is ',' (replaced by tr)
+    ## 8 leading spaces
+    ## 0 decimals
+    printf "${fg_yellow}rx${st_def} %'8.0f [%'8.0f] ${fg_yellow}tx${st_def} %'8.0f [%'8.0f] bytes[s-1]" "$flow_cum_rx" "$speed_rx" "$flow_cum_tx" "$speed_tx" |\
+	tr ',' ' '
 
     ## prepare for deltas in next cycle
     prev_rx=$curr_rx
