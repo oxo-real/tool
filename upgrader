@@ -67,7 +67,7 @@ get_newest_file="$git_code/tool/get_newest_file"
 update_dns_hosts_blocklist="$XDG_CONFIG_HOME/blocklist/update_dns_hosts"
 log_location="$XDG_LOGS_HOME/upgrader/$node_name/package_lists"
 ip_check='9.9.9.9'
-country='Germany,Netherlands,Sweden'  ## ,Germany,Denmark,Netherlands,Iceland,United States
+country='Germany,Netherlands,Sweden'  ## ,Japan,Denmark,Iceland,United States
 protocol='https'
 number_of_mirrors='5'
 age='12'  ## 12 hours
@@ -75,6 +75,7 @@ mirror_location='/etc/pacman.d'
 yay_cache_dir="$XDG_CACHE_HOME/yay"
 keep_installed='3'
 keep_uninstalled='1'
+mpts_rw=(/boot /usr)  ## mountpoint array for remounting rw
 
 
 # general function definitions
@@ -209,41 +210,34 @@ package_lists_before()
 
 
 boot_usr_presence() {
-    #check /boot presence
-    mountpoint -q /boot
-    if [[ $? -ne 0 ]]; then
 
-	printf "${fg_magenta}/boot${st_def} no device at mountpoint\n"
-	printf "exiting\n"
-	exit 175
+    ## check mountpoint presence
+    for mountpoint in "${mpts_rw[@]}"; do
 
-    fi
+	mountpoint -q $mountpoint
 
-    #check /usr presence
-    mountpoint -q /usr
-    if [[ $? -ne 0 ]]; then
+	if [[ $? -ne 0 ]]; then
 
-	printf "${fg_magenta}/usr${st_def} no device at mountpoint\n"
-	printf "exiting\n"
-	exit 183
+	    printf "no device at mountpoint ${fg_magenta}$mountpoint${st_def}\n"
+	    printf "exiting\n"
+	    exit 224
 
-    fi
+	fi
+
+    done
 }
 
 
 boot_usr_rw()
 {
-    # make partitions rw
+    ## make mountpoints rw
+    for mountpoint in "${mpts_rw[@]}"; do
 
-    ## remount /boot rw
-    sudo mount -o remount,rw /boot
-    printf "mount -o remount,rw /boot\n"
+	## remount mountpoint rw
+	sudo mount -o remount,rw $mountpoint
+	printf "mount -o remount,rw $mountpoint\n"
 
-    ## remount /usr rw
-    sudo mount -o remount,rw  /usr
-    printf "mount -o remount,rw /usr\n"
-
-    echo
+    done
 }
 
 

@@ -67,14 +67,15 @@ build_custom_pkg_db()
     # build custom pacman package database
     ## .zst and older .xz packages
     ## not .sig files
-    pmn_src_sort=$(ls $pmn_src | grep --invert-match '.sig$' | sort --numeric-sort)
+    pmn_src_sort=$(ls $dst | grep --invert-match '.sig$' | sort --numeric-sort)
+    #pmn_src_sort=$(ls $pmn_src | grep --invert-match '.sig$' | sort --numeric-sort)
     echo
 
     while IFS= read -r p_curr; do
 
 	printf '==> adding %s\n' "$p_curr"
 
-	repo-add --new --remove $dst/$db_name.db.tar.zst $dst/$p_curr
+	repo-add --new --remove --include-sigs $dst/$db_name.db.tar.zst $dst/$p_curr
 
     done <<< "$pmn_src_sort"
 }

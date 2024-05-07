@@ -6,7 +6,7 @@
 ###
 ### make offline recovery
 ###
-### (c) 2021 - 2023  |  oxo
+### (c) 2021 - 2024  |  oxo
 ###
 ### usage:
 ### make_recov [rsync_options]
@@ -24,16 +24,25 @@ options=$@
 
 
 # initialize
+
+## partition labels
+repo_lbl='REPO'
+code_lbl='CODE'
+keys_lbl='KEYS'
+
+## mountpoints
 repo_mount="$HOME/dock/2"
 code_mount="$HOME/dock/3"
 keys_mount="$HOME/dock/4"
-make_offl_repo="$XDG_DATA_HOME/c/git/code/tool/make_offl_repo"
+
 
 # sourcing
 source_dir="$XDG_DATA_HOME/c/git/code/source/function"
 source $source_dir/get_sudo
 source $source_dir/reply_functions
 source $source_dir/text_appearance
+
+make_offl_repo="$XDG_DATA_HOME/c/git/code/tool/make_offl_repo"
 
 
 repo()
@@ -42,7 +51,6 @@ repo()
 
 
     ## mount repo
-    repo_lbl='REPO'
     repo_dev=$(lsblk -o label,path | grep "$repo_lbl" | awk '{print $2}')
 
     mountpoint -q $repo_mount >& /dev/null
@@ -76,7 +84,6 @@ code()
 
 
     ## mount code
-    code_lbl='CODE'
     code_dev=$(lsblk -o label,path | grep "$code_lbl" | awk '{print $2}')
 
     mountpoint -q $code_mount >& /dev/null
@@ -197,7 +204,6 @@ keys()
 
 
     ## mount keys
-    keys_lbl='KEYS'
     keys_dev=$(lsblk -o label,path | grep "$keys_lbl" | awk '{print $2}')
 
     mountpoint -q $keys_mount >& /dev/null
@@ -254,15 +260,15 @@ keys()
 
 umount_rck()
 {
-    [ $repo_mounted == 1 ] && sudo umount $repo_mount
-    [ $code_mounted == 1 ] && sudo umount $code_mount
-    [ $keys_mounted == 1 ] && sudo umount $keys_mount
+    [[ $repo_mounted == 1 ]] && sudo umount $repo_mount
+    [[ $code_mounted == 1 ]] && sudo umount $code_mount
+    [[ $keys_mounted == 1 ]] && sudo umount $keys_mount
 }
 
 
 make_recovery()
 {
-    repo
+#    repo
     code
     keys
 }
