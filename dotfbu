@@ -270,84 +270,6 @@ validate_destination()
 	    ;;
 
     esac
-
-    # no empty $dest
-    : '
-    if [[ ! -z $(ls -A $dest 2>/dev/null) ]]; then
-
-	printf "${fg_yellow}destination${st_def} directory is ${st_bold}NOT empty${st_def}\n\n"
-
-	printf "destroy $dest? [y/n] "
-	reply_read_single
-	echo
-
-	if printf "$reply" | grep -iq "^n"; then
-
-	    # 'n' entered
-	    echo
-	    printf "starting $mode operation\n${fg_yellow}CAUTION!${st_def} without destroying $dest\n"
-	    sleep 5
-
-	elif printf "$reply" | grep -iq "^y"; then
-
-	    echo
-
-	    printf "destroying $dest\n"
-
-	    ## check if $dest is git repo
-	    cd $dest
-	    #local location_git_status=$(git status >/dev/null 2>&1; echo $?)
-	    local location_git_status=$(git -C $dest rev-parse >/dev/null 2>&1; echo $?)
-	    cd -
-
-	    case $location_git_status in
-
-		0)
-		    # dest is git repo
-		    cd $dest
-
-		    ## delete upstream
-		    # TODO hardcoded, make .git/config the data source
-		    git remote remove origin
-		    #git push origin --delete main
-
-		    cd -
-		    ;;
-
-	    esac
-
-	    ## remove local
-	    rm -rf $dest >/dev/null 2>&1
-
-	    printf "starting $mode operation\n"
-
-	else
-
-	    # no 'n' or 'y' entered
-	    printf "operation ${fg_magenta}aborted${st_def}, exiting, bye!\n"
-	    exit 23
-
-	fi
-
-	#printf "continue? [y/N] "
-	#reply_read_single
-	##reply_single
-	#echo
-
-	#if printf "$reply" | grep -iq "^y"; then
-
-	#    echo
-	#    printf "starting $mode operation\n"
-
-	#else
-
-	#    printf "operation ${fg_magenta}aborted${st_def}, exiting, bye!\n"
-	#    exit 23
-
-	#fi
-
-    fi
-    # '
 }
 
 
@@ -435,14 +357,22 @@ copy()
 		-f'P *.hash' \
 		--files-from=$all_files_list \
 		--recursive \
-		--itemize-changes \
+		--out-format="%t %B %l %U %M %f %o %b" \
 		--stats \
 		--log-file=$dotfbu_log \
 		$bu_src/ $bu_dest
 
-	    # write .sync_info file to destination
-	    printf '%s\n' "$bu_src" > "$bu_dest/.sync_info"
-	    printf '%s\n' "$timestamp" >> "$bu_dest/.sync_info"
+	    ## write .sync_info file to destination
+	    ## only if there are changes (to be committed)
+	    git_status=$(git -C $bu_dest -sb)
+	    gs_nof_lines=$(printf '%s\n' "$git_status" | wc -l)
+
+	    if [[ $gs_nof_lines -gt 1 ]]; then
+
+		printf '%s\n' "$bu_src" > "$bu_dest/.sync_info"
+		printf '%s\n' "$timestamp" >> "$bu_dest/.sync_info"
+
+	    fi
 	    ;;
 
 	restore)
