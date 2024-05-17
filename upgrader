@@ -693,7 +693,7 @@ show_part_sizes()
 {
     echo
     printf "partition sizes\n"
-    lsblk -o fsuse%,name,fsused,size --raw --noheadings | grep '%' | sort -nr
+    lsblk -o name,fsuse%,fsused,size --sort fsuse% | grep '%' | tr -d '|-' | tr -d '\`' | column -t
 }
 
 
