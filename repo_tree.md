@@ -50,6 +50,7 @@
 ├── netistat
 ├── nmconn
 ├── notmuch_search
+├── otp_encr
 ├── passexp
 ├── passr
 ├── proc_kill
@@ -87,5 +88,5 @@
     ├── trashOLD
     └── wfa.py
 
-4 directories, 83 files
+4 directories, 84 files
 ```
