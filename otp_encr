@@ -1,17 +1,99 @@
 #! /usr/bin/env sh
 
+# usage: otp [-f file] [-d] text_string
 
 args="$@"
 
+getargs()
+{
+    while true; do
+
+	case "$1" in
+
+	    d | -d | --decr )
+		action='decrypt'
+		shift
+		;;
+
+	    e| -e | --encr )
+		action='encrypt'
+		shift
+		;;
+
+	    otp | --otp | --otp-file )
+		shift
+		otp_key_file=$1
+		shift
+		;;
+
+	    'in' | --in | --in-file )
+		shift
+		in_file=$1
+		shift
+		;;
+
+	    'out' | --out | --out-file )
+		shift
+		out_file=$1
+		shift
+		;;
+
+	    -- )
+		shift
+		text=$@
+		break
+		;;
+
+	    * )
+		## default action iencrypt
+		[[ -z $action ]] && action='encrypt'
+		text=$@
+		return
+		;;
+
+	esac
+
+    done
+}
+
+
+verify_args()
+{
+    # text
+    if [[ -z $text ]]; then
+
+	text="$in_file"
+
+    fi
+}
+
+
+run_action()
+{
+    case $action in
+
+	encrypt)
+	    encrypt
+	    ;;
+
+	decrypt)
+	    decrypt
+	    ;;
+
+    esac
+}
+
+
 encrypt()
 {
-    plain_text="${args}"
-    len_pt="$(printf '%s' "$plain_text" | wc -c)"
+    plain_text="$text"
+    len_pt=$(printf '%s' "$plain_text" | wc -c)
 
-    otp_key_file='otp_20240608_141218_1717848738'
     otp_key_lines=$(wc -l $otp_key_file | awk '{print $1}')
     session_key='1'
     otp_session_key=$(sed -n ${session_key}p $otp_key_file)
+
+    output_text=''
 
     for (( i=1; i<=$len_pt; i++ )); do
 
@@ -19,64 +101,76 @@ encrypt()
 	key_row=$(( i % otp_key_lines + 1 ))  ## sed can't have 0p
 
 	## designate encrypt col
-	current_plain_char="${plain_text:$i-1:1}"  ## threshold for ${x:0:1} form is 0
+	current_plain_char=${plain_text:$i-1:1}  ## threshold for ${x:0:1} form is 0
 
+	set -f  ## prevent globbing in substring (i.e. when char is '*')
 	key_col_no_corr=$(printf '%s' "$otp_session_key" | cut -d "$current_plain_char" -f 1 | wc -c)
 	key_col=$(( key_col_no_corr - 1 ))
 
 	## get crypt_char (row col from otp_key_file)
 	current_crypt_row=$(sed -n ${key_row}p $otp_key_file)
-	current_crypt_char="${current_crypt_row:key_col:1}"
+	current_crypt_char=${current_crypt_row:key_col:1}
 
-	#printf '%s %s %s\n' "$i" "$current_plain_char" "$current_crypt_char"
-	printf '%s' "$current_crypt_char"
+	output_text="${output_text}$current_crypt_char"
 
     done
-
-    echo
 }
 
 
 decrypt()
 {
-    cipher_text="$args"
-    len_ct="$(printf '%s' "$cipher_text" | wc -c)"
+    cipher_text="$text"
+    len_ct=$(printf '%s' "$cipher_text" | wc -c)
 
-    otp_key_file='otp_20240608_141218_1717848738'
-    otp_key_lines=$(wc -l $otp_key_file | awk '{print $1}')
+    otp_key_lines=$(wc -l "$otp_key_file" | awk '{print $1}')
     session_key='1'
-    otp_session_key=$(sed -n ${session_key}p $otp_key_file)
+    otp_session_key=$(sed -n ${session_key}p "$otp_key_file")
+
+    output_text=''
 
     for (( i=1; i<=$len_ct; i++ )); do
 
 	## designate key row from otp_key_file
 	key_row=$(( i % otp_key_lines + 1 ))  ## sed can't have 0p
 
-	## designate decrypt col
-	current_cipher_char="${cipher_text:$i-1:1}"  ## threshold for ${x:0:1} form is 0
-
+	## designate decrypt row
+	current_cipher_char=${cipher_text:$i-1:1}  ## threshold for ${x:0:1} form is 0
 	current_decrypt_row=$(sed -n ${key_row}p $otp_key_file)
-	current_decrypt_char="${current_decrypt_row:current_cipher_char:1}"
 
+	## designate decrypt col
+	set -f  ## prevent globbing in substring (i.e. when char is '*')
 	key_col_no_corr=$(printf '%s' "$current_decrypt_row" | cut -d "$current_cipher_char" -f 1 | wc -c)
 	key_col=$(( key_col_no_corr - 1 ))
 
 	## get plain char (row col from otp_key_file)
-	current_plain_char="${otp_session_key:key_col:1}"
+	current_plain_char=${otp_session_key:key_col:1}
 
-	#printf '%s %s %s\n' "$i" "$current_plain_char" "$current_crypt_char"
-	printf '%s' "$current_plain_char"
+	output_text="${output_text}$current_plain_char"
 
     done
+}
 
-    echo
+
+output_to()
+{
+    if [[ -n $out_file ]]; then
+
+	printf '%s' "$output_text" > $out_file
+
+    else
+
+	printf '%s' "$output_text"
+
+    fi
 }
 
 
 main()
 {
-    encrypt
-    decrypt
+    getargs $args
+    verify_args
+    run_action
+    output_to
 }
 
 main
