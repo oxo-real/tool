@@ -14,9 +14,9 @@
 ###
 
 : '
-passr
-fzf cli wrapper for pass
-copyright (c) 2020 - 2024  |  oxo
+otp95
+one time pad encryptor
+copyright (c) 2024  |  oxo
 
 GNU GPLv3 GENERAL PUBLIC LICENSE
 This program is free software: you can redistribute it and/or modify
@@ -37,21 +37,28 @@ https://www.gnu.org/licenses/gpl-3.0.txt
 
 
 # dependencies
-  pass, gpg, cryptsetup, fzf
-  pwgn, vault, source functions
+  keyfile
 
 # usage
-  passr [action|object] [element|object|other_arguments]
+  ## encryption
+  % otp95 [e] [key $keyfile] [out $outfile] [in $infile] [plain text]
 
-# examples
+  ## decryption
+  % otp95 d [key $keyfile] [out $outfile] [in $infile] ['cipher_text']
 
-NOTICE to run without pwgn set: export PWGN_OFF=1
+  WARNING keyfiles must be kept secret at all times!!
 
-# otp95
-# one time pad encryptor
-# for use with the 95 printable ascii characters
-# generate otp key from $ASCII
-# usage: otp [-f file] [-d] text_string
+  SPECIFIC NOTICE
+  	   for decryption subcommand d is compulsory
+  	   commandline text input (not recommended) must be quoted
+
+  GENERAL NOTICE
+  	  commandline text input, although possible, is not recommended
+	  commandline text input must always be the last argument
+ 	  keyfile needs a minimum of 2 lines (at least 96 recommended)
+	  keyfile lines should be randomly ordered
+	  keyfile can be generated from $ASCII
+
 
 # '
 
@@ -59,6 +66,7 @@ NOTICE to run without pwgn set: export PWGN_OFF=1
 #set -o errexit
 #set -o nounset
 set -o pipefail
+
 
 # initial definitions
 
@@ -72,8 +80,9 @@ initial_release='2024'
 ### static variables
 #### these do not change throughout script session
 args="$@"
+key_dir="$XDG_DATA_HOME/c/keys/otp95"
 ### dynamic variables
-#none
+timestamp="$(date +'%Y%m%d_%H%M%S_%s')"
 
 
 getargs()
@@ -131,7 +140,7 @@ getargs()
 
 verify_args()
 {
-    # text
+    ## text
     if [[ -z $text ]]; then
 
 	text="$in_file"
@@ -143,12 +152,46 @@ verify_args()
 	fi
 
     fi
+
+    ## keyfile
+    if [[ -z $key_file ]]; then
+
+	## use default keyfile (not recommended)
+	#: '
+	key_file="$key_dir/keyfile"
+	# '
+
+	## generate keyfile (recommended)
+	: '
+	key_file="${key_dir}/${timestamp}_keyfile"
+
+	for i in {1..95}; do
+
+	    printf '%s' "$ASCII" | fold -w 1 | shuf | tr -d '\n'
+	    echo
+
+	done > $key_file
+
+	## keyfile file mode: user rw
+	chmod 600 $key_file
+
+	printf 'NOTICE generated keyfile: %s\n' "$key_file"
+	printf 'WARNING keyfiles must be kept secret at all times!!\n'
+	# '
+
+    fi
 }
+
 
 
 read_text()
 {
-    read -p '? ' -r text
+    text=$(cat)
+
+    ## replace '\n' with <EOL>
+    text=${text//$'\n'/<EOL>}
+
+    echo
 }
 
 
@@ -237,13 +280,18 @@ decrypt()
 
 output_to()
 {
+    ## replace <EOL> with '\n'
+    output_text=${output_text//<EOL>/'\n'}
+
     if [[ -n $out_file ]]; then
 
-	printf '%s' "$output_text" > $out_file
+	## no '%s\n' here
+	printf "$output_text" > $out_file
 
     else
 
-	printf '%s' "$output_text"
+	printf "$output_text"
+	echo
 
     fi
 }
