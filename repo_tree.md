@@ -50,7 +50,7 @@
 ├── netistat
 ├── nmconn
 ├── notmuch_search
-├── otp_encr
+├── otp95
 ├── passexp
 ├── passr
 ├── proc_kill

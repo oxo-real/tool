@@ -1,0 +1,260 @@
+#! /usr/bin/env sh
+
+###
+###        _         ___  ____
+###   ___ | |_ _ __ / _ \| ___|
+###  / _ \| __| '_ \ (_) |___ \
+### | (_) | |_| |_) \__, |___) |
+###  \___/ \__| .__/  /_/|____/
+###           |_|
+###
+###  # # # # # #
+###       #
+###  # # # # # #
+###
+
+: '
+passr
+fzf cli wrapper for pass
+copyright (c) 2020 - 2024  |  oxo
+
+GNU GPLv3 GENERAL PUBLIC LICENSE
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+https://www.gnu.org/licenses/gpl-3.0.txt
+
+@oxo@qoto.org
+
+
+# dependencies
+  pass, gpg, cryptsetup, fzf
+  pwgn, vault, source functions
+
+# usage
+  passr [action|object] [element|object|other_arguments]
+
+# examples
+
+NOTICE to run without pwgn set: export PWGN_OFF=1
+
+# otp95
+# one time pad encryptor
+# for use with the 95 printable ascii characters
+# generate otp key from $ASCII
+# usage: otp [-f file] [-d] text_string
+
+# '
+
+
+#set -o errexit
+#set -o nounset
+set -o pipefail
+
+# initial definitions
+
+## script
+script_name='otp95'
+developer='oxo'
+license='gplv3'
+initial_release='2024'
+
+## arguments
+### static variables
+#### these do not change throughout script session
+args="$@"
+### dynamic variables
+#none
+
+
+getargs()
+{
+    while true; do
+
+	case "$1" in
+
+	    d | -d | --decr )
+		action='decrypt'
+		shift
+		;;
+
+	    e | -e | --encr )
+		action='encrypt'
+		shift
+		;;
+
+	    key | --key | --key-file )
+		shift
+		key_file=$1
+		shift
+		;;
+
+	    'in' | --in | --in-file )
+		shift
+		in_file=$1
+		shift
+		;;
+
+	    'out' | --out | --out-file )
+		shift
+		out_file=$1
+		shift
+		;;
+
+	    -- )
+		shift
+		[[ -z $in_file ]] && text=$@
+		break
+		;;
+
+	    * )
+		## default action is encrypt to stdout
+		[[ -z $action ]] && action='encrypt'
+		text=$@
+		return
+		;;
+
+	esac
+
+    done
+}
+
+
+verify_args()
+{
+    # text
+    if [[ -z $text ]]; then
+
+	text="$in_file"
+
+	if [[ -z $in_file ]]; then
+
+	    read_text
+
+	fi
+
+    fi
+}
+
+
+read_text()
+{
+    read -p '? ' -r text
+}
+
+
+run_action()
+{
+    case $action in
+
+	encrypt)
+	    encrypt
+	    ;;
+
+	decrypt)
+	    decrypt
+	    ;;
+
+    esac
+}
+
+
+encrypt()
+{
+    plain_text="$text"
+    len_pt=$(printf '%s' "$plain_text" | wc -c)
+
+    key_lines=$(wc -l $key_file | awk '{print $1}')
+    session_key='1'
+    otp_session_key=$(sed -n ${session_key}p $key_file)
+
+    output_text=''
+
+    for (( i=1; i<=$len_pt; i++ )); do
+
+	## designate key row from key_file
+	key_row=$(( i % key_lines + 1 ))  ## sed can't have 0p
+
+	## designate encrypt col
+	current_plain_char=${plain_text:$i-1:1}  ## threshold for ${x:0:1} form is 0
+
+	set -f  ## prevent globbing in substring (i.e. when char is '*')
+	key_col_no_corr=$(printf '%s' "$otp_session_key" | cut -d "$current_plain_char" -f 1 | wc -c)
+	key_col=$(( key_col_no_corr - 1 ))
+
+	## get crypt_char (row col from key_file)
+	current_crypt_row=$(sed -n ${key_row}p $key_file)
+	current_crypt_char=${current_crypt_row:key_col:1}
+
+	output_text="${output_text}$current_crypt_char"
+
+    done
+}
+
+
+decrypt()
+{
+    cipher_text="$text"
+    len_ct=$(printf '%s' "$cipher_text" | wc -c)
+
+    key_lines=$(wc -l "$key_file" | awk '{print $1}')
+    session_key='1'
+    otp_session_key=$(sed -n ${session_key}p "$key_file")
+
+    output_text=''
+
+    for (( i=1; i<=$len_ct; i++ )); do
+
+	## designate key row from key_file
+	key_row=$(( i % key_lines + 1 ))  ## sed can't have 0p
+
+	## designate decrypt row
+	current_cipher_char=${cipher_text:$i-1:1}  ## threshold for ${x:0:1} form is 0
+	current_decrypt_row=$(sed -n ${key_row}p $key_file)
+
+	## designate decrypt col
+	set -f  ## prevent globbing in substring (i.e. when char is '*')
+	key_col_no_corr=$(printf '%s' "$current_decrypt_row" | cut -d "$current_cipher_char" -f 1 | wc -c)
+	key_col=$(( key_col_no_corr - 1 ))
+
+	## get plain char (row col from key_file)
+	current_plain_char=${otp_session_key:key_col:1}
+
+	output_text="${output_text}$current_plain_char"
+
+    done
+}
+
+
+output_to()
+{
+    if [[ -n $out_file ]]; then
+
+	printf '%s' "$output_text" > $out_file
+
+    else
+
+	printf '%s' "$output_text"
+
+    fi
+}
+
+
+main()
+{
+    getargs $args
+    verify_args
+    run_action
+    output_to
+}
+
+main
