@@ -229,15 +229,17 @@ transcode()
     case $action in
 
 	encrypt )
-	    ## > transcode (encr): input = plain_text > code_text > cipher_text = output
-	    ## >                           ^^^^^^^^^^^^^^^^^^^^^^
-	    code_text=$(printf '%s' "$plain_text" | base64)
+	    ## > encode (encr): input = plain_text > code_text > cipher_text = output
+	    ## >                        ^^^^^^^^^^^^^^^^^^^^^^
+
+	    code_text=$(base64 --wrap 0 <<< "$plain_text")
 	    ;;
 
 	decrypt )
-	    ## > transcode (decr): input = cipher_text > code_text > plain_text = output
-	    ## >                                         ^^^^^^^^^^^^^^^^^^^^^^
-	    plain_text=$(printf '%s' "$code_text" | base64 --decode)
+	    ## > decode (decr): input = cipher_text > code_text > plain_text = output
+	    ## >                                      ^^^^^^^^^^^^^^^^^^^^^^
+
+	    plain_text=$(base64 --decode <<< "$code_text")
 	    ;;
 
     esac
@@ -284,7 +286,8 @@ encrypt()
 	## the key_line_num we need from the key_file is
 	## the current character number in the code_text
 	## modulo key_lines plus one
-	key_line_num=$(( i % key_lines + 1 ))  ## sed can't have 0p
+	key_line_num_no_corr=$(( i % key_lines ))  ## sed can't have 0p
+	key_line_num=$(( key_line_num_no_corr + 1 ))
 
 	## get code char (line,col from code_text)
 	current_code_char=${code_text:$i-1:1}  ## threshold for ${x:0:1} form is 0
@@ -328,7 +331,8 @@ decrypt()
 	## the key_line_num we need from the key_file is
 	## the current character number in the code_text
 	## modulo key_lines plus one
-	key_line_num=$(( i % key_lines + 1 ))  ## sed can't have 0p
+	key_line_num_no_corr=$(( i % key_lines ))  ## sed can't have 0p
+	key_line_num=$(( key_line_num_no_corr + 1 ))
 
 	## get decrypt_char (line,col from cipher_text)
 	current_cipher_char=${cipher_text:$i-1:1}  ## threshold for ${x:0:1} form is 0
