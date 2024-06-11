@@ -15,7 +15,7 @@
 
 : '
 otp95
-one time pad encryptor
+one time pad cryptor
 copyright (c) 2024  |  oxo
 
 GNU GPLv3 GENERAL PUBLIC LICENSE
@@ -59,11 +59,17 @@ https://www.gnu.org/licenses/gpl-3.0.txt
 	  keyfile lines should be randomly ordered
 	  keyfile can be generated from $ASCII
 
+  TECHNICAL NOTICE
+	  ## > encryption: input = plain_text > code_text > cipher_text = output
+	  ## > decryption: input = cipher_text > code_text > plain_text = output
 
 # '
 
+# cat /home/oxo/c/git/code/tool/otp95 | grep -A 1 --line-number '(encr)'
+# cat /home/oxo/c/git/code/tool/otp95 | grep -A 1 --line-number '(decr)'
 
-#set -o errexit
+
+set -o errexit
 #set -o nounset
 set -o pipefail
 
@@ -121,14 +127,16 @@ getargs()
 
 	    -- )
 		shift
-		[[ -z $in_file ]] && text=$@
+		[[ -z $in_file ]] && input=$@
+		#[[ -z $in_file ]] && text=$@
 		break
 		;;
 
 	    * )
 		## default action is encrypt to stdout
 		[[ -z $action ]] && action='encrypt'
-		text=$@
+		input=$@
+		#text=$@
 		return
 		;;
 
@@ -140,18 +148,21 @@ getargs()
 
 verify_args()
 {
-    ## text
-    if [[ -z $text ]]; then
+    ## input
+    if [[ -z $input ]]; then
 
-	text="$in_file"
+	if [[ -n $in_file ]]; then
 
-	if [[ -z $in_file ]]; then
+	    input=$(cat $in_file)
 
-	    read_text
+	else
+
+	    read_input
 
 	fi
 
     fi
+
 
     ## keyfile
     if [[ -z $key_file ]]; then
@@ -184,14 +195,52 @@ verify_args()
 
 
 
-read_text()
+read_input()
 {
-    text=$(cat)
-
-    ## replace '\n' with <EOL>
-    text=${text//$'\n'/<EOL>}
-
+    ## user can input multiple lines and ends with an end of transmission
+    ## EOT (U+0004, ^D or C-d)
+    input=$(cat)
     echo
+}
+
+
+input()
+{
+    case $action in
+
+	encrypt )
+	    ## > input (encr): input = plain_text > code_text > cipher_text = output
+	    ## >               ^^^^^^^^^^^^^^^^^^
+	    plain_text="$input"
+	    ;;
+
+	decrypt )
+	    ## > input (decr): input = cipher_text > code_text > plain_text = output
+	    ## >               ^^^^^^^^^^^^^^^^^^^
+	    cipher_text="$input"
+	    ;;
+
+    esac
+}
+
+
+transcode()
+{
+    case $action in
+
+	encrypt )
+	    ## > transcode (encr): input = plain_text > code_text > cipher_text = output
+	    ## >                           ^^^^^^^^^^^^^^^^^^^^^^
+	    code_text=$(printf '%s' "$plain_text" | base64)
+	    ;;
+
+	decrypt )
+	    ## > transcode (decr): input = cipher_text > code_text > plain_text = output
+	    ## >                                         ^^^^^^^^^^^^^^^^^^^^^^
+	    plain_text=$(printf '%s' "$code_text" | base64 --decode)
+	    ;;
+
+    esac
 }
 
 
@@ -200,11 +249,13 @@ run_action()
     case $action in
 
 	encrypt)
+	    transcode
 	    encrypt
 	    ;;
 
 	decrypt)
 	    decrypt
+	    transcode
 	    ;;
 
     esac
@@ -213,32 +264,43 @@ run_action()
 
 encrypt()
 {
-    plain_text="$text"
-    len_pt=$(printf '%s' "$plain_text" | wc -c)
+    ## > encrypt (encr): input = plain_text > code_text > cipher_text = output
+    ## >                                      ^^^^^^^^^^^^^^^^^^^^^^^
 
     key_lines=$(wc -l $key_file | awk '{print $1}')
     session_key='1'
     otp_session_key=$(sed -n ${session_key}p $key_file)
 
-    output_text=''
+    ## code text is the encoded plain text
+    len_code_text=$(printf '%s' "$code_text" | wc -c)
 
-    for (( i=1; i<=$len_pt; i++ )); do
+    cipher_text=''
 
-	## designate key row from key_file
-	key_row=$(( i % key_lines + 1 ))  ## sed can't have 0p
+    for (( i=1; i<=$len_code_text; i++ )); do
 
-	## designate encrypt col
-	current_plain_char=${plain_text:$i-1:1}  ## threshold for ${x:0:1} form is 0
+	## designate key line number from key_file;
+	## to encrypt every next character in the code_text
+	## we use a next line from the keyfile
+	## the key_line_num we need from the key_file is
+	## the current character number in the code_text
+	## modulo key_lines plus one
+	key_line_num=$(( i % key_lines + 1 ))  ## sed can't have 0p
 
-	set -f  ## prevent globbing in substring (i.e. when char is '*')
-	key_col_no_corr=$(printf '%s' "$otp_session_key" | cut -d "$current_plain_char" -f 1 | wc -c)
+	## get code char (line,col from code_text)
+	current_code_char=${code_text:$i-1:1}  ## threshold for ${x:0:1} form is 0
+
+	#set -f  ## prevent globbing in substring (i.e. when char is '*')
+	key_col_no_corr=$(printf '%s' "$otp_session_key" | cut -d "$current_code_char" -f 1 | wc -c)
 	key_col=$(( key_col_no_corr - 1 ))
 
-	## get crypt_char (row col from key_file)
-	current_crypt_row=$(sed -n ${key_row}p $key_file)
-	current_crypt_char=${current_crypt_row:key_col:1}
+	## current crypt line is key_line_num in key_file
+	current_crypt_line=$(sed -n ${key_line_num}p $key_file)
 
-	output_text="${output_text}$current_crypt_char"
+	## get crypt_char (line,col from key_file)
+	current_crypt_char=${current_crypt_line:key_col:1}
+
+	## write current crypt char to cipher_text
+	cipher_text="${cipher_text}$current_crypt_char"
 
     done
 }
@@ -246,51 +308,81 @@ encrypt()
 
 decrypt()
 {
-    cipher_text="$text"
-    len_ct=$(printf '%s' "$cipher_text" | wc -c)
+    ## > decrypt (decr): input = cipher_text > code_text > plain_text = output
+    ## >                         ^^^^^^^^^^^^^^^^^^^^^^^
 
-    key_lines=$(wc -l "$key_file" | awk '{print $1}')
+    key_lines=$(wc -l "$key_file" | awk '{print $1}')  ## TODO DEV !! "$key_file" not in encrypt
     session_key='1'
-    otp_session_key=$(sed -n ${session_key}p "$key_file")
+    otp_session_key=$(sed -n ${session_key}p "$key_file")  ## TODO DEV !! "$key_file" not in encrypt
 
-    output_text=''
+    ## cipher_text is the encrypted code text
+    len_ciph_text=$(printf '%s' "$cipher_text" | wc -c)
 
-    for (( i=1; i<=$len_ct; i++ )); do
+    code_text=''
 
-	## designate key row from key_file
-	key_row=$(( i % key_lines + 1 ))  ## sed can't have 0p
+    for (( i=1; i<=$len_ciph_text; i++ )); do
 
-	## designate decrypt row
+	## designate key line number from key_file;
+	## to decrypt every next character in the ciph_text
+	## we use a next line from the keyfile
+	## the key_line_num we need from the key_file is
+	## the current character number in the code_text
+	## modulo key_lines plus one
+	key_line_num=$(( i % key_lines + 1 ))  ## sed can't have 0p
+
+	## get decrypt_char (line,col from cipher_text)
 	current_cipher_char=${cipher_text:$i-1:1}  ## threshold for ${x:0:1} form is 0
-	current_decrypt_row=$(sed -n ${key_row}p $key_file)
 
-	## designate decrypt col
-	set -f  ## prevent globbing in substring (i.e. when char is '*')
-	key_col_no_corr=$(printf '%s' "$current_decrypt_row" | cut -d "$current_cipher_char" -f 1 | wc -c)
+	## current decrypt line is key_line_num in key_file
+	current_decrypt_line=$(sed -n ${key_line_num}p $key_file)
+
+	## ? TODO DEV designate col in decrypt line
+	#set -f  ## prevent globbing in substring (i.e. when char is '*')
+	key_col_no_corr=$(printf '%s' "$current_decrypt_line" | cut -d "$current_cipher_char" -f 1 | wc -c)
 	key_col=$(( key_col_no_corr - 1 ))
 
-	## get plain char (row col from key_file)
-	current_plain_char=${otp_session_key:key_col:1}
+	## get current code char from key_col in session_key
+	current_code_char=${otp_session_key:key_col:1}
+	# TODO key_col=$(printf '%s' "$current_decrypt_line" | cut -d "$current_cipher_char" -f 1 | wc -c)
+	# TODO current_code_char=${otp_session_key:key_col-1:1}
 
-	output_text="${output_text}$current_plain_char"
+	## write current code char to code_text
+	code_text="${code_text}$current_code_char"
 
     done
 }
 
 
-output_to()
+output()
 {
-    ## replace <EOL> with '\n'
-    output_text=${output_text//<EOL>/'\n'}
+    ## replace EOL <<< with '\n'
+    #output_text=${output_text//<<</'\n'}
 
     if [[ -n $out_file ]]; then
 
 	## no '%s\n' here
-	printf "$output_text" > $out_file
+	printf '%s' "$output" > $out_file
 
     else
 
-	printf "$output_text"
+	case $action in
+
+	    encrypt )
+		## > output (encr): input = plain_text > code_text > cipher_text = output
+		## >                                                 ^^^^^^^^^^^^^^^^^^^^
+		output="$cipher_text"
+		printf '%s' "$output"
+		;;
+
+	    decrypt )
+		## > output (decr): input = cipher_text > code_text > plain_text = output
+		## >                                                  ^^^^^^^^^^^^^^^^^^^
+		output="$plain_text"
+		printf '%s' "$output"
+		;;
+
+	esac
+
 	echo
 
     fi
@@ -301,8 +393,9 @@ main()
 {
     getargs $args
     verify_args
+    input
     run_action
-    output_to
+    output
 }
 
 main
