@@ -15,7 +15,7 @@
 
 : '
 otp95
-one time pad cryptor
+one-time pad cryptor
 copyright (c) 2024  |  oxo
 
 GNU GPLv3 GENERAL PUBLIC LICENSE
@@ -86,6 +86,7 @@ initial_release='2024'
 ### static variables
 #### these do not change throughout script session
 args="$@"
+session_key_line='1'  ## line that contains session key
 key_dir="$XDG_DATA_HOME/c/keys/otp95"
 ### dynamic variables
 timestamp="$(date +'%Y%m%d_%H%M%S_%s')"
@@ -113,6 +114,18 @@ getargs()
 		shift
 		;;
 
+	    keyo | -o | --key-options )
+		shift
+		key_options=$1
+		shift
+		;;
+
+	    keyl | --key-line | --session-key )
+		shift
+		session_key_line=$1
+		shift
+		;;
+
 	    'in' | --in | --in-file )
 		shift
 		in_file=$1
@@ -128,15 +141,11 @@ getargs()
 	    -- )
 		shift
 		[[ -z $in_file ]] && input=$@
-		#[[ -z $in_file ]] && text=$@
-		break
+		return
 		;;
 
 	    * )
-		## default action is encrypt to stdout
-		[[ -z $action ]] && action='encrypt'
 		input=$@
-		#text=$@
 		return
 		;;
 
@@ -148,6 +157,10 @@ getargs()
 
 verify_args()
 {
+    ## action
+    ## default action is encrypt to stdout
+    [[ -z $action ]] && action='encrypt'
+
     ## input
     if [[ -z $input ]]; then
 
@@ -191,6 +204,111 @@ verify_args()
 	# '
 
     fi
+    key_file_mem=$(cat "$key_file")
+
+
+    ## make session key line modulo key_lines
+    ## total number of lines in key_file
+    key_lines=$(wc -l "$key_file" | awk '{print $1}')
+    session_key_line=$(( session_key_line % key_lines ))
+
+
+    ## keyfile modification options
+    ## multiple options come in a comma separated list
+    ## CAUTION DEV options are still in beta
+    for option in ${key_options//,/ }; do
+
+	case $option in
+
+	    tac )
+		## get session key data
+		session_key=$(sed -n ${session_key_line}p "$key_file")
+
+		## encode session key data
+		session_key_enc=$(base64 --wrap 0 <<< "$session_key")
+
+		## reverse all lines in keyfile (tac)
+		#key_file_tac=$(tac $key_file)
+		#####key_file=${key_dir}/${timestamp}_keyfile
+
+		### the \n in printf is important for proper tac function
+		#####printf '%s\n' "$key_file_tac" > $key_file
+
+		### encode tac reversed keyfile
+		### CAUTION DEV no --wrap0 here!
+		#key_file_tac_enc=$(base64 <<< "$key_file_tac")
+
+		### remove session key from tac enc
+		#key_file_rem_enc=$(grep -v "$session_key_enc" <<< $key_file_tac_enc)
+
+		### insert session key enc on session_key_line in key_file_rem_enc
+		#key_file_rep_enc=$(sed "${session_key_line}i $session_key_enc" <<< $key_file_rem_enc)
+
+		### decode repaired keyfile
+		#key_file_rep=$(base64 --wrap 0 --decode <<< "$key_file_rep_enc")
+
+		### delete last line from key_file_rep
+		#key_file_rep_del=$(sed '$d' <<< $key_file_rep)
+
+		key_file_mem=$(tac "$key_file" \
+				   | base64 \
+				   | grep -v "$session_key_enc" \
+				   | sed "${session_key_line}i $session_key_enc" \
+				   | base64 --wrap 0 --decode \
+				   | sed '$d'\
+			    )
+
+		### write repaired keyfile to file
+		#printf '%s\n' "$key_file_mem" > $key_file
+		;;
+
+	    rev )
+		## get session key data
+		session_key=$(sed -n ${session_key_line}p "$key_file")
+		rev_session_key=$(printf '%s' "$session_key" | rev)
+
+		## encode session key data
+		session_key_enc=$(base64 --wrap 0 <<< "$session_key")
+		rev_session_key_enc=$(base64 --wrap 0 <<< "$rev_session_key")
+
+		## reverse all lines in keyfile characterwise (rev)
+		key_file_rev=$(rev $key_file)
+		####key_file=${key_dir}/${timestamp}_keyfile
+		## the \n in printf is important for proper tac function
+		####printf '%s\n' "$key_file_rev" > $key_file
+
+		## encode reversed keyfile
+		key_file_rev_enc=$(base64 --wrap 0 <<< "$key_file_rev")
+
+		## replace encoded rev session key with encoded session key
+		key_file_rep_enc=${key_file_rev_enc//$rev_session_key_enc/$session_key_enc}
+
+		## decode repaired reversed keyfile
+		key_file_rep=$(base64 --decode --wrap 0 <<< "$key_file_rep_enc")
+
+		## write repaired reversed keyfile to file
+		printf '%s\n' "$key_file_rep" > $key_file
+		;;
+
+	    sort )
+		printf 'DEV226 sort %s\n' "$key_file"
+		ls -ila $key_file
+		sort "$key_file" > "${key_dir}/${timestamp}_keyfile"
+		key_file="${key_dir}/${timestamp}_keyfile"
+		printf 'DEV229 sort %s\n' "$key_file"
+		ls -ila $key_file
+		;;
+
+	    * )
+		## integer as option will be read as a session key
+		## if skey is given the option value will be added
+		[[ $option =~ ^[0-9]+$ ]] && \
+		    session_key_line=$(( session_key_line + option ))
+		;;
+
+	esac
+
+    done
 }
 
 
@@ -269,9 +387,9 @@ encrypt()
     ## > encrypt (encr): input = plain_text > code_text > cipher_text = output
     ## >                                      ^^^^^^^^^^^^^^^^^^^^^^^
 
-    key_lines=$(wc -l $key_file | awk '{print $1}')
-    session_key='1'
-    otp_session_key=$(sed -n ${session_key}p $key_file)
+    ## get the otp session key
+    session_key=$(sed -n ${session_key_line}p <<< $key_file_mem)
+    ####session_key=$(sed -n ${session_key_line}p "$key_file")
 
     ## code text is the encoded plain text
     len_code_text=$(printf '%s' "$code_text" | wc -c)
@@ -292,12 +410,13 @@ encrypt()
 	## get code char (line,col from code_text)
 	current_code_char=${code_text:$i-1:1}  ## threshold for ${x:0:1} form is 0
 
-	#set -f  ## prevent globbing in substring (i.e. when char is '*')
-	key_col_no_corr=$(printf '%s' "$otp_session_key" | cut -d "$current_code_char" -f 1 | wc -c)
+	## get key column
+	key_col_no_corr=$(printf '%s' "$session_key" | cut -d "$current_code_char" -f 1 | wc -c)
 	key_col=$(( key_col_no_corr - 1 ))
 
 	## current crypt line is key_line_num in key_file
-	current_crypt_line=$(sed -n ${key_line_num}p $key_file)
+	current_crypt_line=$(sed -n ${key_line_num}p <<< "$key_file_mem")
+	#current_crypt_line=$(sed -n ${key_line_num}p $key_file)
 
 	## get crypt_char (line,col from key_file)
 	current_crypt_char=${current_crypt_line:key_col:1}
@@ -314,9 +433,9 @@ decrypt()
     ## > decrypt (decr): input = cipher_text > code_text > plain_text = output
     ## >                         ^^^^^^^^^^^^^^^^^^^^^^^
 
-    key_lines=$(wc -l "$key_file" | awk '{print $1}')  ## TODO DEV !! "$key_file" not in encrypt
-    session_key='1'
-    otp_session_key=$(sed -n ${session_key}p "$key_file")  ## TODO DEV !! "$key_file" not in encrypt
+    ## get the otp session key
+    session_key=$(sed -n ${session_key_line}p <<< $key_file_mem)
+    ####session_key=$(sed -n ${session_key_line}p "$key_file")
 
     ## cipher_text is the encrypted code text
     len_ciph_text=$(printf '%s' "$cipher_text" | wc -c)
@@ -340,15 +459,12 @@ decrypt()
 	## current decrypt line is key_line_num in key_file
 	current_decrypt_line=$(sed -n ${key_line_num}p $key_file)
 
-	## ? TODO DEV designate col in decrypt line
-	#set -f  ## prevent globbing in substring (i.e. when char is '*')
+	## get key column
 	key_col_no_corr=$(printf '%s' "$current_decrypt_line" | cut -d "$current_cipher_char" -f 1 | wc -c)
 	key_col=$(( key_col_no_corr - 1 ))
 
 	## get current code char from key_col in session_key
-	current_code_char=${otp_session_key:key_col:1}
-	# TODO key_col=$(printf '%s' "$current_decrypt_line" | cut -d "$current_cipher_char" -f 1 | wc -c)
-	# TODO current_code_char=${otp_session_key:key_col-1:1}
+	current_code_char=${session_key:key_col:1}
 
 	## write current code char to code_text
 	code_text="${code_text}$current_code_char"
@@ -359,35 +475,35 @@ decrypt()
 
 output()
 {
-    ## replace EOL <<< with '\n'
-    #output_text=${output_text//<<</'\n'}
+    ## > output (encr): input = plain_text > code_text > cipher_text = output
+    ## >                                                 ^^^^^^^^^^^^^^^^^^^^
 
-    if [[ -n $out_file ]]; then
+    ## > output (decr): input = cipher_text > code_text > plain_text = output
+    ## >                                                  ^^^^^^^^^^^^^^^^^^^
 
-	## no '%s\n' here
-	printf '%s' "$output" > $out_file
+    [[ $action == 'encrypt' ]] && output="$cipher_text"
+    [[ $action == 'decrypt' ]] && output="$plain_text"
 
-    else
+    if [[ -n "$out_file" ]]; then
 
-	case $action in
+	case $out_file in
 
-	    encrypt )
-		## > output (encr): input = plain_text > code_text > cipher_text = output
-		## >                                                 ^^^^^^^^^^^^^^^^^^^^
-		output="$cipher_text"
-		printf '%s' "$output"
+	    copy | wl-copy | clipboard )
+		## output to clipboard
+		printf '%s\n' "$output" | wl-copy
 		;;
 
-	    decrypt )
-		## > output (decr): input = cipher_text > code_text > plain_text = output
-		## >                                                  ^^^^^^^^^^^^^^^^^^^
-		output="$plain_text"
-		printf '%s' "$output"
+	    * )
+		## output to file
+		printf '%s\n' "$output" > "$out_file"
 		;;
 
 	esac
 
-	echo
+    else
+
+	## output to stdout
+	printf '%s\n' "$output"
 
     fi
 }
