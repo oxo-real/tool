@@ -402,7 +402,6 @@ encrypt()
 
     ## get the otp session key
     session_key=$(sed -n ${session_key_line}p <<< $key_file_mem)
-    ####session_key=$(sed -n ${session_key_line}p "$key_file")
 
     ## code text is the encoded plain text
     len_code_text=$(printf '%s' "$code_text" | wc -c)
@@ -423,15 +422,14 @@ encrypt()
 
 	## get code char (line,col from code_text)
 	## CAUTION i=0 designates the first character in code_text
-	current_code_char=${code_text:$i:1}
-	####current_code_char=${code_text:$i-1:1}
+	current_code_char=${code_text:$i-1:1}
 
 	## get key column
 	## by cutting the session_key in two parts using
 	## the current code character and then
 	## count the amount of characters in the first part
 	key_col=$(printf '%s' "$session_key" | cut -d "$current_code_char" -f 1 | wc -c)
-	####key_col=$(( key_col - 1 ))
+	key_col=$(( key_col - 1 ))
 
 	## current crypt line is key_line_num in key_file
 	## CAUTION key_line_num=0 designates the first line
@@ -455,7 +453,6 @@ decrypt()
 
     ## get the otp session key
     session_key=$(sed -n ${session_key_line}p <<< $key_file_mem)
-    ####session_key=$(sed -n ${session_key_line}p "$key_file")
 
     ## cipher_text is the encrypted code text
     len_ciph_text=$(printf '%s' "$cipher_text" | wc -c)
@@ -476,21 +473,19 @@ decrypt()
 
 	## get decrypt_char (line,col from cipher_text)
 	## CAUTION i=0 designates the first character in code_text
-	current_cipher_char=${cipher_text:$i:1}
-	####current_cipher_char=${cipher_text:$i-1:1}
+	current_cipher_char=${cipher_text:$i-1:1}
 
 	## current decrypt line is key_line_num in key_file
 	## CAUTION key_line_num=0 designates the first line
 	## sed 0p gives error, therefore key_line_num minimum is 1
 	current_decrypt_line=$(sed -n ${key_line_num}p <<< "$key_file_mem")
-	#current_decrypt_line=$(sed -n ${key_line_num}p $key_file_mem)
 
 	## get key column
 	## by cutting the current_decrypt_line in two parts using
 	## the current cipher character and then
-	## count the amount of character in the first part
+	## count the amount of characters in the first part
 	key_col=$(printf '%s' "$current_decrypt_line" | cut -d "$current_cipher_char" -f 1 | wc -c)
-	####key_col=$(( key_col - 1 ))
+	key_col=$(( key_col - 1 ))
 
 	## get current code char from key_col in session_key
 	current_code_char=${session_key:key_col:1}

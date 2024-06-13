@@ -51,7 +51,6 @@
 ├── nmconn
 ├── notmuch_search
 ├── otp95
-├── otp95_v01
 ├── passexp
 ├── passr
 ├── proc_kill
@@ -89,5 +88,5 @@
     ├── trashOLD
     └── wfa.py
 
-4 directories, 85 files
+4 directories, 84 files
 ```
