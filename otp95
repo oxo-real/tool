@@ -86,7 +86,7 @@ initial_release='2024'
 ### static variables
 #### these do not change throughout script session
 args="$@"
-session_key_line='1'  ## line that contains session key
+session_key_line='1'  ## default value of the session key line
 key_dir="$XDG_DATA_HOME/c/keys/otp95"
 ### dynamic variables
 timestamp="$(date +'%Y%m%d_%H%M%S_%s')"
@@ -120,24 +120,24 @@ getargs()
 		shift
 		;;
 
-	    tac )
+	    'tac' )
 		key_options+='tac,'
 		shift
 		;;
 
-	    rev )
+	    'rev' )
 		key_options+='rev,'
 		shift
 		;;
 
-	    sort )
+	    'sort' )
 		key_options+='sort,'
 		shift
 		;;
 
 	    keyl | --key-line | --session-key )
 		shift
-		session_key_line=$1
+		keyl=$1
 		shift
 		;;
 
@@ -160,7 +160,7 @@ getargs()
 		;;
 
 	    * )
-		input=$@
+		input_star=$@
 		return
 		;;
 
@@ -177,6 +177,23 @@ verify_args()
     [[ -z $action ]] && action='encrypt'
 
     ## input
+    if [[ -n $input_star ]]; then
+
+	    ## number: catch a number as session key line
+	    ## NOTICE use -- if a number has to be encrypted
+	    if [[ $input_star =~ ^[0-9]+$ ]]; then
+
+		key_options+=$input_star
+
+	    else
+
+		input=$input_star
+
+	    fi
+
+    fi
+
+
     if [[ -z $input ]]; then
 
 	if [[ -n $in_file ]]; then
@@ -190,6 +207,10 @@ verify_args()
 	fi
 
     fi
+
+
+    ## session key line
+    [[ -n $keyl ]] && run_skl
 
 
     ## keyfile
@@ -220,12 +241,7 @@ verify_args()
 
     fi
     key_file_mem=$(cat "$key_file")
-
-
-    ## make session key line modulo key_lines
-    ## total number of lines in key_file
-    key_lines=$(wc -l "$key_file" | awk '{print $1}')
-    session_key_line=$(( session_key_line % key_lines ))
+    key_lines=$(wc -l "$key_file" | awk '{print $1}')  ## total number of lines in key_file
 
 
     ## keyfile modification options
@@ -236,65 +252,78 @@ verify_args()
 	case $option in
 
 	    tac )
-		## get session key data
-		#session_key=$(sed -n ${session_key_line}p "$key_file")
-
-		## encode session key data
-		#session_key_enc=$(base64 --wrap 0 <<< "$session_key")
-
-		## reverse all lines in keyfile (tac)
-		## encode tac reversed keyfile
-		## CAUTION DEV no --wrap0 here!
-		## grep remove session key from tac enc
-		## sed insert session key enc on session_key_line in key_file_rem_enc
-		## base64 decode repaired keyfile
-		## sed delete last line from key_file_rep
-		key_file_mem=$(tac <<< $key_file_mem)
-				   #		   | base64 \
-				   #		   | grep -v "$session_key_enc" \
-				   #		   | sed "${session_key_line}i $session_key_enc" \
-				   #		   | base64 --wrap 0 --decode \
-				   #		   | sed '$d'\
-			       #	    )
-
-		### write repaired keyfile to file
-		#printf '%s\n' "$key_file_mem" > $key_file
+		run_tac
 		;;
 
 	    rev )
-		## get session key data
-		session_key=$(sed -n ${session_key_line}p "$key_file")
-		rev_session_key=$(rev <<< "$session_key")
-
-		### encode session key data
-		session_key_enc=$(base64 --wrap 0 <<< "$session_key")
-		rev_session_key_enc=$(base64 --wrap 0 <<< "$rev_session_key")
-
-		### reverse all lines in keyfile characterwise (rev)
-		key_file_mem=$(rev <<< $key_file_mem | base64 --wrap 0)
-		### replace encoded rev session key with encoded session key
-		key_file_mem=${key_file_mem//"$rev_session_key_enc"/"$session_key_enc"}
-
-		### decode repaired reversed keyfile
-		key_file_mem=$(base64 --decode <<< "$key_file_mem")
+		run_rev
 		;;
 
 	    sort )
-		key_file_mem=$(sort $key_file_mem)
+		run_sort
 		;;
 
 	    * )
 		## integer as option will be read as a session key
-		## if skey is given the option value will be added
-		[[ $option =~ ^[0-9]+$ ]] && \
-		    session_key_line=$(( session_key_line + option % key_lines ))
+		## if also keyl is given this option value will be added
+		if [[ $option =~ ^[0-9]+$ ]]; then
+
+		    keyl_option=$option
+
+		fi
+
+		run_skl
 		;;
 
 	esac
 
     done
+
+
 }
 
+
+run_tac()
+{
+    key_file_mem=$(tac <<< $key_file_mem)
+}
+
+
+run_rev()
+{
+    ## get session key data
+    run_skl
+    session_key=$(sed -n ${session_key_line}p "$key_file")
+    rev_session_key=$(rev <<< "$session_key")
+
+    ### encode session key data
+    session_key_enc=$(base64 --wrap 0 <<< "$session_key")
+    rev_session_key_enc=$(base64 --wrap 0 <<< "$rev_session_key")
+
+    ### reverse all lines in keyfile characterwise (rev)
+    key_file_mem=$(rev <<< $key_file_mem | base64 --wrap 0)
+    ### replace encoded rev session key with encoded session key
+    key_file_mem=${key_file_mem//"$rev_session_key_enc"/"$session_key_enc"}
+
+    ### decode repaired reversed keyfile
+    key_file_mem=$(base64 --decode <<< "$key_file_mem")
+}
+
+
+run_sort()
+{
+    key_file_mem=$(sort $key_file_mem)
+}
+
+
+run_skl()
+{
+    ## summize keyl and keyl_option
+    ## make session key line modulo key_lines
+    [[ -z keyl ]] && keyl_num=0
+    [[ -z keyl_option ]] && keyl_option_num=0
+    session_key_line=$(( keyl_num + keyl_option_num % key_lines ))
+}
 
 
 read_input()
