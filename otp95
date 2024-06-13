@@ -120,6 +120,21 @@ getargs()
 		shift
 		;;
 
+	    tac )
+		key_options+='tac,'
+		shift
+		;;
+
+	    rev )
+		key_options+='rev,'
+		shift
+		;;
+
+	    sort )
+		key_options+='sort,'
+		shift
+		;;
+
 	    keyl | --key-line | --session-key )
 		shift
 		session_key_line=$1
@@ -222,41 +237,25 @@ verify_args()
 
 	    tac )
 		## get session key data
-		session_key=$(sed -n ${session_key_line}p "$key_file")
+		#session_key=$(sed -n ${session_key_line}p "$key_file")
 
 		## encode session key data
-		session_key_enc=$(base64 --wrap 0 <<< "$session_key")
+		#session_key_enc=$(base64 --wrap 0 <<< "$session_key")
 
 		## reverse all lines in keyfile (tac)
-		#key_file_tac=$(tac $key_file)
-		#####key_file=${key_dir}/${timestamp}_keyfile
-
-		### the \n in printf is important for proper tac function
-		#####printf '%s\n' "$key_file_tac" > $key_file
-
-		### encode tac reversed keyfile
-		### CAUTION DEV no --wrap0 here!
-		#key_file_tac_enc=$(base64 <<< "$key_file_tac")
-
-		### remove session key from tac enc
-		#key_file_rem_enc=$(grep -v "$session_key_enc" <<< $key_file_tac_enc)
-
-		### insert session key enc on session_key_line in key_file_rem_enc
-		#key_file_rep_enc=$(sed "${session_key_line}i $session_key_enc" <<< $key_file_rem_enc)
-
-		### decode repaired keyfile
-		#key_file_rep=$(base64 --wrap 0 --decode <<< "$key_file_rep_enc")
-
-		### delete last line from key_file_rep
-		#key_file_rep_del=$(sed '$d' <<< $key_file_rep)
-
-		key_file_mem=$(tac "$key_file" \
-				   | base64 \
-				   | grep -v "$session_key_enc" \
-				   | sed "${session_key_line}i $session_key_enc" \
-				   | base64 --wrap 0 --decode \
-				   | sed '$d'\
-			    )
+		## encode tac reversed keyfile
+		## CAUTION DEV no --wrap0 here!
+		## grep remove session key from tac enc
+		## sed insert session key enc on session_key_line in key_file_rem_enc
+		## base64 decode repaired keyfile
+		## sed delete last line from key_file_rep
+		key_file_mem=$(tac <<< $key_file_mem)
+				   #		   | base64 \
+				   #		   | grep -v "$session_key_enc" \
+				   #		   | sed "${session_key_line}i $session_key_enc" \
+				   #		   | base64 --wrap 0 --decode \
+				   #		   | sed '$d'\
+			       #	    )
 
 		### write repaired keyfile to file
 		#printf '%s\n' "$key_file_mem" > $key_file
@@ -265,45 +264,30 @@ verify_args()
 	    rev )
 		## get session key data
 		session_key=$(sed -n ${session_key_line}p "$key_file")
-		rev_session_key=$(printf '%s' "$session_key" | rev)
+		rev_session_key=$(rev <<< "$session_key")
 
-		## encode session key data
+		### encode session key data
 		session_key_enc=$(base64 --wrap 0 <<< "$session_key")
 		rev_session_key_enc=$(base64 --wrap 0 <<< "$rev_session_key")
 
-		## reverse all lines in keyfile characterwise (rev)
-		key_file_rev=$(rev $key_file)
-		####key_file=${key_dir}/${timestamp}_keyfile
-		## the \n in printf is important for proper tac function
-		####printf '%s\n' "$key_file_rev" > $key_file
+		### reverse all lines in keyfile characterwise (rev)
+		key_file_mem=$(rev <<< $key_file_mem | base64 --wrap 0)
+		### replace encoded rev session key with encoded session key
+		key_file_mem=${key_file_mem//"$rev_session_key_enc"/"$session_key_enc"}
 
-		## encode reversed keyfile
-		key_file_rev_enc=$(base64 --wrap 0 <<< "$key_file_rev")
-
-		## replace encoded rev session key with encoded session key
-		key_file_rep_enc=${key_file_rev_enc//$rev_session_key_enc/$session_key_enc}
-
-		## decode repaired reversed keyfile
-		key_file_rep=$(base64 --decode --wrap 0 <<< "$key_file_rep_enc")
-
-		## write repaired reversed keyfile to file
-		printf '%s\n' "$key_file_rep" > $key_file
+		### decode repaired reversed keyfile
+		key_file_mem=$(base64 --decode <<< "$key_file_mem")
 		;;
 
 	    sort )
-		printf 'DEV226 sort %s\n' "$key_file"
-		ls -ila $key_file
-		sort "$key_file" > "${key_dir}/${timestamp}_keyfile"
-		key_file="${key_dir}/${timestamp}_keyfile"
-		printf 'DEV229 sort %s\n' "$key_file"
-		ls -ila $key_file
+		key_file_mem=$(sort $key_file_mem)
 		;;
 
 	    * )
 		## integer as option will be read as a session key
 		## if skey is given the option value will be added
 		[[ $option =~ ^[0-9]+$ ]] && \
-		    session_key_line=$(( session_key_line + option ))
+		    session_key_line=$(( session_key_line + option % key_lines ))
 		;;
 
 	esac
@@ -404,15 +388,18 @@ encrypt()
 	## the key_line_num we need from the key_file is
 	## the current character number in the code_text
 	## modulo key_lines plus one
-	key_line_num_no_corr=$(( i % key_lines ))  ## sed can't have 0p
-	key_line_num=$(( key_line_num_no_corr + 1 ))
+	key_line_num=$(( i % key_lines ))
+	## key_line_num can be 0 and sed can't have 0p
+	key_line_num=$(( key_line_num + 1 ))
 
 	## get code char (line,col from code_text)
-	current_code_char=${code_text:$i-1:1}  ## threshold for ${x:0:1} form is 0
+	## $i-1: threshold for ${x:0:1} form is 0
+	current_code_char=${code_text:$i-1:1}
 
 	## get key column
-	key_col_no_corr=$(printf '%s' "$session_key" | cut -d "$current_code_char" -f 1 | wc -c)
-	key_col=$(( key_col_no_corr - 1 ))
+	key_col=$(printf '%s' "$session_key" | cut -d "$current_code_char" -f 1 | wc -c)
+	##
+	key_col=$(( key_col - 1 ))
 
 	## current crypt line is key_line_num in key_file
 	current_crypt_line=$(sed -n ${key_line_num}p <<< "$key_file_mem")
@@ -450,11 +437,13 @@ decrypt()
 	## the key_line_num we need from the key_file is
 	## the current character number in the code_text
 	## modulo key_lines plus one
-	key_line_num_no_corr=$(( i % key_lines ))  ## sed can't have 0p
-	key_line_num=$(( key_line_num_no_corr + 1 ))
+	key_line_num=$(( i % key_lines ))
+	## key_line_num can be 0 and sed can't have 0p
+	key_line_num=$(( key_line_num + 1 ))
 
 	## get decrypt_char (line,col from cipher_text)
-	current_cipher_char=${cipher_text:$i-1:1}  ## threshold for ${x:0:1} form is 0
+	## $i-1: threshold for ${x:0:1} form is 0
+	current_cipher_char=${cipher_text:$i-1:1}
 
 	## current decrypt line is key_line_num in key_file
 	current_decrypt_line=$(sed -n ${key_line_num}p $key_file)
