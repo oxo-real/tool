@@ -66,7 +66,16 @@ https://www.gnu.org/licenses/gpl-3.0.txt
 	  ## > decryption: input = cipher_text > code_text > plain_text = output
 
 # example
-  keyfile: for i in {1..95}; do; printf '%s' "$ASCII" | fold -w 1 | shuf | tr -d '\n'; echo; done; echo
+  ascii=$(for (( i=32; i<127; i++ )) do; printf "\\$(printf %03o "$i")"; done)
+  key_file=$(for i in {1..95}; do; printf '%s' "$ASCII" | fold -w 1 | shuf | tr -d '\n'; echo; done; echo)
+
+  ## encryption
+  % otp text
+  % otp in plain_file key key_file out crypt_file
+
+  ## decryption
+  % otp d text
+  % otp d in crypt_file key key_file out plain_file
 
 # '
 
