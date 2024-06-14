@@ -46,7 +46,9 @@ https://www.gnu.org/licenses/gpl-3.0.txt
   ## decryption
   % otp95 d [key $keyfile] [out $outfile] [in $infile] ['cipher_text']
 
-  WARNING keyfiles must be kept secret at all times!!
+  SECURITY NOTICE
+  	   keyfiles must be kept secret at all times!!
+	   base64 is keyfiles minimum character space
 
   SPECIFIC NOTICE
   	   for decryption subcommand d is compulsory
@@ -62,6 +64,9 @@ https://www.gnu.org/licenses/gpl-3.0.txt
   TECHNICAL NOTICE
 	  ## > encryption: input = plain_text > code_text > cipher_text = output
 	  ## > decryption: input = cipher_text > code_text > plain_text = output
+
+# example
+  keyfile: for i in {1..95}; do; printf '%s' "$ASCII" | fold -w 1 | shuf | tr -d '\n'; echo; done; echo
 
 # '
 
@@ -239,6 +244,7 @@ process_args()
 	# '
 
     fi
+
     key_file_mem=$(cat "$key_file")
     key_lines=$(wc -l "$key_file" | awk '{print $1}')  ## total number of lines in key_file
 
@@ -249,15 +255,14 @@ process_args()
 run_options()
 {
     ## keyfile modification options
-    ## multiple options come in a comma separated list
-    ## CAUTION DEV options are still in beta
+    ## multiple option arguments in a comma separated list
 
     ## two for loops for the key_options, because we first need
     ## to have the right session key before running other options
     for option in ${key_options//,/ }; do
 
-	## integer as option will be read as a session key
-	## if also keyl is given this option value will be added
+	## integer as argument will be read as a session key option
+	## if also keyl is given the values will be added
 	if [[ $option =~ ^[0-9]+$ ]]; then
 
 	    keyl_option=$option
@@ -315,20 +320,21 @@ run_tac()
 run_rev()
 {
     ## get session key data
-    session_key=$(sed -n ${session_key_line}p "$key_file")
-    rev_session_key=$(rev <<< "$session_key")
+    session_key=$(sed -n ${session_key_line}p <<< $key_file_mem)
+    #session_key=$(sed -n ${session_key_line}p "$key_file")
+    rev_session_key=$(rev <<< $session_key)
 
     ### encode session key data
-    session_key_enc=$(base64 --wrap 0 <<< "$session_key")
-    rev_session_key_enc=$(base64 --wrap 0 <<< "$rev_session_key")
+    session_key_enc=$(base64 --wrap 0 <<< $session_key)
+    rev_session_key_enc=$(base64 --wrap 0 <<< $rev_session_key)
 
     ### reverse all lines in keyfile characterwise (rev)
     key_file_mem=$(rev <<< $key_file_mem | base64 --wrap 0)
     ### replace encoded rev session key with encoded session key
-    key_file_mem=${key_file_mem//"$rev_session_key_enc"/"$session_key_enc"}
+    key_file_mem=${key_file_mem//$rev_session_key_enc/$session_key_enc}
 
     ### decode repaired reversed keyfile
-    key_file_mem=$(base64 --decode <<< "$key_file_mem")
+    key_file_mem=$(base64 --decode <<< $key_file_mem)
 }
 
 
