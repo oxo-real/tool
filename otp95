@@ -130,8 +130,8 @@ getargs()
 		shift
 		;;
 
-	    'sort' )
-		key_options+='sort,'
+	    'srt' | 'sort' )
+		key_options+='srt,'
 		shift
 		;;
 
@@ -170,7 +170,7 @@ getargs()
 }
 
 
-verify_args()
+process_args()
 {
     ## action
     ## default action is encrypt to stdout
@@ -193,7 +193,6 @@ verify_args()
 
     fi
 
-
     if [[ -z $input ]]; then
 
 	if [[ -n $in_file ]]; then
@@ -209,7 +208,7 @@ verify_args()
     fi
 
 
-    ## session key line
+    ## session key has changed
     [[ -n $keyl ]] && run_skl
 
 
@@ -243,10 +242,32 @@ verify_args()
     key_file_mem=$(cat "$key_file")
     key_lines=$(wc -l "$key_file" | awk '{print $1}')  ## total number of lines in key_file
 
+    run_options
+}
 
+
+run_options()
+{
     ## keyfile modification options
     ## multiple options come in a comma separated list
     ## CAUTION DEV options are still in beta
+
+    ## two for loops for the key_options, because we first need
+    ## to have the right session key before running other options
+    for option in ${key_options//,/ }; do
+
+	## integer as option will be read as a session key
+	## if also keyl is given this option value will be added
+	if [[ $option =~ ^[0-9]+$ ]]; then
+
+	    keyl_option=$option
+	    ## session key has changed
+	    run_skl
+
+	fi
+
+    done
+
     for option in ${key_options//,/ }; do
 
 	case $option in
@@ -259,27 +280,29 @@ verify_args()
 		run_rev
 		;;
 
-	    sort )
-		run_sort
-		;;
-
-	    * )
-		## integer as option will be read as a session key
-		## if also keyl is given this option value will be added
-		if [[ $option =~ ^[0-9]+$ ]]; then
-
-		    keyl_option=$option
-
-		fi
-
-		run_skl
+	    srt )
+		run_srt
 		;;
 
 	esac
 
     done
+}
 
 
+run_skl()
+{
+    ## get session key line
+    ## summize keyl and keyl_option
+    ## make session key line modulo key_lines
+    if [[ -n $keyl || -n $keyl_option ]]; then
+
+	## key_line_num can be 0 and sed can't have 0p
+	## correct with +1 for sed later on
+	## see encrypt() for more info
+	session_key_line=$(( ( keyl + keyl_option % key_lines ) +1 ))
+
+    fi
 }
 
 
@@ -292,7 +315,6 @@ run_tac()
 run_rev()
 {
     ## get session key data
-    run_skl
     session_key=$(sed -n ${session_key_line}p "$key_file")
     rev_session_key=$(rev <<< "$session_key")
 
@@ -310,19 +332,9 @@ run_rev()
 }
 
 
-run_sort()
+run_srt()
 {
     key_file_mem=$(sort $key_file_mem)
-}
-
-
-run_skl()
-{
-    ## summize keyl and keyl_option
-    ## make session key line modulo key_lines
-    [[ -z keyl ]] && keyl_num=0
-    [[ -z keyl_option ]] && keyl_option_num=0
-    session_key_line=$(( keyl_num + keyl_option_num % key_lines ))
 }
 
 
@@ -536,7 +548,7 @@ output()
 main()
 {
     getargs $args
-    verify_args
+    process_args
     input
     run_action
     output
