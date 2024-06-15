@@ -36,6 +36,8 @@ https://www.gnu.org/licenses/gpl-3.0.txt
 
 
 # dependencies
+vault
+
 
 # usage
 
@@ -43,7 +45,7 @@ NOTICE: check switches in main
 
 syncr <destination> [rsync_options]
 
-examples:
+# examples
 
 ## backup
 syncr $HOME/dock/transfer/tux/home/oxo \
@@ -376,7 +378,7 @@ report_log_file()
     log_file=$(get_newest_file $log_dir)
     log_file_name=$(basename $log_file)
     ## TODO DEV get luksuuid more robustly (!dock/transfer)
-    luks_uuid=$(command lsblk -parf | grep 'dock/transfer' | awk '{print $5}')
+    luks_uuid=$(vault status $HOME/dock/transfer | grep 'luks_uuid' | awk '{print $2}')
     log_file_name_with_luks_uuid="${luks_uuid}_$log_file_name"
     mv $log_file $log_dir/$log_file_name_with_luks_uuid
     printf '\nlogged to: %s\n' "$log_dir/$log_file_name_with_luks_uuid"
