@@ -496,7 +496,7 @@ exit_main()
 main()
 {
     sourcing
-    get_sudo
+    #get_sudo
     input_type
     input_validation
     hash_1_input
