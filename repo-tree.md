@@ -2,15 +2,15 @@
 /home/oxo/.local/share/c/git/code/tool
 ├── askpass
 ├── atis
-├── base-conversion
+├── base_conversion
 ├── c2b
-├── calc-sums
+├── calc_sums
 ├── chln
 ├── chua
 ├── COPYING
 ├── cryptr
-├── dedup-files
-├── dedup-lines
+├── dedup_files
+├── dedup_lines
 ├── dev
 │   ├── cryptr2
 │   ├── cryptr_add
@@ -27,37 +27,36 @@
 ├── diritems
 ├── dividir
 ├── dotfbu
-├── dynamic-truncate
-├── file-select
+├── dynamic_truncate
+├── file_select
 ├── fiot
 ├── fscu
-├── fzf-tag-add
-├── fzf-word
-├── get-device-info
-├── get-julian-date
+├── fzf_tag_add
+├── fzf_word
+├── get_device_info
+├── get_julian_date
 ├── getlocs
-├── get-newest-file
-├── get-oldest-file
+├── get_newest_file
+├── get_oldest_file
 ├── histdel
-├── home-clear
-├── kill-float
-├── make-offl-repo
-├── make-recov
+├── home_clear
+├── kill_float
+├── make_offl_repo
+├── make_recov
 ├── metar
-├── mic-switch
+├── mic_switch
 ├── mountr
 ├── netflow
 ├── netistat
 ├── nmconn
-├── notmuch-search
+├── notmuch_search
 ├── otp95
 ├── passexp
 ├── passr
-├── proc-kill
+├── proc_kill
 ├── pwgn
 ├── qrinv
-├── rename-exif
-├── repo-tree.md
+├── rename_exif
 ├── repo_tree.md
 ├── shredr
 ├── slicer
@@ -70,9 +69,9 @@
 ├── verbose
 ├── vtxt
 ├── wtime
-├── yank-buffer
-├── zsh-root-like-user
-└── zzz-deprecated
+├── yank_buffer
+├── zsh_root_like_user
+└── zzz_deprecated
     ├── backup_dot
     ├── cryptr_org
     ├── cryptr_v01
@@ -89,5 +88,5 @@
     ├── trashOLD
     └── wfa.py
 
-4 directories, 85 files
+4 directories, 84 files
 ```
