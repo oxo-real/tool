@@ -1,0 +1,6 @@
+#! /usr/bin/env sh
+
+ist=$(sha512sum $1)
+soll=$(grep $1 sha512sums)
+
+[[ "$ist" == "$soll" ]]

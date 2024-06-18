@@ -4,7 +4,7 @@
 ├── atis
 ├── base-conversion
 ├── c2b
-├── calc-sums
+├── check-sum
 ├── chln
 ├── chua
 ├── COPYING
@@ -58,6 +58,7 @@
 ├── qrinv
 ├── rename-exif
 ├── repo-tree.md
+├── sha512sums
 ├── shredr
 ├── slicer
 ├── syncr
@@ -88,5 +89,5 @@
     ├── trashOLD
     └── wfa.py
 
-4 directories, 84 files
+4 directories, 85 files
 ```

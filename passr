@@ -218,7 +218,15 @@ otp-strings can be stored i.e.: otp_mail_john.gpg
 #--------------------------------
 
 
-get_object() {
+check_sum()
+{
+    check-sum $script_name
+    [[ $? -ne 0 ]] && printf "%s ${fg_red}checksum${st_def} does not match\n" "$script_name" && exit 224
+}
+
+
+get_object()
+{
     # passr $object $element
 
     case $object in
@@ -372,7 +380,8 @@ get_object() {
 }
 
 
-element_as_object() {
+element_as_object()
+{
     arg_element_tmp="$arg_object"
 
     arg_object="$arg_element"
@@ -415,7 +424,8 @@ check_new_obj_names()
 }
 
 
-pass_new() {
+pass_new()
+{
     ## prevent 'passr non_existent_object' from being emptied out
     case $object in
 
@@ -491,7 +501,8 @@ pass_edit() {
 }
 
 
-pass_grep() {
+pass_grep()
+{
     ## search object data
     grep_string="$(printf "$args" | cut -d ' ' -f 2-)"
 
@@ -500,7 +511,8 @@ pass_grep() {
 }
 
 
-pass_search() {
+pass_search()
+{
     ## search objects
     search_string="$element"
 
@@ -509,7 +521,8 @@ pass_search() {
 }
 
 
-gen_sel_pw() {
+gen_sel_pw()
+{
     password=$(\
 	tr -d -c "[:alnum:]"'~!@#$%^&*()-=[];\,./_+{}:|<>?' < /dev/urandom | \
 	fold -w 32 | head -n 16 | cat -b | \
@@ -518,12 +531,14 @@ gen_sel_pw() {
 }
 
 
-vault_open() {
+vault_open()
+{
     pass_mount
 }
 
 
-log_in() {
+log_in()
+{
     get_mountpoint_status
 
     case $mp_status in
@@ -544,12 +559,14 @@ log_in() {
 }
 
 
-pass_quit() {
+pass_quit()
+{
     exit 0
 }
 
 
-log_out() {
+log_out()
+{
     gpg-connect-agent -q reloadagent /bye >/dev/null
 
     pass_element
@@ -558,20 +575,23 @@ log_out() {
 }
 
 
-close() {
+close()
+{
     sh vault close $store
     exit 0
 }
 
 
-show_status() {
+show_status()
+{
     get_mountpoint_status
     get_cache_status
     printf "$mp_status $cache_status\n"
 }
 
 
-copy_text() {
+copy_text()
+{
     ## # 20230826
     ## # --paste-once does not work in $browser
     ## # but does work in terminal (alacritty)
@@ -586,7 +606,8 @@ copy_text() {
 }
 
 
-get_mountpoint_status() {
+get_mountpoint_status()
+{
     mountpoint -q $store_l && mp_status=$store || mp_status=0
 }
 
@@ -600,7 +621,8 @@ get_cache_status()
 }
 
 
-pass_mount() {
+pass_mount()
+{
     ## pass crypto source location
 
     ## pass mount destination
@@ -643,7 +665,8 @@ pass_mount() {
 }
 
 
-gpg_decrypt() {
+gpg_decrypt()
+{
     ## always reset cached gpg password
     gpg-connect-agent -q reloadagent /bye >/dev/null
 
@@ -660,13 +683,15 @@ gpg_decrypt() {
 }
 
 
-erase_line() {
+erase_line()
+{
     printf "\r"
     tput el
 }
 
 
-process_reply() {
+process_reply()
+{
     action_reply='^a'
     answer=$(printf "$1" | grep -iq "$action_reply")
 
@@ -685,7 +710,8 @@ process_reply() {
 }
 
 
-generate_pw() {
+generate_pw()
+{
     ## permanently run without pwgn set environment variable PWGN_OFF
     if [[ -z "$PWGN_OFF" ]]; then
 
@@ -716,7 +742,8 @@ generate_pw() {
 }
 
 
-get_element() {
+get_element()
+{
     if [[ -z $element ]]; then
 
     	element=$(printf '%s\n' "${element_menu[@]}" | \
@@ -727,12 +754,14 @@ get_element() {
 }
 
 
-check_obj_exist() {
+check_obj_exist()
+{
    [[ -f "${store}/${object}.gpg" ]] && obj_exist=1
 }
 
 
-object_is_quit() {
+object_is_quit()
+{
     case $object in
 
 	quit)
@@ -745,7 +774,8 @@ object_is_quit() {
 }
 
 
-process_object() {
+process_object()
+{
     object_is_quit
     check_obj_exist
 
@@ -845,7 +875,8 @@ process_object() {
 }
 
 
-get_element_value() {
+get_element_value()
+{
     element_value=$(pass show $object | grep ^$element: | awk '{print $2}')
 
     check_element_value
@@ -856,12 +887,14 @@ get_element_value() {
 }
 
 
-get_password() {
+get_password()
+{
     pass $object | head -n 1 | copy_text
 }
 
 
-get_otp() {
+get_otp()
+{
     ## redirection to the separate otp file
     if [[ "$(printf $object | head -c 4)" != "otp_" ]]; then
 
@@ -882,7 +915,8 @@ get_otp() {
 }
 
 
-pass_element() {
+pass_element()
+{
     ## run pass natively with $element
     case $from_log_in in
 
@@ -914,7 +948,8 @@ pass_element() {
 }
 
 
-check_element_value() {
+check_element_value()
+{
     ## no autoentry
     if [[ -z $ae ]]; then
 
@@ -939,7 +974,8 @@ check_element_value() {
 }
 
 
-error_message() {
+error_message()
+{
     ## selected empty line in element menu
     if [[ -z $element ]]; then
 
@@ -953,7 +989,8 @@ error_message() {
 }
 
 
-human_info() {
+human_info()
+{
     ## get error message if applicable
     error_message
 
@@ -1002,7 +1039,8 @@ human_info() {
 }
 
 
-autoentry() {
+autoentry()
+{
     ae=1
     ## sleep time
     t=5
@@ -1063,13 +1101,15 @@ get_other_element()
 }
 
 
-get_object_name() {
+get_object_name()
+{
     printf "$object" | copy_text
     #printf "$object" | wl-copy -n -o
 }
 
 
-process_element() {
+process_element()
+{
     case $element in
 
     	password)
@@ -1273,6 +1313,7 @@ list_otps()
 
 main()
 {
+    check_sum
     get_object
     process_object
     get_element

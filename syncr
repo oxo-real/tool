@@ -375,7 +375,7 @@ local_share_all()
 report_log_file()
 {
     ## adding luks_uuid to log filename
-    log_file=$(get_newest_file $log_dir)
+    log_file=$(get-newest-file $log_dir)
     log_file_name=$(basename $log_file)
     ## TODO DEV get luksuuid more robustly (!dock/transfer)
     luks_uuid=$(vault status $HOME/dock/transfer | grep 'luks_uuid' | awk '{print $2}')

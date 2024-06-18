@@ -1013,7 +1013,6 @@ beep()
 
 main()
 {
-    #: '
     sourcing
     initialize
     validate_source
@@ -1026,7 +1025,6 @@ main()
     crypt
     verify
     cleanup
-    # '
     beep
 }
 
