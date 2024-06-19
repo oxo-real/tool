@@ -1,0 +1,19 @@
+#! /usr/bin/env sh
+
+## get arg
+dir="$1"
+
+## if no arg, then set dir to pwd
+[[ -z $dir ]] && dir="$PWD"
+
+## check if dir is a vaild directory
+[[ ! -d "$dir" ]] && printf '%s is not a valid directory\n' "$1" && exit 3
+
+## get resolved dir name
+dir=$(realpath "$dir")
+
+## calculate and write sha512sums of all items in dir
+sha512sum "$dir"/* > "$dir"/sha512sums 2>/dev/null
+
+## user feedback
+ls -ila "${dir}/sha512sums"

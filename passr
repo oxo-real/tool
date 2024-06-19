@@ -114,6 +114,7 @@ set -o pipefail
 
 ## script
 script_name='passr'
+script_name='passr'
 developer='oxo'
 license='gplv3'
 initial_release='2020'
@@ -124,7 +125,9 @@ initial_release='2020'
 args=$@
 arg_object=$1
 arg_element=$2
-pwgn="$XDG_DATA_HOME/c/git/code/tool/pwgn"
+tool_dir="$XDG_DATA_HOME/c/git/code/tool"
+pwgn="$tool_dir/pwgn"
+script_dir="$tool_dir"
 ### dynamic variables
 object="$arg_object"
 element="$arg_element"
@@ -151,6 +154,10 @@ source_dir="$XDG_DATA_HOME/c/git/code/source/function"
 source $source_dir/text_appearance
 source $source_dir/reply_functions
 source $source_dir/get_sudo
+
+## check file integrity
+check-sum $(realpath $script_dir/$script_name)
+[[ $? -ne 0 ]] && exit 88
 
 element_menu=(\
 	"1 url" \
@@ -216,13 +223,6 @@ otp-strings can be stored i.e.: otp_mail_john.gpg
 
 
 #--------------------------------
-
-
-check_sum()
-{
-    check-sum $script_name
-    [[ $? -ne 0 ]] && printf "%s ${fg_red}checksum${st_def} does not match\n" "$script_name" && exit 224
-}
 
 
 get_object()
@@ -1313,7 +1313,6 @@ list_otps()
 
 main()
 {
-    check_sum
     get_object
     process_object
     get_element

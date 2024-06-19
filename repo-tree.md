@@ -4,6 +4,7 @@
 ├── atis
 ├── base-conversion
 ├── c2b
+├── calc-sum
 ├── check-sum
 ├── chln
 ├── chua
@@ -89,5 +90,5 @@
     ├── trashOLD
     └── wfa.py
 
-4 directories, 85 files
+4 directories, 86 files
 ```

@@ -67,6 +67,13 @@ syncr $HOME/dock/transfer/x1c/home/oxo --delete --links \
 #set -o nounset
 set -o pipefail
 
+## script
+script_name='passr'
+script_dir="$XDG_DATA_HOME/c/git/code/tool"
+developer='oxo'
+license='gplv3'
+initial_release='2020'
+
 ## initialize
 args="$@"
 log_dir="$XDG_LOGS_HOME/syncr"
@@ -78,6 +85,10 @@ source_dir="$XDG_DATA_HOME/c/git/code/source/function"
 source $source_dir/get_sudo
 source $source_dir/reply_functions
 source $source_dir/text_appearance
+
+## check file integrity
+check-sum $(realpath $script_dir/$script_name)
+[[ $? -ne 0 ]] && exit 88
 
 # #make_offl_repo="$XDG_DATA_HOME/c/git/code/tool/make_offl_repo"
 
@@ -428,7 +439,7 @@ archive_backup()
 
 main()
 {
-    check_sum
+    #check_sum
     default_backup
     #archive_backup
 }

@@ -56,6 +56,7 @@ by simply selecting device and/or mountpoint
 #set -o nounset
 set -o pipefail
 
+
 # initial general definitions
 
 args="$@"
@@ -63,11 +64,17 @@ args="$@"
 ## initialize hardcoded variables
 script_name="mountr"
 initial_release_year="2020"
-source_dir="$XDG_DATA_HOME/c/git/code/source/function"
+code_dir="$XDG_DATA_HOME/c/git/code"
+source_dir="$code_dir/source/function"
+script_dir="$code_dir/tool"
 
 crypto_source="$XDG_DATA_HOME/c/keys/pass/vlt_pass"
 #pass_mount="$HOME/dock/vlt/pass"
 password_store_lnk="$HOME/.password-store"
+
+## check file integrity
+check-sum $(realpath $script_dir/$script_name)
+[[ $? -ne 0 ]] && exit 88
 
 
 sourcing()
@@ -77,14 +84,6 @@ sourcing()
 
     #source $source_dir/get_sudo
     #get_sudo
-}
-
-
-check_sum()
-{
-    #check-sum $0
-    check-sum $script_name
-    [[ $? -ne 0 ]] && printf "%s ${fg_red}checksum${st_def} does not match\n" "$script_name" && exit 8
 }
 
 
@@ -616,7 +615,6 @@ dev_is_vlt_pass()
 main()
 {
     sourcing
-    check_sum
     #get_sudo
     get_source_devs
     get_mps_umount

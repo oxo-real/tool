@@ -1,6 +1,20 @@
 #! /usr/bin/env sh
 
-ist=$(sha512sum $1)
-soll=$(grep $1 sha512sums)
+arg=$1
 
-[[ "$ist" == "$soll" ]]
+file_name=$(realpath $arg)
+
+## calculate ist of file_name
+ist_sum=$(sha512sum "$file_name" | cut -d ' ' -f 1)
+
+## search ist in hashlist and grep the matching soll script_name
+soll_name=$(grep $ist_sum $(dirname "$file_name")/sha512sums | awk '{print $2}')
+#soll_sum=$(grep $(basename "$1") $(dirname "$1")/sha512sums | cut -d ' ' -f 1)
+
+## exit if file_name does not match soll_name
+if [[ "$file_name" != "$soll_name" ]]; then
+
+    printf "${fg_amber}%s${st_def} checksum does NOT match\n" "$file_name"
+    exit 88
+
+fi
