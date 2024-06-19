@@ -86,6 +86,14 @@ sourcing()
 }
 
 
+check_sum()
+{
+    check-sum $0
+    #check-sum $script_name
+    [[ $? -ne 0 ]] && printf "%s ${fg_red}checksum${st_def} does not match\n" "$script_name" && exit 8
+}
+
+
 optical_input()
 {
     input=$(zbarcam --oneshot --raw)
@@ -496,6 +504,7 @@ exit_main()
 main()
 {
     sourcing
+    check_sum
     #get_sudo
     input_type
     input_validation

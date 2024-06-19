@@ -103,6 +103,13 @@ options="$*"
 #               this prevents rsync error: 'skipping non-regular file'
 
 
+check_sum()
+{
+    check-sum $script_name
+    [[ $? -ne 0 ]] && printf "%s ${fg_red}checksum${st_def} does not match\n" "$script_name" && exit 8
+}
+
+
 config_fpcl()
 {
     # synchronize .config			(config_fpcl)
@@ -421,6 +428,7 @@ archive_backup()
 
 main()
 {
+    check_sum
     default_backup
     #archive_backup
 }
