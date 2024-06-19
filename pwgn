@@ -88,8 +88,8 @@ sourcing()
 
 check_sum()
 {
-    check-sum $0
-    #check-sum $script_name
+    #check-sum $0
+    check-sum $script_name
     [[ $? -ne 0 ]] && printf "%s ${fg_red}checksum${st_def} does not match\n" "$script_name" && exit 8
 }
 
