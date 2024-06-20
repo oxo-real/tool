@@ -56,6 +56,7 @@ script_name='pwgn'
 developer='oxo'
 license='gplv3'
 init_rel_y='2020'
+script_dir="$XDG_DATA_HOME/c/git/code/tool"
 
 ## getargs
 args=$@
@@ -69,6 +70,10 @@ input=
 
 ## hardcoded variables
 source_dir="$XDG_DATA_HOME/c/git/code/source/function"
+
+## check file integrity
+check-sum $(realpath $script_dir/$script_name)
+[[ $? -ne 0 ]] && exit 88
 
 #TODO trap
 #trap "return 1" SIGINT
@@ -86,14 +91,6 @@ sourcing()
 }
 
 
-check_sum()
-{
-    #check-sum $0
-    check-sum $script_name
-    [[ $? -ne 0 ]] && printf "%s ${fg_red}checksum${st_def} does not match\n" "$script_name" && exit 8
-}
-
-
 optical_input()
 {
     input=$(zbarcam --oneshot --raw)
@@ -102,7 +99,7 @@ optical_input()
 
 keyboard_input()
 {
-    #read input
+    # read input
     askpass_exist=$(command -v askpass >/dev/null 2>&1; echo $?)
 
     printf "pwgn "
@@ -111,13 +108,17 @@ keyboard_input()
 
 	0)
 	    input=$(askpass)
+	    #input=$(askpass -f)
 	    ;;
 
 	*)
+	    : '
+	    ## WARNING DEV wl-paste does NOT with this
 	    printf "🔐  [echo_off]"
 	    read -e -r -s -n 1 char1
 	    tput cuu1
 	    erase_line
+	    # '
 	    printf "🔐  "
 	    read -e -r -s input2
 	    input="$char1$input2"
@@ -504,7 +505,6 @@ exit_main()
 main()
 {
     sourcing
-    check_sum
     #get_sudo
     input_type
     input_validation

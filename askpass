@@ -13,9 +13,9 @@
 ###
 
 : '
-askpas
+askpass
 password entry
-copyright (c) 2020 - 2022  |  oxo
+copyright (c) 2020 - 2024  |  oxo
 
 GNU GPLv3 GENERAL PUBLIC LICENSE
 This program is free software: you can redistribute it and/or modify
@@ -63,10 +63,12 @@ fd='5'
 
 check_tty()
 {
-    if ! tty >/dev/null;  then
+    if ! tty >/dev/null; then
+
 	read -r -s PWORD
         echo "$PWORD"
 	exit 0
+
     fi
 }
 
@@ -82,24 +84,21 @@ sd_ask()
     elif [ -x $sd_bin ]; then
 
 	# execute systemd-ask-password
-	stty_0=`stty -g`
+	stty_0=$(stty -g)
 	trap 'stty "$stty_0"' EXIT
-	$sd_bin --timeout=0 "${1:-$sd_prompt}"
+	sudo $sd_bin --timeout=0 "${1:-$sd_prompt}"
+	## 20240620 before systemd v256:
+	#$sd_bin --timeout=0 "${1:-$sd_prompt}"
 
-	# erase line
-        #tput cuu1; printf "\r"; tput el
-        #tput cuu1; printf "\r"; tput el
-
-	#exit $?
-	#break
     fi
 }
 
 
 ask()
 {
+    ## hashtag designates non systemd (which shows *) version
     prpt="${*:-$prompt}"
-    star='#'  ## hashtag designates non systemd (which shows *) version
+    star='#'
 
     # grab the current TTY settings
     # save stdout (for password result) to descriptor 3
@@ -107,7 +106,7 @@ ask()
     # gnu and Linux "stty" uses stdin for the terminal to adjust
     # BUT:  Solaris /usr/ucb/stty command uses stdout and NOT stdin!
     ## #exec $fd>&1 </dev/tty >/dev/tty
-    stty_0=`stty -g`
+    stty_0=$(stty -g)
 
     # resume stty_0 state on exit
     trap 'stty "$stty_0"' EXIT

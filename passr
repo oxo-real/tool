@@ -114,10 +114,10 @@ set -o pipefail
 
 ## script
 script_name='passr'
-script_name='passr'
 developer='oxo'
 license='gplv3'
 initial_release='2020'
+script_dir="$XDG_DATA_HOME/c/git/code/tool"
 
 ## arguments
 ### static variables
@@ -125,9 +125,8 @@ initial_release='2020'
 args=$@
 arg_object=$1
 arg_element=$2
-tool_dir="$XDG_DATA_HOME/c/git/code/tool"
+tool_dir="$script_dir"
 pwgn="$tool_dir/pwgn"
-script_dir="$tool_dir"
 ### dynamic variables
 object="$arg_object"
 element="$arg_element"
@@ -156,6 +155,7 @@ source $source_dir/reply_functions
 source $source_dir/get_sudo
 
 ## check file integrity
+#trap '[ "$?" -ne 88 ] || exit 88' ERR
 check-sum $(realpath $script_dir/$script_name)
 [[ $? -ne 0 ]] && exit 88
 
