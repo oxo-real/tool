@@ -70,12 +70,12 @@ https://www.gnu.org/licenses/gpl-3.0.txt
   key_file=$(for i in {1..95}; do; printf '%s' "$ASCII" | fold -w 1 | shuf | tr -d '\n'; echo; done; echo)
 
   ## encryption
-  % otp text
-  % otp in plain_file key key_file out crypt_file
+  % otp95 text
+  % otp95 in plain_file key key_file out crypt_file
 
   ## decryption
-  % otp d text
-  % otp d in crypt_file key key_file out plain_file
+  % otp95 d 'text'
+  % otp95 d in crypt_file key key_file out plain_file
 
 # '
 
