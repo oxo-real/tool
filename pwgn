@@ -52,11 +52,11 @@ https://www.gnu.org/licenses/gpl-3.0.txt
 # initial definitions
 
 ## script_metadata
+script_dir="$XDG_DATA_HOME/c/git/code/tool"
 script_name='pwgn'
 developer='oxo'
 license='gplv3'
 init_rel_y='2020'
-script_dir="$XDG_DATA_HOME/c/git/code/tool"
 
 ## getargs
 args=$@
@@ -71,12 +71,9 @@ input=
 ## hardcoded variables
 source_dir="$XDG_DATA_HOME/c/git/code/source/function"
 
-## check file integrity
-check-sum $(realpath $script_dir/$script_name)
-[[ $? -ne 0 ]] && exit 88
-
 #TODO trap
 #trap "return 1" SIGINT
+
 
 sourcing()
 {
@@ -91,6 +88,14 @@ sourcing()
 }
 
 
+check_sum()
+{
+    ## check file integrity
+    check-sum $(realpath $script_dir/$script_name)
+    [[ $? -ne 0 ]] && exit 88
+}
+
+
 optical_input()
 {
     input=$(zbarcam --oneshot --raw)
@@ -102,7 +107,7 @@ keyboard_input()
     # read input
     askpass_exist=$(command -v askpass >/dev/null 2>&1; echo $?)
 
-    printf "pwgn "
+    printf "pwgn  "
 
     case $askpass_exist in
 
@@ -505,6 +510,7 @@ exit_main()
 main()
 {
     sourcing
+    check_sum
     #get_sudo
     input_type
     input_validation

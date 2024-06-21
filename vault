@@ -99,11 +99,6 @@ source "$source_dir/get_sudo"
 
 #--------------------------------
 
-
-## check file integrity
-check-sum $(realpath $script_dir/$script_name)
-[[ $? -ne 0 ]] && exit 88
-
 # get_args
 
 ## all args
@@ -120,6 +115,14 @@ arg_target="$2"
 
 ## arg_3    (location, size, option_no-confirm (-y) or empty)
 arg_3="$3"
+
+
+check_sum()
+{
+    ## check file integrity
+    check-sum $(realpath $script_dir/$script_name)
+    [[ $? -ne 0 ]] && exit 88
+}
 
 
 check_target_validity()
@@ -1322,6 +1325,8 @@ set_close_args()
 
 main()
 {
+    check_sum
+
     case $arg_action in
 
 	list | l)

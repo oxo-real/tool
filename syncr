@@ -86,10 +86,6 @@ source $source_dir/get_sudo
 source $source_dir/reply_functions
 source $source_dir/text_appearance
 
-## check file integrity
-check-sum $(realpath $script_dir/$script_name)
-[[ $? -ne 0 ]] && exit 88
-
 # #make_offl_repo="$XDG_DATA_HOME/c/git/code/tool/make_offl_repo"
 
 ## user authentication
@@ -116,8 +112,9 @@ options="$*"
 
 check_sum()
 {
-    check-sum $script_name
-    [[ $? -ne 0 ]] && printf "%s ${fg_red}checksum${st_def} does not match\n" "$script_name" && exit 8
+    ## check file integrity
+    check-sum $(realpath $script_dir/$script_name)
+    [[ $? -ne 0 ]] && exit 88
 }
 
 
@@ -439,7 +436,7 @@ archive_backup()
 
 main()
 {
-    #check_sum
+    check_sum
     default_backup
     #archive_backup
 }

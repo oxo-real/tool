@@ -1,20 +1,62 @@
 #! /usr/bin/env sh
 
+#set -o errexit
+#set -o nounset
+set -o pipefail
+
 arg=$1
+
+source $XDG_DATA_HOME/c/git/code/source/function/text_appearance
+
+if [[ -z $arg ]]; then
+
+    sha512sum --check $PWD/sha512sums
+    exit 0
+
+fi
 
 file_name=$(realpath $arg)
 
-## calculate ist of file_name
+
+# calculate ist of file_name
+
 ist_sum=$(sha512sum "$file_name" | cut -d ' ' -f 1)
 
-## search ist in hashlist and grep the matching soll script_name
-soll_name=$(grep $ist_sum $(dirname "$file_name")/sha512sums | awk '{print $2}')
-#soll_sum=$(grep $(basename "$1") $(dirname "$1")/sha512sums | cut -d ' ' -f 1)
 
-## exit if file_name does not match soll_name
+# define hashlist (sha512sums)
+
+hash_list=$(dirname $file_name)/sha512sums
+
+if [[ -f $hash_list ]]; then
+
+    ## search ist of file_name in hashlist and grep the matching soll script_name
+    soll_name=$(grep $ist_sum $hash_list | awk '{print $2}')
+
+else
+
+    printf "${fg_amber}%s${st_def} does not exist\n" "$hash_list"
+    exit 88
+
+fi
+
+
+# verify checksum
+
+printf "%s\r" "$file_name"
+sleep 0.5
 if [[ "$file_name" != "$soll_name" ]]; then
 
-    printf "${fg_amber}%s${st_def} checksum does NOT match\n" "$file_name"
+    ## exit if file_name does not match soll_name
+    printf "${fg_amber}%s${st_def} checksum FAILED" "$file_name"
+    sleep 1
+    echo
     exit 88
+
+else
+
+    printf "${fg_green}%s${st_def} checksum OK\r" "$file_name"
+    sleep 1
+    tput el
+    exit 0
 
 fi

@@ -83,7 +83,7 @@ https://www.gnu.org/licenses/gpl-3.0.txt
 # cat /home/oxo/c/git/code/tool/otp95 | grep -A 1 --line-number '(decr)'
 
 
-set -o errexit
+#set -o errexit
 #set -o nounset
 set -o pipefail
 
@@ -91,11 +91,11 @@ set -o pipefail
 # initial definitions
 
 ## script
+script_dir="$XDG_DATA_HOME/c/git/code/tool"
 script_name='otp95'
 developer='oxo'
 license='gplv3'
 initial_release='2024'
-script_dir="$XDG_DATA_HOME/c/git/code/tool"
 
 ## arguments
 ### static variables
@@ -107,9 +107,12 @@ key_dir="$XDG_DATA_HOME/c/keys/otp95"
 timestamp="$(date +'%Y%m%d_%H%M%S_%s')"
 
 
-## check file integrity
-check-sum $(realpath $script_dir/$script_name)
-[[ $? -ne 0 ]] && exit 88
+check_sum()
+{
+    ## check file integrity
+    check-sum $(realpath $script_dir/$script_name)
+    [[ $? -ne 0 ]] && exit 88
+}
 
 
 getargs()
@@ -217,6 +220,7 @@ process_args()
 
 	if [[ -n $in_file ]]; then
 
+	    ## input by user; exit with eol eof (C-d)q
 	    input=$(cat $in_file)
 
 	else
@@ -568,6 +572,7 @@ output()
 
 main()
 {
+    check_sum
     getargs $args
     process_args
     input

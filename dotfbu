@@ -83,10 +83,6 @@ mode=$1	# 'backup' or 'restore'
 src=$2	# source directory
 dest=$3	# destination directory
 
-## check file integrity
-check-sum $(realpath $script_dir/$script_name)
-[[ $? -ne 0 ]] && exit 88
-
 
 sourcing()
 {
@@ -97,6 +93,14 @@ sourcing()
     source $source_dir/text_appearance
     pwgn="$XDG_DATA_HOME/c/git/code/tool/pwgn"
     fpcl_file="$src/.fpcl"
+}
+
+
+check_sum()
+{
+    ## check file integrity
+    check-sum $(realpath $script_dir/$script_name)
+    [[ $? -ne 0 ]] && exit 88
 }
 
 
@@ -1029,6 +1033,7 @@ beep()
 main()
 {
     sourcing
+    check_sum
     initialize
     validate_source
     validate_destination

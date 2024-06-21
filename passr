@@ -154,10 +154,6 @@ source $source_dir/text_appearance
 source $source_dir/reply_functions
 source $source_dir/get_sudo
 
-## check file integrity
-#trap '[ "$?" -ne 88 ] || exit 88' ERR
-check-sum $(realpath $script_dir/$script_name)
-[[ $? -ne 0 ]] && exit 88
 
 element_menu=(\
 	"1 url" \
@@ -223,6 +219,14 @@ otp-strings can be stored i.e.: otp_mail_john.gpg
 
 
 #--------------------------------
+
+
+check_sum()
+{
+    ## check file integrity
+    check-sum $(realpath $script_dir/$script_name)
+    [[ $? -ne 0 ]] && exit 88
+}
 
 
 get_object()
@@ -1313,6 +1317,7 @@ list_otps()
 
 main()
 {
+    check_sum
     get_object
     process_object
     get_element
