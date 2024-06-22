@@ -73,7 +73,14 @@ set -o pipefail
 
 args="$@"
 
+
 # initial definitions
+## script
+script_name='cryptr'
+script_dir="$XDG_DATA_HOME/c/git/code/tool"
+developer='oxo'
+license='gplv3'
+initial_release='2023'
 ## select cipher suite
 cipher_suite="gnupg"
 #cipher_suite="openssl"
@@ -89,6 +96,14 @@ sourcing()
 
     ## text appearance
     source $source_dir/text_appearance
+}
+
+
+check_sum()
+{
+    ## check file integrity
+    check-sum $(realpath $script_dir/$script_name)
+    [[ $? -eq 0 ]] || exit 88
 }
 
 
@@ -1053,6 +1068,7 @@ encrypt()
 main()
 {
     sourcing
+    check_sum
     initialize
 
     read_args_array

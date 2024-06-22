@@ -1,19 +1,27 @@
 #! /usr/bin/env sh
 
 ## get arg
-dir="$1"
+arg="$1"
 
 ## if no arg, then set dir to pwd
-[[ -z $dir ]] && dir="$PWD"
+[[ -z $arg ]] && dir="$PWD"
 
 ## check if dir is a vaild directory
-[[ ! -d "$dir" ]] && printf '%s is not a valid directory\n' "$1" && exit 3
+#[[ ! -d "$dir" ]] && printf '%s is not a valid directory\n' "$1" && exit 3
+if [[ -f $arg ]]; then
 
-## get resolved dir name
-dir=$(realpath "$dir")
+    sha3-512sum $arg
 
-## calculate and write sha512sums of all items in dir
-sha512sum "$dir"/* > "$dir"/sha512sums 2>/dev/null
+elif [[ -d $arg || -d $dir ]]; then
 
-## user feedback
-ls -ila "${dir}/sha512sums"
+    ## get resolved dir name from $arg else from $dir
+    dir=$(realpath "${arg:-$dir}")
+
+    ## calculate and write sha512sums of all items in dir
+    hash_list=$(find $dir -maxdepth 1 -type f -exec sha3-512sum {} \;)
+    printf '%s\n' "$hash_list" > "$dir"/sha3-512sums 2>/dev/null
+
+    ## user feedback
+    ls -ila "${dir}/sha3-512sums"
+
+fi

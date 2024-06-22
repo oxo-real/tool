@@ -59,12 +59,20 @@
 ├── qrinv
 ├── rename-exif
 ├── repo-tree.md
-├── sha512sums
+├── secure-core
+│   ├── cryptr -> ../cryptr
+│   ├── mountr -> ../mountr
+│   ├── otp95 -> ../otp95
+│   ├── passr -> ../passr
+│   ├── pwgn -> ../pwgn
+│   └── vault -> ../vault
+├── sha3-512sums
 ├── shredr
 ├── slicer
 ├── syncr
 ├── timer
 ├── trash
+├── trng
 ├── tzoner
 ├── upgrader
 ├── vault
@@ -90,5 +98,5 @@
     ├── trashOLD
     └── wfa.py
 
-4 directories, 86 files
+5 directories, 93 files
 ```
