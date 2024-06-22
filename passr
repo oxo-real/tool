@@ -224,7 +224,13 @@ otp-strings can be stored i.e.: otp_mail_john.gpg
 check_sum()
 {
     ## check file integrity
-    check-sum $(realpath $script_dir/$script_name)
+    if [[ -z $checked ]]; then
+
+    	checked=1
+    	check-sum $(realpath $script_dir/$script_name)
+
+    fi
+
     [[ $? -ne 0 ]] && exit 88
 }
 
