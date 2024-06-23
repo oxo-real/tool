@@ -54,6 +54,7 @@ set -o pipefail
 
 # script specific constants
 ## script_metadata
+script_dir="$XDG_DATA_HOME/c/git/code/tool"
 script_name='upgrader'
 developer='oxo'
 license='gplv3'
@@ -91,6 +92,14 @@ source $source_dir/splash_screen
 
 ## user authentication
 source $source_dir/get_sudo
+
+
+check_sum()
+{
+    ## check file integrity
+    check-sum $(realpath $script_dir/$script_name)
+    [[ $? -ne 0 ]] && exit 88
+}
 
 
 set_clock()
@@ -700,6 +709,7 @@ show_part_sizes()
 main()
 {
     #splash_screen
+    check_sum
     get_sudo
     boot_usr_presence
     internet_conn_check

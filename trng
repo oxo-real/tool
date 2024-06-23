@@ -6,12 +6,21 @@ set -o pipefail
 
 ## process_data_hash
 pdh=$(ps -eFly | sha512sum)
+
 ## sensor_data_hash
 sdh=$(sensors -u 2> /dev/null | sha512sum)
+
 ## nano_second_hash
 nsh=$(date +'%N' | sha512sum)
+
 ## random_ascii_hash
 rah=$(ascii=$(for (( i=32; i<127; i++ )) do printf "\\$(printf %03o "$i")"; done) | sha512sum)
 
-## synthesized hash
-printf '%s%s%s%s\n' $pdh $sdh $nsh $rah | tr -c -d '0-9'
+## 8 byte random_number
+odh=$(od --output-duplicates --address-radix=n --read-bytes 8 --format u4 < /dev/urandom | tr -d ' ')
+
+## two concatenated srandom numbers from bash
+srh=$(bash -c 'echo $SRANDOM$SRANDOM')
+
+## synthesized hash and extract numbers
+printf '%s%s%s%s%s\n' $pdh $sdh $nsh $rah $odh $srh | tr -c -d '0-9'
