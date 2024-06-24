@@ -75,7 +75,7 @@ source_dir="$XDG_DATA_HOME/c/git/code/source/function"
 #trap "return 1" SIGINT
 
 
-sourcing()
+sourcing ()
 {
     ## define colors
     source "$source_dir/text_appearance"
@@ -88,7 +88,7 @@ sourcing()
 }
 
 
-check_sum()
+function check_sum ()
 {
     ## check file integrity
     check-sum $(realpath $script_dir/$script_name)
@@ -96,13 +96,13 @@ check_sum()
 }
 
 
-optical_input()
+optical_input ()
 {
     input=$(zbarcam --oneshot --raw)
 }
 
 
-keyboard_input()
+keyboard_input ()
 {
     # read input
     askpass_exist=$(command -v askpass >/dev/null 2>&1; echo $?)
@@ -137,14 +137,14 @@ keyboard_input()
 }
 
 
-erase_line()
+erase_line ()
 {
     printf "\r"
     tput el
 }
 
 
-input_type()
+input_type ()
 {
     # keyboard input, unless --optical is given as arg1
     case $arg_optical in
@@ -161,13 +161,13 @@ input_type()
 }
 
 
-input_validation()
+input_validation ()
 {
     [[ -z $input ]] && exit 10
 }
 
 
-hashing()
+hashing ()
 {
     ## input, algorithm
 
@@ -176,7 +176,7 @@ hashing()
 }
 
 
-hmacing()
+hmacing ()
 {
     ## sha3 hmac rfc2104
     ## input, algorithm, hmac
@@ -185,7 +185,7 @@ hmacing()
 }
 
 
-hash_1_input()
+hash_1_input ()
 {
     ## create sha1 hash from input
 
@@ -196,7 +196,7 @@ hash_1_input()
 }
 
 
-hash_3_input()
+hash_3_input ()
 {
     ## create sha3-512 hash from input
     ## keccak sha3 standard fips pub 202
@@ -210,7 +210,7 @@ hash_3_input()
 }
 
 
-clear_input()
+clear_input ()
 {
     ## overwrite input variable, then clear and unset it for security
 
@@ -220,7 +220,7 @@ clear_input()
 }
 
 
-print_blocks()
+print_blocks ()
 {
     ## print four lines of eight; two space-separated, four-column,
     ## zero-filled, two-byte quantities of hexadecimal inputdata
@@ -237,7 +237,7 @@ print_blocks()
 }
 
 
-round_pool()
+round_pool ()
 {
     ## dynamic truncate hash_sha3512
     ## dividend is based on the sha3512 hash of the input
@@ -249,7 +249,7 @@ round_pool()
 }
 
 
-round_space()
+round_space ()
 {
     ## dynamic truncate hash_sha1
     ## divisor is based on the sha1 hash of the input
@@ -261,7 +261,7 @@ round_space()
 }
 
 
-rounds_number()
+rounds_number ()
 {
     ## input='s'; rounds=532
 
@@ -269,7 +269,7 @@ rounds_number()
 }
 
 
-round_key()
+round_key ()
 {
     ## create hmac key for running_rounds
     ## input='s'; round_key='bb40..d76f'
@@ -282,7 +282,7 @@ round_key()
 }
 
 
-create_printing_space()
+create_printing_space ()
 {
     ## prevent printing errors when shifting lines down
 
@@ -301,7 +301,7 @@ create_printing_space()
 }
 
 
-running_rounds()
+running_rounds ()
 {
     ## keep hash_sha3512 variable untouched
     input_calc=$hash_sha3512
@@ -352,7 +352,7 @@ running_rounds()
 }
 
 
-print_progress_bar()
+print_progress_bar ()
 {
     local round=$1
     local rounds=$2
@@ -369,7 +369,7 @@ print_progress_bar()
 }
 
 
-two_fa()
+two_fa ()
 {
     # two factor authentication
 
@@ -403,14 +403,14 @@ two_fa()
 }
 
 
-output_console()
+output_console ()
 {
     ## personal iterations multiplier (pim)
     printf "$(print_blocks $output)\n"
 }
 
 
-output_wlcopy()
+output_wlcopy ()
 {
     printf $output | cut -c -64 | wl-copy -o -n
 
@@ -424,7 +424,7 @@ output_wlcopy()
 }
 
 
-print_qr_code()
+print_qr_code ()
 {
     ## qrencode not installed, then skip printing
     ## qrinv is qrencode with inverse color and smaller borders
@@ -433,13 +433,13 @@ print_qr_code()
 }
 
 
-print_qr_codeblock()
+print_qr_codeblock ()
 {
     print_qr_code $output
 }
 
 
-dynamic_truncate()
+dynamic_truncate ()
 {
     ## truncates a sha1 hex string (rfc4226, DynamicTruncate)
     ## get last 4 bits from hash ($hex_str)
@@ -481,7 +481,7 @@ dynamic_truncate()
 }
 
 
-debugging()
+debugging ()
 {
     printf "input:	    $input\n"
     printf "hash_sha1:	    $hash_sha1\n"
@@ -493,7 +493,7 @@ debugging()
 }
 
 
-audio_alert()
+audio_alert ()
 {
     #TODO beep does not work, why?
     #beep
@@ -501,13 +501,13 @@ audio_alert()
 }
 
 
-exit_main()
+exit_main ()
 {
     exit 0
 }
 
 
-main()
+main ()
 {
     sourcing
     check_sum
