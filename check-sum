@@ -42,7 +42,7 @@ fi
 
 # verify checksum
 
-printf "%s\r" "$file_name"
+printf "$(BGx 333333)%s${st_def}\r" "$file_name"
 sleep 0.5
 if [[ "$file_name" != "$soll_name" ]]; then
 
