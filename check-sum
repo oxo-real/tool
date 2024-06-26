@@ -42,19 +42,19 @@ fi
 
 # verify checksum
 
-printf "$(BGx 333333)%s${st_def}\r" "$file_name"
+printf "$(BGx 222222)%s${st_def}\r" "$file_name"
 sleep 0.5
 if [[ "$file_name" != "$soll_name" ]]; then
 
     ## exit if file_name does not match soll_name
-    printf "${fg_amber}%s${st_def} checksum FAILED" "$file_name"
+    printf "$(BGx 222222)${fg_amber}%s${st_def} checksum FAILED" "$file_name"
     sleep 1
     echo
     exit 88
 
 else
 
-    printf "${fg_green}%s${st_def} checksum OK\r" "$file_name"
+    printf "$(BGx 222222)${fg_green}%s${st_def} checksum OK\r" "$file_name"
     sleep 1
     tput el
     exit 0
