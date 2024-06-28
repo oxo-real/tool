@@ -436,7 +436,7 @@ mount_info()
 
 umount_info()
 {
-    printf "$source_dev $dev_type $size $label umounted from ${fg_blue}$mountpoint${st_def}\n"
+    printf "$source_dev $dev_type $size $label umounted from ${fg_amber}$mountpoint${st_def}\n"
 }
 
 
