@@ -15,7 +15,7 @@
 : '
 shredr
 destroy files and directories
-copyright (c) 2017 - 2023  |  oxo
+copyright (c) 2017 - 2024  |  oxo
 
 GNU GPLv3 GENERAL PUBLIC LICENSE
 This program is free software: you can redistribute it and/or modify
@@ -40,7 +40,7 @@ shredr $file[s] | $directory[ies]
 # '
 
 
-set -o errexit
+#set -o errexit
 set -o nounset
 set -o pipefail
 
@@ -54,14 +54,6 @@ script_name="shred_all"
 initial_release_year="2017"
 developer="cytopyge"
 source_dir="$XDG_DATA_HOME/c/git/code/source/function"
-
-
-main()
-{
-	sourcing
-	get_sudo
-	destroying
-}
 
 
 sourcing()
@@ -89,7 +81,7 @@ destroying()
 		link_count=$(find $target -depth -type l | wc -l)
 		directory_count=$(find $target -depth -type d | wc -l)
 
-		printf "\ndelete ($passes shredr passes): ${YELLOW}$file_count${NOC} files, ${YELLOW}$link_count${NOC} links and ${YELLOW}$directory_count${NOC} directories in $target\n\n${BOLD}THIS IS DEFINITE${NOC} continue? (y/N) "
+		printf "\ndelete ($passes shredr passes): ${fg_yellow}$file_count${st_def} files, ${fg_yellow}$link_count${st_def} links and ${fg_yellow}$directory_count${st_def} directories in $target\n\n${st_bold}THIS IS DEFINITE${st_def} continue? (y/N) "
 
 		reply_read_single_hidden_timer 10
 
@@ -100,12 +92,12 @@ destroying()
 
 		elif [[ -z $reply ]]; then
 
-			printf "${RED}timer interrupt${NOC}\n"
+			printf "${fg_red}timer interrupt${st_def}\n"
 			exit 4
 
 		else
 
-			printf "${RED}user interrupt${NOC}\n"
+			printf "${fg_red}user interrupt${st_def}\n"
 			exit 5
 
 		fi
@@ -139,10 +131,18 @@ destroying()
 		## remove all subdirs
 		[[ "$target" == "$(pwd)" ]] || sudo rm -rfv $target
 
-		printf "${BLUE}shredr complete${NOC}\n"
+		printf "${fg_blue}shredr complete${st_def}\n"
 
 	done
 
+}
+
+
+main()
+{
+	sourcing
+	get_sudo
+	destroying
 }
 
 main
