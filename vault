@@ -1110,7 +1110,7 @@ unmount()
 clear_cache()
 {
     sudo sysctl --write vm/drop_caches=3
-    printf "${fg_blue}vault closed${st_def}\n"
+    printf "${fg_amber}vault closed${st_def}\n"
 }
 
 
