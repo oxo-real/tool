@@ -228,10 +228,10 @@ check_sum()
 
     	checked=1
     	check-sum $(realpath $script_dir/$script_name)
+	[[ $? -ne 0 ]] && exit 88
 
     fi
 
-    [[ $? -ne 0 ]] && exit 88
 }
 
 

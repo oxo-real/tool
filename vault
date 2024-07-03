@@ -1091,7 +1091,7 @@ unmount()
 
 	sudo umount $mountpoint
 
-	printf "$vlt_mapper_id unmounted from $mountpoint\n"
+	printf "$vlt_mapper_id unmounted from ${fg_amber}$mountpoint${st_def}\n"
 
     fi
 
@@ -1110,7 +1110,7 @@ unmount()
 clear_cache()
 {
     sudo sysctl --write vm/drop_caches=3
-    printf "${fg_amber}vault closed${st_def}\n"
+    printf "vault closed\n"
 }
 
 
