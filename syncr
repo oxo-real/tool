@@ -76,7 +76,10 @@ initial_release='2020'
 
 ## initialize
 args="$@"
-log_dir="$XDG_LOGS_HOME/syncr"
+log_dir="$XDG_LOGS_HOME"
+sync_dir="$log_dir/syncr"
+hist_dir="$log_dir/history"
+timestamp="$(date +'%Y%m%d_%H%M%S_%s')"
 # #repo_mount="$HOME/dock/2/aur"
 # #code_mount="$HOME/dock/3/code"
 
@@ -156,9 +159,20 @@ config_fpcl()
 }
 
 
-logs()
+create_histbu ()
+{
+    cp $hist_dir/history $hist_dir/${timestamp}_histbu
+    #history -t %Y%m%d_%H%M%S -D 1 > "$hist_dir/${timestamp}_histbu"
+    #fc -l -d -t %Y%m%d_%H%M%S -D 1 &> "$hist_dir/${timestamp}_histbu"
+}
+
+
+logs ()
 {
     # synchronize .logs				(logs)
+
+    ## create backup of current history
+    create_histbu
 
     printf "\n${fg_blue}%s${st_def}\n" "synching logs"
 
@@ -390,13 +404,13 @@ local_share_all()
 report_log_file()
 {
     ## adding luks_uuid to log filename
-    log_file=$(get-newest-file $log_dir)
+    log_file=$(get-newest-file $sync_dir)
     log_file_name=$(basename $log_file)
     ## TODO DEV get luksuuid more robustly (!dock/transfer)
     luks_uuid=$(vault status $HOME/dock/transfer | grep 'luks_uuid' | awk '{print $2}')
     log_file_name_with_luks_uuid="${luks_uuid}_$log_file_name"
-    mv $log_file $log_dir/$log_file_name_with_luks_uuid
-    printf '\nlogged to: %s\n' "$log_dir/$log_file_name_with_luks_uuid"
+    mv $log_file $sync_dir/$log_file_name_with_luks_uuid
+    printf '\nlogged to: %s\n' "$sync_dir/$log_file_name_with_luks_uuid"
 }
 
 
