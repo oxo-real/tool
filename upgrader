@@ -569,7 +569,7 @@ package_upgrade_details()
 
 arch_audit()
 {
-    arch-audit --show-cve --color --format "%s %n %t %c"
+    arch-audit --show-cve --format "%s %n %t %c"
 }
 
 
