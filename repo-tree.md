@@ -23,7 +23,8 @@
 │   ├── sexager
 │   ├── snapshot
 │   ├── spin
-│   └── time_passed
+│   ├── time_passed
+│   └── trng
 ├── diffdir
 ├── diritems
 ├── dividir
@@ -72,7 +73,6 @@
 ├── syncr
 ├── timer
 ├── trash
-├── trng
 ├── tzoner
 ├── upgrader
 ├── vault
