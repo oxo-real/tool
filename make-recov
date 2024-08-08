@@ -42,7 +42,7 @@ source $source_dir/get_sudo
 source $source_dir/reply_functions
 source $source_dir/text_appearance
 
-make_offl_repo="$XDG_DATA_HOME/c/git/code/tool/make_offl_repo"
+make_offl_repo="$XDG_DATA_HOME/c/git/code/tool/make-offl-repo"
 
 
 repo()
@@ -100,7 +100,6 @@ code()
 	[.config]="$XDG_CONFIG_HOME" \
 	[code]="$XDG_DATA_HOME/c/git/code" \
         [note]="$XDG_DATA_HOME/c/git/note" \
-	[prvt]="$XDG_DATA_HOME/c/git/prvt" \
     )
 
 
