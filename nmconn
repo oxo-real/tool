@@ -42,7 +42,6 @@ device_identify()
 
 device_process()
 {
-    #[[ -z $device_sel ]] && exit 12
     if [[ -z $device_sel ]]; then
 
         exit 12
@@ -83,6 +82,7 @@ connection_identify()
     [[ $device_type == 'wifi' ]] && device_type='wireless'
 
     # make connection
+    #if [[ nmcli connection | grep $device_sel ]]
     nmcli connection add type ethernet con-name $device_sel
 
     nmcli connection modify \
