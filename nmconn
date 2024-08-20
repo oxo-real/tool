@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#! /usr/bin/env sh
 
 # connect or disconnect to a network using nmcli
 
@@ -6,7 +6,7 @@ sudo -v
 sudo systemctl start NetworkManager.service systemd-resolved.service
 
 
-get_nm_info()
+get_nm_info ()
 {
     echo
     nmcli general status
@@ -15,8 +15,6 @@ get_nm_info()
     echo
     nmcli radio
     echo
-    #nmcli connection show
-    #echo
 }
 
 
@@ -47,6 +45,7 @@ select_connection ()
 	    conn_sel_type='wifi'
 	    conn_sel_chan=$(printf '%s' "$conn_sel" | awk '{print $4}')
 	    conn_sel_signal=$(printf '%s' "$conn_sel" | awk '{print $7}')
+	    conn_sel_security=$(printf '%s' "$conn_sel" | awk '{print $NF}')
 
 	    add_connection
 	    ;;
@@ -89,9 +88,19 @@ add_connection ()
 {
     case $conn_sel_type in
 
-	## enter wifi password
 	wifi)
-	    nmcli device wifi connect $conn_sel_ssid --ask
+	    case $conn_sel_security in
+
+		*WPA*)
+		    ## enter wifi password
+		    nmcli device wifi connect $conn_sel_ssid --ask
+		    ;;
+
+		*)
+		    nmcli device wifi connect $conn_sel_ssid
+		    ;;
+
+	    esac
 	    ;;
 
     esac
@@ -170,7 +179,7 @@ disconnect ()
 }
 
 
-main()
+main ()
 {
     get_nm_info
     select_connection
