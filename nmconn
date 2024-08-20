@@ -2,136 +2,179 @@
 
 # connect or disconnect to a network using nmcli
 
-set -e
 sudo -v
-sudo systemctl start NetworkManager.service
+sudo systemctl start NetworkManager.service systemd-resolved.service
+
 
 get_nm_info()
 {
     echo
-    nmcli general
+    nmcli general status
     echo
-    nmcli device
+    nmcli device status
     echo
-    nmcli connection
+    nmcli radio
     echo
+    #nmcli connection show
+    #echo
 }
 
 
-device_identify()
+select_connection ()
 {
-    ## select device
+    ## known connections
+    ## human readable (no -terse) version here for fzf
+    conn_list=$(nmcli connection show)
+    conn_sel=$(printf '%s\n%s\n' "$conn_list" 'other_wl_ap' | fzf --header-lines 1 --prompt 'select connection ')
 
-    device_fzf_height=$(nmcli device | wc -l)
+    case $conn_sel in
 
-    device_sel=$(nmcli -t device | \
-        fzf --height=$device_fzf_height | \
-        awk -F : '{print $1}')
+	other_wl_ap)
+	    ## add a new wireless connection
 
-    ## caret in grep regex to prevent (i.c. of wifi)
-    ## also selection of p2p-dev-wlp1s0
-    device_type=$(nmcli -t device | \
-        grep "^$device_sel" | \
-        awk -F : '{print $2}')
+	    rfkill unblock wifi
+	    nmcli radio wifi on
 
-    device_conn=$(nmcli -t device | \
-	grep "^$device_sel" | \
-	awk -F : '{print $4}')
-}
+	    ## filter out connection in-use
+	    ## NOTICE $conn_sel source changes to device wifi list
+	    conn_sel=$(nmcli device wifi list | grep --invert-match '^*' | fzf --header-lines 1)
 
+	    ## mitigate possible spaces in connection name
+	    conn_sel_bssid=$(printf '%s' "$conn_sel" | awk '{print $1}')
+	    conn_sel_ssid=$(nmcli -terse connection show | grep $conn_sel_bssid | awk -F : '{print $1}')
 
-device_process()
-{
-    if [[ -z $device_sel ]]; then
+	    ## other connection data
+	    conn_sel_type='wifi'
+	    conn_sel_chan=$(printf '%s' "$conn_sel" | awk '{print $4}')
+	    conn_sel_signal=$(printf '%s' "$conn_sel" | awk '{print $7}')
 
-        exit 12
+	    add_connection
+	    ;;
 
-    else
+	*)
+	    ## known connection selected
 
-	# if selected device has connection then disconnect and delete non-wifi
-	if [[ -n $device_conn ]]; then
+	    ## mitigate possible spaces in connection name
+	    conn_sel_uuid=$(printf '%s' "$conn_sel" | awk '{print $2}')
+	    conn_sel=$(nmcli -terse connection show | grep $conn_sel_uuid)
 
-	    nmcli device disconnect $device_sel
+	    ## other connection data
+	    conn_sel_type=$(printf '%s' "$conn_sel" | awk -F : '{print $3}')
+	    conn_sel_device=$(printf '%s' "$conn_sel" | awk -F : '{print $4}')
 
-	    case $device_type in
+	    ## different variable name
+	    ## ($con_sel_ssid & $con_sel_name)
+	    case $conn_sel_type in
 
-		wifi)
-		    :
+		wifi | *wireless*)
+		    ## set type to wifi (in case of 802-11-wireless)
+		    conn_sel_type='wifi'
+		    ## mitigate possible spaces in connection name
+		    conn_sel_ssid=$(nmcli -terse connection show | grep $conn_sel_uuid | awk -F : '{print $1}')
 		    ;;
 
 		*)
-		    nmcli connection delete $device_sel
+		    ## mitigate possible spaces in connection name
+		    conn_sel_name=$(nmcli -terse connection show | grep $conn_sel_uuid | awk -F : '{print $1}')
 		    ;;
 
 	    esac
+	    ;;
 
-	    exit 0
-
-	fi
-
-    fi
+    esac
 }
 
 
-connection_identify()
+add_connection ()
 {
-    ## select connection
+    case $conn_sel_type in
 
-    ## nmcli -t device type = wifi
-    ## nmcli -t device type = wifi
-    [[ $device_type == 'wifi' ]] && device_type='wireless'
+	## enter wifi password
+	wifi)
+	    nmcli device wifi connect $conn_sel_ssid --ask
+	    ;;
 
-    # make connection
-    #if [[ nmcli connection | grep $device_sel ]]
-    nmcli connection add type ethernet con-name $device_sel
-
-    nmcli connection modify \
-	$device_sel \
-	ifname $device_sel \
-	ipv4.addresses 192.168.0.2/24 \
-	ipv4.gateway 192.168.2.2 \
-	ipv4.dns 192.168.2.2 \
-	+ipv4.dns 9.9.9.9 \
-	connection.autoconnect no \
-	ipv4.method manual
-
-    connection_fzf_height=$(nmcli connection | wc -l)
-
-    connection_sel=$(nmcli -t connection | \
-	grep "$device_type" | \
-	fzf --height=$connection_fzf_height | \
-	awk -F : '{print $1}')
-
-    connection_device=$(nmcli -t connection | \
-	grep "$connection_sel" | \
-	awk -F : '{print $4}')
+    esac
 }
 
 
-connection_process()
+determine_action ()
 {
-    #[[ -z $connection_sel ]] && exit 13
-    if [[ -z $connection_sel ]]; then
+    if [[ -z "$conn_sel" ]]; then
 
-        exit 13
-
-    else
-
-	nmcli device connect "$device_sel"
-	nmcli connection up "$connection_sel"
-
+	nmcli connection show
 	exit 0
 
     fi
+
+    case $conn_sel_device in
+
+	-- | '')
+	    ## connect
+	    connect
+	    ;;
+
+	*)
+	    ## disconnect
+	    disconnect
+	    ;;
+
+    esac
+}
+
+
+connect ()
+{
+    case $conn_sel_type in
+
+	wifi)
+	    ## connect wifi
+	    rfkill unblock wifi
+	    nmcli radio wifi on
+	    sleep 1
+	    nmcli connection up "$conn_sel_ssid"
+	    echo
+	    nmcli device status
+	    ;;
+
+	*)
+	    ## connect non-wifi
+	    nmcli connection up "$conn_sel_name"
+	    ;;
+
+    esac
+}
+
+
+disconnect ()
+{
+    case $conn_sel_type in
+
+	wifi)
+	    ## disconnect wifi
+	    nmcli connection down "$conn_sel_ssid"
+	    nmcli radio wifi off
+	    rfkill block wifi
+	    echo
+	    nmcli device status
+	    ;;
+
+	*)
+	    ## disconnect non-wifi
+	    nmcli connection down "$conn_sel_name"
+	    echo
+	    nmcli device status
+	    ;;
+
+    esac
 }
 
 
 main()
 {
-    device_identify
-    device_process
-    connection_identify
-    connection_process
+    get_nm_info
+    select_connection
+    determine_action
 }
 
 main

@@ -51,6 +51,7 @@
 ├── netflow
 ├── netistat
 ├── nmconn
+├── nmconn_old
 ├── notmuch-search
 ├── otp95
 ├── passexp
@@ -98,5 +99,5 @@
     ├── trashOLD
     └── wfa.py
 
-5 directories, 93 files
+5 directories, 94 files
 ```

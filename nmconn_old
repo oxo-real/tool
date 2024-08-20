@@ -1,0 +1,137 @@
+#!/usr/bin/env bash
+
+# connect or disconnect to a network using nmcli
+
+set -e
+sudo -v
+sudo systemctl start NetworkManager.service
+
+get_nm_info()
+{
+    echo
+    nmcli general
+    echo
+    nmcli device
+    echo
+    nmcli connection
+    echo
+}
+
+
+device_identify()
+{
+    ## select device
+
+    device_fzf_height=$(nmcli device | wc -l)
+
+    device_sel=$(nmcli -t device | \
+        fzf --height=$device_fzf_height | \
+        awk -F : '{print $1}')
+
+    ## caret in grep regex to prevent (i.c. of wifi)
+    ## also selection of p2p-dev-wlp1s0
+    device_type=$(nmcli -t device | \
+        grep "^$device_sel" | \
+        awk -F : '{print $2}')
+
+    device_conn=$(nmcli -t device | \
+	grep "^$device_sel" | \
+	awk -F : '{print $4}')
+}
+
+
+device_process()
+{
+    if [[ -z $device_sel ]]; then
+
+        exit 12
+
+    else
+
+	# if selected device has connection then disconnect and delete non-wifi
+	if [[ -n $device_conn ]]; then
+
+	    nmcli device disconnect $device_sel
+
+	    case $device_type in
+
+		wifi)
+		    :
+		    ;;
+
+		*)
+		    nmcli connection delete $device_sel
+		    ;;
+
+	    esac
+
+	    exit 0
+
+	fi
+
+    fi
+}
+
+
+connection_identify()
+{
+    ## select connection
+
+    ## nmcli -t device type = wifi
+    ## nmcli -t device type = wifi
+    [[ $device_type == 'wifi' ]] && device_type='wireless'
+
+    # make connection
+    #if [[ nmcli connection | grep $device_sel ]]
+    nmcli connection add type ethernet con-name $device_sel
+
+    nmcli connection modify \
+	$device_sel \
+	ifname $device_sel \
+	ipv4.addresses 192.168.0.2/24 \
+	ipv4.gateway 192.168.2.2 \
+	ipv4.dns 192.168.2.2 \
+	+ipv4.dns 9.9.9.9 \
+	connection.autoconnect no \
+	ipv4.method manual
+
+    connection_fzf_height=$(nmcli connection | wc -l)
+
+    connection_sel=$(nmcli -t connection | \
+	grep "$device_type" | \
+	fzf --height=$connection_fzf_height | \
+	awk -F : '{print $1}')
+
+    connection_device=$(nmcli -t connection | \
+	grep "$connection_sel" | \
+	awk -F : '{print $4}')
+}
+
+
+connection_process()
+{
+    #[[ -z $connection_sel ]] && exit 13
+    if [[ -z $connection_sel ]]; then
+
+        exit 13
+
+    else
+
+	nmcli device connect "$device_sel"
+	nmcli connection up "$connection_sel"
+
+	exit 0
+
+    fi
+}
+
+
+main()
+{
+    device_identify
+    device_process
+    connection_identify
+    connection_process
+}
+
+main
