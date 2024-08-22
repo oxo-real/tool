@@ -68,7 +68,7 @@ syncr $HOME/dock/transfer/x1c/home/oxo --delete --links \
 set -o pipefail
 
 ## script
-script_name='passr'
+script_name='syncr'
 script_dir="$XDG_DATA_HOME/c/git/code/tool"
 developer='oxo'
 license='gplv3'
