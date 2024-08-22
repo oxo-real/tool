@@ -212,19 +212,20 @@ check_target_status()
 
 	    esac
 
-	    printf "CAUTION! all data will be permanently lost!\n"
+	    printf "CAUTION  all data will be permanently lost!\n"
 	    printf "are you sure to overwrite the entire $target_c_type? (y/N) "
 	    reply_single
 	    echo
 
 	    if printf "$reply" | grep -iq "^y"; then
 
-		printf "about to ${fg_magenta}overwrite${st_def} $target_c_type $target\n"
+		printf "about to ${fg_magenta}overwrite${st_def} $target_c_type:\n"
 
 		# human info
 		echo
 		blk_dev_info=$(lsblk -i --tree -o name,fstype,uuid,path,size,fsuse%,fsused,label,mountpoint | grep $target)
 		printf "${st_bold}$blk_dev_info${st_def}\n"
+		echo
 
 		printf "please confirm? (y/N) "
 		reply_single
@@ -486,7 +487,6 @@ create_vault()
     sudo cryptsetup luksFormat --type luks2 --verify-passphrase $target
 
     echo
-    #'
 
     ## validate target
     printf "validating $target:\n"
@@ -505,9 +505,9 @@ open_luks()
     echo
     printf "%20s %s\n" "decrypting" $target
     sleep 1
-#    printf '\n%s\n' "mapping $target to $vlt_mapper_id"
     printf "%20s %s\n" "mapping to" $vlt_mapper_id
     sleep 1
+    echo
 }
 
 
@@ -515,7 +515,7 @@ make_fs ()
 {
     printf "writing ext4 filesystem to $vlt_mapper_id\n"
 
-    sudo mkfs.ext4 -L VAULT -j $vlt_mapper_id
+    sudo mkfs.ext4 -L VAULT $vlt_mapper_id
 
     sleep 3
 }
