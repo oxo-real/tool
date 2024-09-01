@@ -107,7 +107,7 @@ keyboard_input ()
     # read input
     askpass_exist=$(command -v askpass >/dev/null 2>&1; echo $?)
 
-    printf "pwgn  "
+    printf "$(FGx 999999)pwgn${st_def}  "
 
     case $askpass_exist in
 
@@ -118,19 +118,25 @@ keyboard_input ()
 
 	*)
 	    : '
-	    ## WARNING DEV wl-paste does NOT with this
-	    printf "🔐  [echo_off]"
+	    ## DEV TODO
+	    ## NOTICE wl-paste does NOT work with this
+	    printf '🔐  [echo_off]'
 	    read -e -r -s -n 1 char1
+	    #read -e -r -s -n 1 char1
 	    tput cuu1
 	    erase_line
 	    # '
-	    printf "🔐  "
+
+	    : '
+	    printf "$(FGx 999999)pwgn${st_def}  "
+	    printf '🔐  '
 	    read -e -r -s input2
 	    input="$char1$input2"
 	    ## remove eol
 	    input=$(echo $input | tr -d '\n')
-
-	    echo
+	    # '
+	    printf 'no askpass\n'
+	    exit 46
 	    ;;
 
     esac

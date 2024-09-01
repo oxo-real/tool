@@ -13,7 +13,6 @@ hist_file="$XDG_LOGS_HOME/history/history"
 # remove last line from history
 # when script is called via cli
 # this will be the line: 'sh .. histdel'
-# [CHECK] when bindkey is used
 sed -i -n -e :a -e '1,1!{P;N;D;};N;ba' $hist_file
 
 hist_lines=$(wc -l $hist_file)

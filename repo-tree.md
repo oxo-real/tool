@@ -40,6 +40,7 @@
 ├── getlocs
 ├── get-newest-file
 ├── get-oldest-file
+├── histcmdselector
 ├── histdel
 ├── home-clear
 ├── kill-float
@@ -99,5 +100,5 @@
     ├── trashOLD
     └── wfa.py
 
-5 directories, 94 files
+5 directories, 95 files
 ```

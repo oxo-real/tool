@@ -1,0 +1,8 @@
+#! /usr/bin/env sh
+
+## NOTICE fc only r/w history options within an interactive shell
+
+## enter main command
+main_command=$(fc -l -d -r -t %Y%m%d_%H%M%S -D 1 | sort --key 1n | sort --reverse --key 4 | uniq -c --skip-fields 3 | sort --key 1nr | nl --number-width 4 --number-separator ' ' | fzf --prompt 'main command ' --tiebreak begin --print-query | head -n 1)
+
+selection=$(fc -l -d -r -t %Y%m%d_%H%M%S -D 1 | sort --key 1n | sort --reverse --key 4 | uniq -c --skip-fields 3 | sort --key 1nr | nl --number-width 4 --number-separator ' ' | fzf --prompt 'selection ')
