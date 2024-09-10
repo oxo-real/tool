@@ -1,51 +1,90 @@
-#!/bin/bash
-#
-##
-###      _          _
-###   __| | ___  __| |_   _ _ __
-###  / _` |/ _ \/ _` | | | | '_ \
-### | (_| |  __/ (_| | |_| | |_) |
-###  \__,_|\___|\__,_|\__,_| .__/
+#! /usr/bin/env sh
+
+###      _          _                   _ _
+###   __| | ___  __| |_   _ _ __       | (_)_ __   ___  ___
+###  / _` |/ _ \/ _` | | | | '_ \ _____| | | '_ \ / _ \/ __|
+### | (_| |  __/ (_| | |_| | |_) |_____| | | | | |  __/\__ \
+###  \__,_|\___|\__,_|\__,_| .__/      |_|_|_| |_|\___||___/
 ###                        |_|
-###  _ _|_ _ ._    _  _
-### (_\/|_(_)|_)\/(_|(/_
-###   /      |  /  _|
 ###
-### dedup (c) 2020 - 2021 cytopyge
+###  # # # # # #
+###       #
+###  # # # # # #
 ###
-### remove duplicate lines from file, while preserving line order
-###
-### usage: dedup <source_file> [destination_file]
-##
-#
+
+: '
+dedup-lines
+remove duplicate lines from file, while preserving line order
+copyright (c) 2020 - 2024  |  oxo
+
+GNU GPLv3 GENERAL PUBLIC LICENSE
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+https://www.gnu.org/licenses/gpl-3.0.txt
+
+@oxo@qoto.org
+
+
+# dependencies
+  n/a
+
+# usage
+  dedup $target_file [$destination_file]
+
+# examples
+  dedup target.txt
+  dedup target.txt dest.txt
+
+# '
+
+
+set -o errexit
+#set -o nounset
+set -o pipefail
 
 
 src_file=$1
 dst_file=$2
 
 
-dedup()
+dedup ()
 {
-	## cat -n --> print file with added linenumbers (used for sorting)
-	cat -n $src_file | \
+    ## cat -n --> print file with added linenumbers
+    ## linenumbers are used for sorting
+    cat -n $src_file | \
 
-		## sort -u -k 2 --> output uniq rows based on colomn 2 to EOL
-		sort -u -k 2 | \
+	## sort -u -k 2 --> output unique rows based on colomn 2 to EOL
+	sort -u -k 2 | \
 
-		## sort -n k 1,1 --> output numerical based on column 1
-		sort -n -k 1,1 | \
+	## sort -n k 1,1 --> output numerical based on linenumbers
+	sort -n -k 1,1 | \
 
-		## remove linenumbers from file, by showing only second column
-		cut -f 2
+	## remove linenumbers from file, by showing from second column
+	cut -f 2-
 }
 
 
-#if [[ -z $dst_file ]]; then
+if [[ -z $dst_file ]]; then
 
-	dedup
+    dedup
 
-#else
+elif [[ ! -f $dst_file ]]; then
 
-#	dedup > $dst_file
+    dedup > $dst_file
 
-#fi
+else
+
+    printf '%s exists\n' "$dst_file"
+    exit 83
+
+fi

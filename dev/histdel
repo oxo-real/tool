@@ -1,0 +1,98 @@
+#! /usr/bin/env sh
+
+set -o errexit
+#set -o nounset
+set -o pipefail
+
+source_dir="$XDG_DATA_HOME/c/git/code/source/function"
+
+## reply functions
+source $source_dir/reply_functions
+source $source_dir/text_appearance
+
+
+## create hist_file
+hist_file=$(cat $HISTFILE)
+
+## total lines before deletion
+## print wc for human
+wc -l $HISTFILE
+hist_lines_0=$(wc -l $HISTFILE | awk '{print $1}')
+hist_lines_0_num_places=$(printf '%s' "$hist_lines_0" | wc -c)
+
+## filtered list with only unique commands from hist_file
+## awk prints first ; and everything after
+## sed removes every first ;
+hist_uniq=$(sed 's/^.*;//' $HISTFILE | sort | uniq -u)
+#hist_uniq=$(awk -F ';' -vOFS=';' '{$1=""; print $0}' $HISTFILE | sed 's#^;##' | sort | uniq -u)
+#hist_uniq=$(awk -F ';' -vOFS=';' '{$1=""; print $0}' $HISTFILE | sed 's/^;//' | sort | uniq -u)
+#hist_uniq=$(printf '%s' "$hist_file" | awk -F ';' -vOFS=';' '{$1=""; print $0}' | sed 's/^;//' | sort | uniq -u)
+
+## delete last line from history
+## when this script is called via cli
+## this will be the line: 'histdel'
+last_cmd=$(tail -2 $HISTFILE | head -n 1)
+## identify last_cmd
+last_cmd="${last_cmd#*;}" # parameter expansion (delete all before ';')
+## move lastcmd to top of hist_uniq (hult)
+hist_uniq_last_top=$(printf '%s' "$hist_uniq" | sed "#$last_cmd#d" | sed "1i$last_cmd")
+
+## select lines from hult
+hult_select=$(printf '%s' "$hist_uniq_last_top" | fzf -m)
+
+## delete selected lines from $HISTFILE
+while read -u 5 command_selected; do
+
+    instances=$(grep -P --line-regexp ":[[:space:]][[:digit:]]+:[[:digit:]]+;$command_selected$" $HISTFILE | wc -l)
+
+    instances_indent=$(( hist_lines_0_num_places + 0 ))
+    delete_indent=$(( hist_lines_0_num_places + 1 ))
+    printf "%${instances_indent}s%s" "$instances"
+    printf "%s${fg_amber}%s${st_def}\n" ' ' "$command_selected"
+
+    [[ $instances -eq 0 ]] && continue
+
+    printf "%${delete_indent}sdelete from history? (y/N) "
+    reply_read_single
+
+    case $reply in
+
+	y)
+	    tput cuu1
+	    printf '\r'
+	    tput el
+
+	    # delete lines
+
+	    #TODO DEV lines with escaped spaces 'abc\ def'
+	    ## 20240905_074723_1725515243 sed alternative delimiter didn't work
+	    ## workaround: escape slashes in filepaths for proper processing sed regex
+	    cmd_sel_esc=$(printf '%s' "$command_selected" | sed 's_/_\\/_g')
+
+	    ## with 'setopt EXTENDED_HISTORY' the history data format is:
+	    ## ‘: <beginning time>:<elapsed seconds>;<command>’
+	    sed -i --regexp-extended "/:[[:space:]][[:digit:]]+:[[:digit:]]+;$cmd_sel_esc$/d" $HISTFILE
+
+	    hist_lines_1=$(wc -l $HISTFILE | awk '{print $1}')
+	    lines_deleted=$(( hist_lines_0 - hist_lines_1 ))
+
+	    lines_deleted_num_places=$(printf '%s' "$lines_deleted" | wc -c)
+	    lines_deleted_indent=$(( hist_lines_0_num_places - lines_deleted_num_places + 1 ))
+	    ;;
+
+	*)
+	    printf "${fg_amber}deletion aborted${st_def}\n"
+	    exit
+	    ;;
+
+    esac
+
+done 5<<< "$hult_select"
+
+printf "${st_bold}%${lines_deleted_indent}s${st_def} %s" "$lines_deleted"
+printf 'line(s) deleted\n'
+#printf "%s %s\n" "$hist_lines_1" 'total lines after deletion'
+
+wc -l $HISTFILE
+	    #printf 'DEV 034 %s\n' "$command_selected"
+	    #exit 255

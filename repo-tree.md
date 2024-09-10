@@ -19,6 +19,8 @@
 │   ├── figlet_clock
 │   ├── groff_compile
 │   ├── hashr
+│   ├── histcmdselector
+│   ├── histdel
 │   ├── location
 │   ├── sexager
 │   ├── snapshot
@@ -40,7 +42,6 @@
 ├── getlocs
 ├── get-newest-file
 ├── get-oldest-file
-├── histcmdselector
 ├── histdel
 ├── home-clear
 ├── kill-float
@@ -49,10 +50,6 @@
 ├── metar
 ├── mic-switch
 ├── mountr
-├── netflow
-├── netistat
-├── nmconn
-├── nmconn_old
 ├── notmuch-search
 ├── otp95
 ├── passexp
@@ -96,9 +93,10 @@
     ├── hclsmvp
     ├── metar
     ├── mountr_rofi
+    ├── nmconn_old
     ├── passr_old
     ├── trashOLD
     └── wfa.py
 
-5 directories, 95 files
+5 directories, 93 files
 ```

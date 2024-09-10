@@ -1,4 +1,55 @@
-#!/usr/bin/env zsh
+#! /usr/bin/env sh
+
+###  _     _     _      _      _
+### | |__ (_)___| |_ __| | ___| |
+### | '_ \| / __| __/ _` |/ _ \ |
+### | | | | \__ \ || (_| |  __/ |
+### |_| |_|_|___/\__\__,_|\___|_|
+###
+###
+###  # # # # # #
+###       #
+###  # # # # # #
+###
+
+: '
+histdel
+select history lines for removal
+copyright (c) 2020 - 2024  |  oxo
+
+GNU GPLv3 GENERAL PUBLIC LICENSE
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+https://www.gnu.org/licenses/gpl-3.0.txt
+
+@oxo@qoto.org
+
+
+# dependencies
+  n/a
+
+# usage
+  histdel
+
+# examples
+  histdel
+
+# '
+
+
+#set -o errexit
+#set -o nounset
+set -o pipefail
 
 source_dir="$XDG_DATA_HOME/c/git/code/source/function"
 
@@ -7,49 +58,98 @@ source $source_dir/reply_functions
 source $source_dir/text_appearance
 
 
-# first remove last line from history, then recall last line
-hist_file="$XDG_LOGS_HOME/history/history"
+## create hist_file
+hist_file=$(cat $HISTFILE)
 
-# remove last line from history
-# when script is called via cli
-# this will be the line: 'sh .. histdel'
-sed -i -n -e :a -e '1,1!{P;N;D;};N;ba' $hist_file
+## total lines before deletion
+## print wc for human
+wc -l $HISTFILE
+hist_lines_0=$(wc -l $HISTFILE | awk '{print $1}')
+hist_lines_0_num_places=$(printf '%s' "$hist_lines_0" | wc -c)
 
-hist_lines=$(wc -l $hist_file)
-last_cmd=$(tail -1 $hist_file)
-last_cmd="${last_cmd#*;}" # parameter expansion (remove all before ';')
-instances=$(grep -i "$last_cmd" "$hist_file" | wc -l)
+## filtered history with only unique commands from hist_file
+## sed filters out the command from hist_file
+##  - replace everything that's not a semicolon up to first semicolon
+## head filters out last command entered (probably histdel)
+## nl adds linenumbers for keeping historical order down the line
+##  - timestamps in hist_file occasionaly can be similar for multiple lines, therefore:
+## sort commands for uniq to function properly
+## uniq get unique commands only
+## sort on reversed chonological order (newest first)
+hist_uniq=$(\
+	    sed 's/[^;]*;//' $HISTFILE | \
+		head -n -1 | \
+		nl --number-separator ' ' | \
+		sort -k 2 | uniq --skip-fields 1 | \
+		sort -k 1,1 --numeric-sort --reverse | \
+		sed --regexp-extended 's/[[:space:]]*[[:digit:]]+[[:space:]]{1}//' \
+	 )
+#hist_uniq=$(sed -e 's/^: // ; s/:[[:digit:]]*;/ /' $HISTFILE | sort -k 2 | uniq -u --skip-fields 1 | sort -k 1,1 --numeric-sort --reverse | tail -n +2)
 
-l=16
-printf "${YELLOW}*$last_cmd*${NOC}\n"
-echo
-printf "%"$l"s %s\n" "instances:" "$instances"
-printf "%"$l"s %s\n" "total lines:" "$hist_lines"
-echo
-printf "remove from history? (y/N) "
-#[TODO] select matches?
+#hist_uniq=$(awk -F ';' -vOFS=';' '{$1=""; print $0}' $HISTFILE | sed 's#^;##' | sort | uniq -u)
+#hist_uniq=$(awk -F ';' -vOFS=';' '{$1=""; print $0}' $HISTFILE | sed 's/^;//' | sort | uniq -u)
+#hist_uniq=$(printf '%s' "$hist_file" | awk -F ';' -vOFS=';' '{$1=""; print $0}' | sed 's/^;//' | sort | uniq -u)
 
-reply_single_hidden
-#reply_single_hidden_timed
+## select lines from hist_uniq
+hist_uniq_select=$(printf '%s' "$hist_uniq" | fzf -m)
 
-case $reply in
+## delete selected lines from $HISTFILE
+while read -u 5 command_selected; do
+
+    grep --perl-regexp --line-regexp ":[[:space:]][[:digit:]]+:[[:digit:]]+;$command_selected$" $HISTFILE
+    instances=$(grep --perl-regexp --line-regexp ":[[:space:]][[:digit:]]+:[[:digit:]]+;$command_selected$" $HISTFILE | wc -l)
+
+    instances_indent=$(( hist_lines_0_num_places + 2 ))
+    printf "%${instances_indent}s%s" "$instances"
+    printf "%s${fg_amber}%s${st_def}\n" ' ' "$command_selected"
+
+    #[[ $instances -eq 0 ]] && continue
+
+    printf "%${delete_indent}sdelete from history? (y/N) "
+    reply_read_single
+
+    case $reply in
 
 	y)
-		echo
-		echo
-		# remove lines
-		# _TODO spaces in $last_cmd errors with extra characters after command
-		sed -i "/$last_cmd/d" $hist_file
-		printf "%"$l"s %s\n" "lines removed:" "$instances"
-		hist_lines=$(wc -l $hist_file)
-		printf "%"$l"s %s\n" "total lines:" "$hist_lines"
-		;;
+	    tput cuu1
+	    printf '\r'
+	    tput el
+
+	    # delete lines
+
+	    #TODO DEV lines with escaped spaces 'abc\ def'
+	    ## 20240905_074723_1725515243 sed alternative delimiter didn't work
+	    ## workaround: escape slashes in filepaths for proper processing sed regex
+	    ###cmd_sel_esc=$(printf '%s' "$command_selected" | sed 's_/_\\/_g')
+
+	    ## with 'setopt EXTENDED_HISTORY' the history data format is:
+	    ## ‘: <beginning time>:<elapsed seconds>;<command>’
+	    sed -i --regexp-extended "/\:[[:space:]][[:digit:]]+\:[[:digit:]]+\;$command_selected$/d" $HISTFILE
+	    ###sed -i --regexp-extended "/:[[:space:]][[:digit:]]+:[[:digit:]]+;$cmd_sel_esc$/d" $HISTFILE
+
+	    hist_lines_1=$(wc -l $HISTFILE | awk '{print $1}')
+	    lines_deleted=$(( hist_lines_0 - hist_lines_1 ))
+
+	    lines_deleted_num_places=$(printf '%s' "$lines_deleted" | wc -c)
+	    lines_deleted_indent=$(( hist_lines_0_num_places - lines_deleted_num_places + 1 ))
+	    ;;
 
 	*)
-		echo
-		echo
-		printf "${RED}removal aborted${NOC}\n"
-		exit
-		;;
+	    printf "${fg_amber}deletion aborted${st_def}\n"
+	    exit
+	    ;;
 
-esac
+    esac
+
+done 5<<< "$hist_uniq_select"
+
+printf "${st_bold}%${lines_deleted_indent}s${st_def} %s" "$lines_deleted"
+printf 'line(s) deleted\n'
+#printf "%s %s\n" "$hist_lines_1" 'total lines after deletion'
+
+## read from hist_file
+#echo type fc -R | dotool
+
+wc -l $HISTFILE
+	    #printf 'DEV 034 %s\n' "$command_selected"
+	    #exit 255
