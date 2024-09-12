@@ -52,6 +52,8 @@ https://www.gnu.org/licenses/gpl-3.0.txt
 set -o pipefail
 
 source_dir="$XDG_DATA_HOME/c/git/code/source/function"
+hist_dir="$XDG_LOGS_HOME/history"
+timestamp=$(date +'%s')
 
 ## reply functions
 source $source_dir/reply_functions
@@ -62,7 +64,7 @@ source $source_dir/text_appearance
 hist_file=$(cat $HISTFILE)
 
 ## total lines before deletion
-## print wc for human
+## print wc lines for human
 wc -l $HISTFILE
 hist_lines_0=$(wc -l $HISTFILE | awk '{print $1}')
 hist_lines_0_num_places=$(printf '%s' "$hist_lines_0" | wc -c)
@@ -82,8 +84,10 @@ hist_uniq=$(\
 		nl --number-separator ' ' | \
 		sort -k 2 | uniq --skip-fields 1 | \
 		sort -k 1,1 --numeric-sort --reverse | \
-		sed --regexp-extended 's/[[:space:]]*[[:digit:]]+[[:space:]]{1}//' \
+		awk '{$1=""; print $0}' \
 	 )
+		#sed 's/[[:space:]]*[[:digit:]]+[[:space:]]{1}//' \
+		#sed --regexp-extended 's/[[:space:]]*[[:digit:]]+[[:space:]]{1}//' \
 #hist_uniq=$(sed -e 's/^: // ; s/:[[:digit:]]*;/ /' $HISTFILE | sort -k 2 | uniq -u --skip-fields 1 | sort -k 1,1 --numeric-sort --reverse | tail -n +2)
 
 #hist_uniq=$(awk -F ';' -vOFS=';' '{$1=""; print $0}' $HISTFILE | sed 's#^;##' | sort | uniq -u)
@@ -96,19 +100,28 @@ hist_uniq_select=$(printf '%s' "$hist_uniq" | fzf -m)
 ## delete selected lines from $HISTFILE
 while read -u 5 command_selected; do
 
-    grep --perl-regexp --line-regexp ":[[:space:]][[:digit:]]+:[[:digit:]]+;$command_selected$" $HISTFILE
-    instances=$(grep --perl-regexp --line-regexp ":[[:space:]][[:digit:]]+:[[:digit:]]+;$command_selected$" $HISTFILE | wc -l)
+    ## with 'setopt EXTENDED_HISTORY' the history data format is:
+    ## ‘: <beginning time>:<elapsed seconds>;<command>’
+    regex="^:[[:space:]][[:digit:]]+:[[:digit:]]+;${command_selected}$"
+
+    #instances=$(awk -v re="$regex" 'BEGIN{print re}' $HISTFILE | wc -l)
+    grep --perl-regexp --line-regexp "$regex" $HISTFILE
+    #instances=$(grep --perl-regexp --line-regexp "$regex" $HISTFILE | wc -l)
+    #instances=$(grep --perl-regexp --line-regexp ":[[:space:]][[:digit:]]+:[[:digit:]]+;$command_selected$" $HISTFILE | wc -l)
 
     instances_indent=$(( hist_lines_0_num_places + 2 ))
     printf "%${instances_indent}s%s" "$instances"
     printf "%s${fg_amber}%s${st_def}\n" ' ' "$command_selected"
 
-    #[[ $instances -eq 0 ]] && continue
-
-    printf "%${delete_indent}sdelete from history? (y/N) "
+    printf "%${delete_indent}sdelete from history? (e/y/N) "
     reply_read_single
 
     case $reply in
+
+	e)
+	    #TODO edit command_selected value
+	    command_edited=$(read command_selected)
+	    ;;
 
 	y)
 	    tput cuu1
@@ -122,9 +135,12 @@ while read -u 5 command_selected; do
 	    ## workaround: escape slashes in filepaths for proper processing sed regex
 	    ###cmd_sel_esc=$(printf '%s' "$command_selected" | sed 's_/_\\/_g')
 
-	    ## with 'setopt EXTENDED_HISTORY' the history data format is:
-	    ## ‘: <beginning time>:<elapsed seconds>;<command>’
-	    sed -i --regexp-extended "/\:[[:space:]][[:digit:]]+\:[[:digit:]]+\;$command_selected$/d" $HISTFILE
+	    #awk -i inplace -v re="$regex" '!($0 ~ re)' $HISTFILE
+	    #awk -v re="$regex" "re {next} {print}" $HISTFILE > "$hist_dir/$timestamp" && \
+	    #	mv "$hist_dir/$timestamp" $HISTFILE
+	    sed -i '/"$regex"/d' $HISTFILE
+	    #sed -i --regexp-extended "$regex/d" $HISTFILE
+	    #sed -i --regexp-extended "/^:[[:space:]][[:digit:]]+:[[:digit:]]+;$command_selected$/d" $HISTFILE
 	    ###sed -i --regexp-extended "/:[[:space:]][[:digit:]]+:[[:digit:]]+;$cmd_sel_esc$/d" $HISTFILE
 
 	    hist_lines_1=$(wc -l $HISTFILE | awk '{print $1}')
@@ -151,5 +167,7 @@ printf 'line(s) deleted\n'
 #echo type fc -R | dotool
 
 wc -l $HISTFILE
+
+#DEVZONE
 	    #printf 'DEV 034 %s\n' "$command_selected"
 	    #exit 255
