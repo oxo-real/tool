@@ -72,24 +72,27 @@ hist_lines_0_num_places=$(printf '%s' "$hist_lines_0" | wc -c)
 ## filtered history with only unique commands from hist_file
 ## sed filters out the command from hist_file
 ##  - replace everything that's not a semicolon up to first semicolon
-## head filters out last command entered (probably histdel)
+## head filters out current command entered (probably histdel)
 ## nl adds linenumbers for keeping historical order down the line
+## sed remove trailing slashes (prepare unique)
 ##  - timestamps in hist_file occasionaly can be similar for multiple lines, therefore:
 ## sort commands for uniq to function properly
 ## uniq get unique commands only
 ## sort on reversed chonological order (newest first)
+## awk print only column 2
 hist_uniq=$(\
 	    sed 's/[^;]*;//' $HISTFILE | \
 		head -n -1 | \
 		nl --number-separator ' ' | \
-		sort -k 2 | uniq --skip-fields 1 | \
+		sed 's|/$||' | \
+		sort -k 2 | \
+		uniq --skip-fields 1 --unique | \
 		sort -k 1,1 --numeric-sort --reverse | \
 		awk '{$1=""; print $0}' \
 	 )
 		#sed 's/[[:space:]]*[[:digit:]]+[[:space:]]{1}//' \
 		#sed --regexp-extended 's/[[:space:]]*[[:digit:]]+[[:space:]]{1}//' \
 #hist_uniq=$(sed -e 's/^: // ; s/:[[:digit:]]*;/ /' $HISTFILE | sort -k 2 | uniq -u --skip-fields 1 | sort -k 1,1 --numeric-sort --reverse | tail -n +2)
-
 #hist_uniq=$(awk -F ';' -vOFS=';' '{$1=""; print $0}' $HISTFILE | sed 's#^;##' | sort | uniq -u)
 #hist_uniq=$(awk -F ';' -vOFS=';' '{$1=""; print $0}' $HISTFILE | sed 's/^;//' | sort | uniq -u)
 #hist_uniq=$(printf '%s' "$hist_file" | awk -F ';' -vOFS=';' '{$1=""; print $0}' | sed 's/^;//' | sort | uniq -u)
@@ -101,7 +104,7 @@ hist_uniq_select=$(printf '%s' "$hist_uniq" | fzf -m)
 while read -u 5 command_selected; do
 
     ## with 'setopt EXTENDED_HISTORY' the history data format is:
-    ## ‘: <beginning time>:<elapsed seconds>;<command>’
+    ## ‘: <start_time>:<elapsed_seconds>;<command>’
     regex="^:[[:space:]][[:digit:]]+:[[:digit:]]+;${command_selected}$"
 
     #instances=$(awk -v re="$regex" 'BEGIN{print re}' $HISTFILE | wc -l)
