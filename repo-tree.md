@@ -81,6 +81,7 @@
 ├── yank-buffer
 ├── zsh-root-like-user
 └── zzz-deprecated
+    ├── 20240922_174408_1727019848-histdel
     ├── backup_dot
     ├── cryptr_org
     ├── cryptr_v01
@@ -98,5 +99,5 @@
     ├── trashOLD
     └── wfa.py
 
-5 directories, 93 files
+5 directories, 94 files
 ```

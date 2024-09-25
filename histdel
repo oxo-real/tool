@@ -53,122 +53,60 @@ set -o pipefail
 
 source_dir="$XDG_DATA_HOME/c/git/code/source/function"
 hist_dir="$XDG_LOGS_HOME/history"
-timestamp=$(date +'%s')
+timestamp=$(date +'%Y%m%d_%H%M%S_%s')
 
 ## reply functions
 source $source_dir/reply_functions
 source $source_dir/text_appearance
 
 
-## create hist_file
-hist_file=$(cat $HISTFILE)
+## create working hist_file
+histfile_ts=$hist_dir/${timestamp}-histdel
+cat $HISTFILE > $histfile_ts
+cp $histfile_ts ${histfile_ts}_bu
+nl --number-separator ' ' $histfile_ts > ${histfile_ts}_nl
 
 ## total lines before deletion
 ## print wc lines for human
 wc -l $HISTFILE
-hist_lines_0=$(wc -l $HISTFILE | awk '{print $1}')
+hist_lines_0=$(wc -l $histfile_ts | awk '{print $1}')
 hist_lines_0_num_places=$(printf '%s' "$hist_lines_0" | wc -c)
 
-## filtered history with only unique commands from hist_file
-## sed filters out the command from hist_file
-##  - replace everything that's not a semicolon up to first semicolon
-## head filters out current command entered (probably histdel)
-## nl adds linenumbers for keeping historical order down the line
-## sed remove trailing slashes (prepare unique)
-##  - timestamps in hist_file occasionaly can be similar for multiple lines, therefore:
-## sort commands for uniq to function properly
-## uniq get unique commands only
-## sort on reversed chonological order (newest first)
-## awk print only column 2
-hist_uniq=$(\
-	    sed 's/[^;]*;//' $HISTFILE | \
-		head -n -1 | \
-		nl --number-separator ' ' | \
-		sed 's|/$||' | \
-		sort -k 2 | \
-		uniq --skip-fields 1 --unique | \
-		sort -k 1,1 --numeric-sort --reverse | \
-		awk '{$1=""; print $0}' \
-	 )
-		#sed 's/[[:space:]]*[[:digit:]]+[[:space:]]{1}//' \
-		#sed --regexp-extended 's/[[:space:]]*[[:digit:]]+[[:space:]]{1}//' \
-#hist_uniq=$(sed -e 's/^: // ; s/:[[:digit:]]*;/ /' $HISTFILE | sort -k 2 | uniq -u --skip-fields 1 | sort -k 1,1 --numeric-sort --reverse | tail -n +2)
-#hist_uniq=$(awk -F ';' -vOFS=';' '{$1=""; print $0}' $HISTFILE | sed 's#^;##' | sort | uniq -u)
-#hist_uniq=$(awk -F ';' -vOFS=';' '{$1=""; print $0}' $HISTFILE | sed 's/^;//' | sort | uniq -u)
-#hist_uniq=$(printf '%s' "$hist_file" | awk -F ';' -vOFS=';' '{$1=""; print $0}' | sed 's/^;//' | sort | uniq -u)
+## select lines from hist_file_nl
+hist_select=$(cat ${histfile_ts}_nl | fzf -m)
 
-## select lines from hist_uniq
-hist_uniq_select=$(printf '%s' "$hist_uniq" | fzf -m)
+## delete selected lines from $histfile_ts
+while read -u 5 line_selected; do
 
-## delete selected lines from $HISTFILE
-while read -u 5 command_selected; do
+    printf 'DEV112 %s\n' "$line_selected"
+    #exit 255
 
-    ## with 'setopt EXTENDED_HISTORY' the history data format is:
-    ## ‘: <start_time>:<elapsed_seconds>;<command>’
-    regex="^:[[:space:]][[:digit:]]+:[[:digit:]]+;${command_selected}$"
+    line_num_del=$(cat <<'EOF'
+			"$line_selected" | awk -F : '{print $1}'
+			EOF
+		)
 
-    #instances=$(awk -v re="$regex" 'BEGIN{print re}' $HISTFILE | wc -l)
-    grep --perl-regexp --line-regexp "$regex" $HISTFILE
-    #instances=$(grep --perl-regexp --line-regexp "$regex" $HISTFILE | wc -l)
-    #instances=$(grep --perl-regexp --line-regexp ":[[:space:]][[:digit:]]+:[[:digit:]]+;$command_selected$" $HISTFILE | wc -l)
+    #line_num_del=$(printf "$line_selected" | awk -F : '{print $1}')
+    printf 'DEV112 %s\n' "$line_num_del"
 
-    instances_indent=$(( hist_lines_0_num_places + 2 ))
-    printf "%${instances_indent}s%s" "$instances"
-    printf "%s${fg_amber}%s${st_def}\n" ' ' "$command_selected"
+    sed -i "${line_num_del}d" $histfile_ts
 
-    printf "%${delete_indent}sdelete from history? (e/y/N) "
-    reply_read_single
+    hist_lines_1=$(wc -l $histfile_ts | awk '{print $1}')
+    lines_deleted=$(( hist_lines_0 - hist_lines_1 ))
 
-    case $reply in
+    lines_deleted_num_places=$(printf '%s' "$lines_deleted" | wc -c)
+    lines_deleted_indent=$(( hist_lines_0_num_places - lines_deleted_num_places + 1 ))
 
-	e)
-	    #TODO edit command_selected value
-	    command_edited=$(read command_selected)
-	    ;;
-
-	y)
-	    tput cuu1
-	    printf '\r'
-	    tput el
-
-	    # delete lines
-
-	    #TODO DEV lines with escaped spaces 'abc\ def'
-	    ## 20240905_074723_1725515243 sed alternative delimiter didn't work
-	    ## workaround: escape slashes in filepaths for proper processing sed regex
-	    ###cmd_sel_esc=$(printf '%s' "$command_selected" | sed 's_/_\\/_g')
-
-	    #awk -i inplace -v re="$regex" '!($0 ~ re)' $HISTFILE
-	    #awk -v re="$regex" "re {next} {print}" $HISTFILE > "$hist_dir/$timestamp" && \
-	    #	mv "$hist_dir/$timestamp" $HISTFILE
-	    sed -i '/"$regex"/d' $HISTFILE
-	    #sed -i --regexp-extended "$regex/d" $HISTFILE
-	    #sed -i --regexp-extended "/^:[[:space:]][[:digit:]]+:[[:digit:]]+;$command_selected$/d" $HISTFILE
-	    ###sed -i --regexp-extended "/:[[:space:]][[:digit:]]+:[[:digit:]]+;$cmd_sel_esc$/d" $HISTFILE
-
-	    hist_lines_1=$(wc -l $HISTFILE | awk '{print $1}')
-	    lines_deleted=$(( hist_lines_0 - hist_lines_1 ))
-
-	    lines_deleted_num_places=$(printf '%s' "$lines_deleted" | wc -c)
-	    lines_deleted_indent=$(( hist_lines_0_num_places - lines_deleted_num_places + 1 ))
-	    ;;
-
-	*)
-	    printf "${fg_amber}deletion aborted${st_def}\n"
-	    exit
-	    ;;
-
-    esac
-
-done 5<<< "$hist_uniq_select"
+done 5<<< "$hist_select"
 
 printf "${st_bold}%${lines_deleted_indent}s${st_def} %s" "$lines_deleted"
 printf 'line(s) deleted\n'
-#printf "%s %s\n" "$hist_lines_1" 'total lines after deletion'
 
-## read from hist_file
-#echo type fc -R | dotool
-
+## rewrite HISTFILE
+rm ${histfile_ts}_nl
+cp $histfile_ts $HISTFILE
+rm $histfile_ts
+## human info
 wc -l $HISTFILE
 
 #DEVZONE
