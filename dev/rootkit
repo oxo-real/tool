@@ -1,0 +1,24 @@
+query how many dirs
+different methods
+same results
+unless rootkit has installed hidden directory
+
+dirs_ls=$(ls -d */ | wc -l)
+
+dirs_stat=$(stat --terse . | cut -d ' ' -f 9)
+links is number of hardlinks in directory (. & .. included)
+
+no hidden directories if:
+
+dirs_ls = dirs_stat - 2
+
+
+for dir in / /etc /lib /tmp /var; do
+
+    echo -n "$dir: ";
+    dirs_ls=$(ls -d "$dir" | wc -l)
+    dirs_find=$(find "$dir" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l);
+    links=$(stat "$dir" | grep 'Links:' | awk '{print $6-2}');
+    echo "Directories: $count, Links: $links";
+
+done

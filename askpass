@@ -42,7 +42,7 @@ thanks antofthy
 # usage
 
 % askpass [-f | --nosd] [p_text]
-## -f forces non systemd version
+## option -f | --nosd forces non systemd version
 
 # '
 
@@ -51,8 +51,8 @@ thanks antofthy
 #set -o nounset
 set -o pipefail
 
-unset PWORD
-PWORD=
+unset password
+password=
 
 
 # hardcoded variables
@@ -70,8 +70,8 @@ check_tty ()
 {
     if ! tty >/dev/null; then
 
-	read -r -s PWORD
-        echo "$PWORD"
+	read -r -s password
+        echo "$password"
 	exit 0
 
     fi
@@ -170,9 +170,9 @@ ask ()
 	    08 | 7f)
 		## 08 backspace
 		## 7f backspace removes last character
-		if [ -n "$PWORD" ]; then
+		if [ -n "$password" ]; then
 
-		    PWORD="$(echo "$PWORD" | sed 's/.$//')"
+		    password="$(echo "$password" | sed 's/.$//')"
 		    echo -n $'\b \b'
 
 		fi
@@ -180,11 +180,11 @@ ask ()
 
 	    15)
 		## c-u kill line
-		echo -n "$PWORD" | tr -c '\010' '\010'  # backspace
-		echo -n "$PWORD" | tr -c ' '    ' '     # clear stars
-		echo -n "$PWORD" | tr -c '\010' '\010'  # backspace
-		#echo -n "$PWORD" | sed 's/./\cH \cH/g' # using gnu-sed
-		PWORD=''
+		echo -n "$password" | tr -c '\010' '\010'  # backspace
+		echo -n "$password" | tr -c ' '    ' '     # clear stars
+		echo -n "$password" | tr -c '\010' '\010'  # backspace
+		#echo -n "$password" | sed 's/./\cH \cH/g' # using gnu-sed
+		password=''
 		;;
 
 	    #[*)
@@ -193,9 +193,9 @@ ask ()
 		;;
 
 	    *)
-		## save entered normal char to PWORD
-		#PWORD="$PWORD$char"
-		PWORD+="$char"
+		## save entered normal char to password
+		#password="$password$char"
+		password+="$char"
 		echo -n "$star"
 		;;
 
@@ -212,7 +212,7 @@ ask ()
     echo
 
     # output the resulting password to the original stdout
-    echo "$PWORD"
+    echo "$password"
 }
 
 

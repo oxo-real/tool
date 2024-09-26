@@ -22,6 +22,7 @@
 │   ├── histcmdselector
 │   ├── histdel
 │   ├── location
+│   ├── rootkit
 │   ├── sexager
 │   ├── snapshot
 │   ├── spin
@@ -99,5 +100,5 @@
     ├── trashOLD
     └── wfa.py
 
-5 directories, 94 files
+5 directories, 95 files
 ```

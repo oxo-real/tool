@@ -107,7 +107,7 @@ keyboard_input ()
     # read input
     askpass_exist=$(command -v askpass >/dev/null 2>&1; echo $?)
 
-    printf "$(FGx 999999)pwgn${st_def}  "
+    printf "$(FGx 999999)pwgn${st_def} "
 
     case $askpass_exist in
 
@@ -120,7 +120,7 @@ keyboard_input ()
 	    : '
 	    ## DEV TODO
 	    ## NOTICE wl-paste does NOT work with this
-	    printf '🔐  [echo_off]'
+	    printf '🔐 [echo_off]'
 	    read -e -r -s -n 1 char1
 	    #read -e -r -s -n 1 char1
 	    tput cuu1
@@ -129,7 +129,7 @@ keyboard_input ()
 
 	    : '
 	    printf "$(FGx 999999)pwgn${st_def}  "
-	    printf '🔐  '
+	    printf '🔐 '
 	    read -e -r -s input2
 	    input="$char1$input2"
 	    ## remove eol
