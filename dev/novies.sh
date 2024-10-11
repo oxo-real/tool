@@ -42,7 +42,10 @@ https://www.gnu.org/licenses/gpl-3.0.txt
 
 
 # usage
+novies [options] [value]
 
+# examples
+novies --gray --vertical --tty
 
 % sh upgrader
 
@@ -93,10 +96,14 @@ function get_time_fold ()
 
 function initialize ()
 {
-    get_time_fold 999999
-    run_once
+    separate_container
+    tput civis
+    refresh_period=2
     get_time_fold 000000
     run_once
+    get_time_fold 999999
+    run_once
+    refresh_period=5
 }
 
 
@@ -135,7 +142,7 @@ function light_unit_definition ()
 	    ;;
 
 	2)
-	    color=32
+	    color=35
 	    ;;
 
 	3)
@@ -143,11 +150,11 @@ function light_unit_definition ()
 	    ;;
 
 	4)
-	    color=34
+	    color=32
 	    ;;
 
 	5)
-	    color=35
+	    color=34
 	    ;;
 
 	6)
@@ -155,11 +162,6 @@ function light_unit_definition ()
 	    ;;
 
     esac
-    #color='96cbfe'  ## blue
-
-    # DEV
-    #printf 'DEV lu_bit: %s\n' "$lu_bit"
-    #printf 'DEV lu: %s\n' "$lu"
 }
 
 
@@ -177,7 +179,6 @@ function create_3x3 ()
 
 	## next decimal
 	((decimal_no+=1))
-	#printf 'DEV decimal_no: %s' "$decimal_no"
 
     done <<< "$time_fold"
 }
@@ -204,12 +205,6 @@ function grid_data ()
 
     ## shuffle onoff string
     onf_shuf=$(printf '%s' "$on_off_string" | fold -w 1 | shuf)
-
-    #DEV
-    #printf 'DEV onstring: %s\n' "$on_string"
-    #printf 'DEV offstring: %s\n' "$off_string"
-    #printf 'DEV onoffstring: %s\n' "$on_off_string"
-    #printf 'DEV onoffshuf: %s\n' "$onf_shuf"
 }
 
 
@@ -224,52 +219,18 @@ function grid_print ()
 
     while IFS= read -r lu_bit; do
 
-	#printf 'DEV row: %s\n' "$row"
-
 	## define lu variable from lu_bit out of onf_shuf
 	light_unit_definition
 
-	## print light unit
-	## 31 red, 32 green, 34 blue, 36 cyan
-	#grid_curr=grid${decimal_no}
-	#grid${decimal_no}+="$(printf '\033[32m%s \033[0m' "$lu")"
-	#grid_curr="$(printf '\033[32m%s \033[0m' "$lu")"
-	#blue=$(tput setaf 4)
-	#normal=$(tput sgr0)
-
-	#tput setaf 4
 	lu_curr+=$(printf '%s\n' "$lu")
-	#lu_curr+=$(printf '%s\n' "$lu")
-	#tput sgr0
-	#lu_curr+=$(printf '%s\n' "${blue}$lu${normal}")
-	#lu_curr+=$(printf "${blue}%s${normal}\n" "$lu")
-	#lu_curr+="$(printf '%s' "$lu")"
-	#lu_curr+="$(printf '\033[32m%s \033[0m' "$lu")"
-	#lu_curr+="$(printf "\033[32m%s \033[0m" "$lu")"
-	#printf '\e[32m%s \e[0m' "$lu"
-	#lu_curr+="$(printf "\033[${color}m%s \033[0m" "$lu")"
 
-	#echo -e "$lu_curr" | fold -w $grid_columns | paste -s -d '\n' - > "$tmp"/grid"$decimal_no"
-	#sed -e "s/.\{20\}/&\n/g" < t
+	## write to grid file
 	printf '%s' "$lu_curr" | fold -w "$grid_columns" > "$tmp"/grid"$decimal_no"
-	#printf '%s' "$lu_curr" > "$tmp"/grid"$decimal_no"
-	#paste -s -d '\n' "$tmp"/grid"$decimal_no" > "$tmp"/grid"$decimal_no"
-	#printf '%s' "$lu_curr" | fold -w $grid_columns | paste -s -d '\n' - > "$tmp"/grid"$decimal_no"
 
-	#printf 'dev 130 %s\n' "$lu_curr"
-	#printf '%s' "$grid_curr" > "$tmp"/grid"$decimal_no"
-	#suffix=$decimal_no
-	#declare grid_$suffix="$grid_curr"
-	#grid${decimal_no}="$grid_curr"
 	((lu_no+=1))
-
-	#printf 'DEV %s' "$grid${decimal_no}"
-	#printf 'DEV %s' "$grid_1"
 
 	## onf_shuf is 9 bits binary string
     done <<< "$onf_shuf"
-
-    #printf '%s' "$grid_curr" > "$tmp"/grid"$decimal_no"
 }
 
 
@@ -318,10 +279,15 @@ function separate_container ()
 }
 
 
+function finalize ()
+{
+    tput cnorm
+}
+
+
 function main ()
 {
     # get_args
-    # tix-clock --gray --vertical --tty
     initialize
 
     while true; do
@@ -333,6 +299,8 @@ function main ()
 	clean_lines
 
     done
+
+    finalize
 }
 
 main

@@ -22,6 +22,9 @@
 │   ├── histcmdselector
 │   ├── histdel
 │   ├── location
+│   ├── novies_copy
+│   ├── novies_copy3
+│   ├── novies.sh
 │   ├── panel1row.sh
 │   ├── panel3x3.sh
 │   ├── rootkit
@@ -60,6 +63,7 @@
 ├── mic-switch
 ├── mountr
 ├── notmuch-search
+├── novies
 ├── otp95
 ├── passexp
 ├── passr
@@ -108,5 +112,5 @@
     ├── trashOLD
     └── wfa.py
 
-5 directories, 103 files
+5 directories, 107 files
 ```
