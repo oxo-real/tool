@@ -22,12 +22,20 @@
 │   ├── histcmdselector
 │   ├── histdel
 │   ├── location
+│   ├── panel1row.sh
+│   ├── panel3x3.sh
 │   ├── rootkit
 │   ├── sexager
 │   ├── snapshot
 │   ├── spin
+│   ├── threebythree
+│   ├── threebythree2
+│   ├── threebythree3
 │   ├── time_passed
-│   └── trng
+│   ├── tix_clock_int_v2
+│   ├── tix_clock.sh
+│   ├── trng
+│   └── unicode.sh
 ├── diffdir
 ├── diritems
 ├── dividir
@@ -100,5 +108,5 @@
     ├── trashOLD
     └── wfa.py
 
-5 directories, 95 files
+5 directories, 103 files
 ```
