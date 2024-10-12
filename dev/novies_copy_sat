@@ -93,18 +93,17 @@ function get_parameters ()
     color_grid4=32
     color_grid5=34
     color_grid6=34
-    refresh_period_grid1=3
-    refresh_period_grid2=3
-    refresh_period_grid3=15
-    refresh_period_grid4=15
-    refresh_period_grid5=3
-    refresh_period_grid6=3
-    last_update_epoch_grid1=0
-    last_update_epoch_grid2=0
-    last_update_epoch_grid3=0
-    last_update_epoch_grid4=0
-    last_update_epoch_grid5=0
-    last_update_epoch_grid6=0
+}
+
+
+function declare_refresh_periods ()
+{
+    declare refresh_period_grid1=60
+    declare refresh_period_grid2=60
+    declare refresh_period_grid3=15
+    declare refresh_period_grid4=15
+    declare refresh_period_grid5=3
+    declare refresh_period_grid6=3
 }
 
 
@@ -119,6 +118,13 @@ function get_times ()
     ## set current times
     curr_epoch=$(date +'%s')
     time_curr=$(date +'%H%M%S')
+
+    #echo ${!last_update_epoch_grid1} || declare last_update_epoch_grid1=0
+    #[[ -z $(echo ${!last_update_epoch_grid2}) ]] && declare last_update_epoch_grid2=0
+    #[[ -z $(echo ${!last_update_epoch_grid3}) ]] && declare last_update_epoch_grid3=0
+    #[[ -z $(echo ${!last_update_epoch_grid4}) ]] && declare last_update_epoch_grid4=0
+    #[[ -z $(echo ${!last_update_epoch_grid5}) ]] && declare last_update_epoch_grid5=0
+    #[[ -z $(echo ${!last_update_epoch_grid6}) ]] && declare last_update_epoch_grid6=0
 }
 
 function get_time_fold ()
@@ -143,15 +149,14 @@ function initialize ()
     ## store default update period
     update_period_default=$update_period
 
-    update_period=1
-    get_time_fold 999999
-    run_once 999999
-
     update_period=2
     get_time_fold 045400
     run_once oxo
 
     update_period=1
+    get_time_fold 999999
+    run_once 999999
+
     get_time_fold 000000
     run_once 000000
 
@@ -277,24 +282,32 @@ function create_3x3 ()
     ## create variable decimal and create 3x3 grid
     while IFS= read -r decimal; do
 
-	## get rpcg
-	refresh_period_current_grid=refresh_period_grid${decimal_no}
-	rpcg=${!refresh_period_current_grid}
+	#rpgdn=refresh_period_grid"$decimal_no"
 
-	## get last update epoch for current grid
+	refresh_period_current_grid=refresh_period_grid${decimal_no}
+	#declare_refresh_periods
+	declare refresh_period_grid1=60
+	declare refresh_period_grid2=60
+	declare refresh_period_grid3=15
+	declare refresh_period_grid4=15
+	declare refresh_period_grid5=3
+	declare refresh_period_grid6=3
+	rpcg=${!refresh_period_current_grid}
+	#declare refresh_period_grid${decimal_no}
+	#eval "refresh_period_current_grid=\"\$refresh_period_grid${decimal_no}\""
+
+
+	## set last update epoch for current grid as current epoch
 	last_update_epoch_current_grid=last_update_epoch_grid${decimal_no}
+	declare last_update_epoch_grid${decimal_no}="$curr_epoch"
 	luecg=${!last_update_epoch_current_grid}
 
-	## print grid if luecg is 0 or
-	if [[ $(( curr_epoch - luecg )) -ge $rpcg ]]; then
+ 	if [[ $(( curr_epoch - luecg )) -ge "${rpcg}" ]] || \
+	   [[ $(( curr_epoch - luecg )) == 0 ]]; then
 
 	    grid_data
 	    grid_print
 	    grid_color
-
-	    ## set last update epoch for current grid to current epoch
-	    export last_update_epoch_grid${decimal_no}="$curr_epoch"
-	    #declare last_update_epoch_grid${decimal_no}="$curr_epoch"
 
 	fi
 

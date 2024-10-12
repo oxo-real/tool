@@ -93,8 +93,8 @@ function get_parameters ()
     color_grid4=32
     color_grid5=34
     color_grid6=34
-    refresh_period_grid1=3
-    refresh_period_grid2=3
+    refresh_period_grid1=60
+    refresh_period_grid2=60
     refresh_period_grid3=15
     refresh_period_grid4=15
     refresh_period_grid5=3
@@ -143,15 +143,14 @@ function initialize ()
     ## store default update period
     update_period_default=$update_period
 
-    update_period=1
-    get_time_fold 999999
-    run_once 999999
-
     update_period=2
     get_time_fold 045400
     run_once oxo
 
     update_period=1
+    get_time_fold 999999
+    run_once 999999
+
     get_time_fold 000000
     run_once 000000
 
