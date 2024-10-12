@@ -83,24 +83,21 @@ tmp="$XDG_CACHE_HOME/temp"
 
 function get_parameters ()
 {
+    #TODO config file
+
     #orientation=horizontal
     orientation=vertical
     fill_pattern=random
-    #fill_pattern=741852963
+    #fill_pattern=741852963  ## #TODO
     grid_rows=3
     grid_columns=3
     column_width=88
     con_width_corr=0
     row_height=22
     font_size=11
-    #shape_on='x'
-    #shape_off=' '
-    #shape_on='▄'
-    #shape_off=' '
-    #shape_on='●'
-    #shape_off='○'
-    shape_on='■'
-    shape_off='□'
+    shape_on='▄'
+    shape_off=' '
+    # ◼◻ ■□ ●○
     spacing_x=0
     spacing_y=0
     opacity='0.0'
