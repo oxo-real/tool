@@ -36,7 +36,7 @@ https://www.gnu.org/licenses/gpl-3.0.txt
 
 
 # dependencies
-
+zsh (probably)
 
 # requirements
 
@@ -45,9 +45,21 @@ https://www.gnu.org/licenses/gpl-3.0.txt
 novies [options] [value]
 
 # examples
-novies --gray --vertical --tty
+% novies --gray --vertical --tty
 
-% sh upgrader
+# todo
+no random grid fill, but fill pattern, i.e.:
+789
+456
+123
+which will be 123456789,
+or
+963
+852
+741
+which will be 741852963
+
+
 
 # '
 
@@ -71,34 +83,41 @@ tmp="$XDG_CACHE_HOME/temp"
 
 function get_parameters ()
 {
+    #orientation=horizontal
+    orientation=vertical
+    fill_pattern=random
+    #fill_pattern=741852963
     grid_rows=3
     grid_columns=3
-    times=3
-    main_refresh_period=3
     column_width=88
     con_width_corr=0
     row_height=22
     font_size=11
+    #shape_on='x'
+    #shape_off=' '
+    #shape_on='▄'
+    #shape_off=' '
     #shape_on='●'
-    shape_on='▄'
-    shape_off=' '
     #shape_off='○'
+    shape_on='■'
+    shape_off='□'
     spacing_x=0
     spacing_y=0
     opacity='0.0'
-    alignment=40
+    alignment=40  ## #TODO does not align
     color_grid1=31
     color_grid2=31
     color_grid3=32
     color_grid4=32
     color_grid5=34
     color_grid6=34
+    main_refresh_period=1
     refresh_period_grid1=60
     refresh_period_grid2=60
     refresh_period_grid3=15
     refresh_period_grid4=15
     refresh_period_grid5=3
-    refresh_period_grid6=3
+    refresh_period_grid6=1
     last_update_epoch_grid1=0
     last_update_epoch_grid2=0
     last_update_epoch_grid3=0
@@ -110,6 +129,7 @@ function get_parameters ()
 
 function get_args ()
 {
+    #TODO
     :
 }
 
@@ -125,8 +145,10 @@ function get_time_fold ()
 {
     [[ -n $1 ]] && time_curr=$1
 
+    ## time fold places every decimal of time_curr on a newline
     time_fold=$(printf '%s' "$time_curr" | fold -w 1)
 
+    ## number of decimals will become the number of grids
     decimals=$(printf '%s' "$time_curr" | wc -c)
 }
 
@@ -143,15 +165,17 @@ function initialize ()
     ## store default update period
     main_refresh_period_default=$main_refresh_period
 
-    main_refresh_period=1
+    main_refresh_period=0.5
     get_time_fold 999999
     run_once 999999
 
-    main_refresh_period=2
+    main_refresh_period=1
     get_time_fold 045400
     run_once oxo
+    main_refresh_period=2
+    run_once oxo_color
 
-    main_refresh_period=1
+    main_refresh_period=0.5
     get_time_fold 000000
     run_once 000000
 
@@ -172,6 +196,21 @@ function run_once ()
 
 	oxo_grid_files
 
+    elif [[ "$mode" == 'oxo_color' ]]; then
+
+	oxo_grid_files
+	decimal_no=1
+	for grid in $tmp/grid*; do
+
+	    color_current_grid=color_grid${decimal_no}
+	    color=${!color_current_grid}
+
+	    grid_colorize "$grid"
+
+	    ((decimal_no++))
+
+	done
+
     elif [[ "$mode" == '999999' ]]; then
 
 	nine_grid_files
@@ -184,7 +223,7 @@ function run_once ()
 
     print_tix
     sleep $main_refresh_period
-    clean_lines
+    clear_lines
 }
 
 
@@ -285,21 +324,31 @@ function create_3x3 ()
 	last_update_epoch_current_grid=last_update_epoch_grid${decimal_no}
 	luecg=${!last_update_epoch_current_grid}
 
-	## print grid if luecg is 0 or
-	if [[ $(( curr_epoch - luecg )) -ge $rpcg ]]; then
+	## leading zeros can occur octal interpretation instead of decimal
+	## (( 10#number )) removes any leading zeros
+	curr_epoch_hour=$(( 10#$(date -d @"$curr_epoch" +'%H') ))
+	curr_epoch_minute=$(( 10#$(date -d @"$curr_epoch" +'%M') ))
+	luecg_hour=$(( 10#$(date -d @"$luecg" +'%H') ))
+	luecg_minute=$(( 10#$(date -d @"$luecg" +'%M') ))
+
+	## print new grid if last update is longer ago than threshold
+	if [[ $(( curr_epoch - luecg )) -ge $rpcg ]] || \
+	       ## or if curr_epoch hour differs from luecg hour
+	       [[ $curr_epoch_hour -ne $luecg_hour ]] || \
+	       ## or if curr_epoch minute differs from luecg minutes
+	       [[ $curr_epoch_minute -ne $luecg_minute ]]; then
 
 	    grid_data
-	    grid_print
-	    grid_color
+	    grid_to_file
+	    grid_colorize
 
 	    ## set last update epoch for current grid to current epoch
 	    export last_update_epoch_grid${decimal_no}="$curr_epoch"
-	    #declare last_update_epoch_grid${decimal_no}="$curr_epoch"
 
 	fi
 
 	## next decimal
-	((decimal_no+=1))
+	(( decimal_no+=1 ))
 
     done <<< "$time_fold"
 }
@@ -329,9 +378,9 @@ function grid_data ()
 }
 
 
-function grid_print ()
+function grid_to_file ()
 {
-    # grid three by three (represents one decimal)
+    # grid three by three (representing one decimal)
 
     ## initialize light number (in grid)
     lu_no=1
@@ -349,49 +398,111 @@ function grid_print ()
 
 	((lu_no+=1))
 
-	## onf_shuf is 9 bits binary string
+	## onf_shuf is a 9 bits binary string
     done <<< "$onf_shuf"
 }
 
 
-function grid_color ()
+function grid_colorize ()
 {
+    grid_to_color="$tmp/grid$decimal_no"
+    [[ -n $1 ]] && grid_to_color="$1"
+
     ## coloring gridfiles
-    sed -i ''/x/s//$(printf "\033[${color}mx\033[0m")/g'' $tmp/grid$decimal_no
+    sed -i ''/x/s//$(printf "\033[${color}mx\033[0m")/g'' "$grid_to_color"
 }
 
 
 function print_tix ()
 {
-    ## print all grids
-    ## replace spaces with shape_off
-    ## replace x-es with shape_on
-    grid_time=$(\
-		printf "$(paste -d '|' $tmp/grid1 $tmp/grid2 $tmp/grid3 $tmp/grid4 $tmp/grid5 $tmp/grid6)" | \
-		    sed -e "s/ / ${shape_off}/g" \
-			-e "s/x/ ${shape_on}/g" \
-			-e 's/|/ /g'\
-	     )
+    ## print entire grid
+    case $orientation in
 
-    printf "%${alignment}s" "$grid_time"
+	horizontal)
+	    ## print all grids
+	    ## replace spaces with shape_off
+	    ## replace x-es with shape_on
+	    grid_time=$(\
+			printf "$(paste -d '|' $tmp/grid1 $tmp/grid2 $tmp/grid3 $tmp/grid4 $tmp/grid5 $tmp/grid6)" | \
+			    sed -e "s/ / ${shape_off}/g" \
+				-e "s/x/ ${shape_on}/g" \
+				-e 's/|/ /g'\
+		     )
 
-    #printf "$(paste -d '|' $tmp/grid1 $tmp/grid2 $tmp/grid3 $tmp/grid4 $tmp/grid5 $tmp/grid6)" | \
-    #	sed -e 's/|/ /g' \
-    #	    -e 's/ /  /g' \
-    #	    -e "s/x/${shape} /g"
-    #	    #-e 's/x/● /g'
+	    printf "%${alignment}s" "$grid_time"
+	    ;;
+
+	vertical)
+	    grid_time=$(\
+	    cat $tmp/grid1; echo; echo; \
+	    cat $tmp/grid2; echo; echo; \
+	    cat $tmp/grid3; echo; echo; \
+	    cat $tmp/grid4; echo; echo; \
+	    cat $tmp/grid5; echo; echo; \
+	    cat $tmp/grid6\
+		  )
+
+	    printf "%${alignment}s" "$grid_time" | \
+		sed -e "s/ / ${shape_off}/g" \
+		    -e "s/x/ ${shape_on}/g" \
+		    -e 's/|/ /g'
+	    ;;
+
+    esac
 }
 
 
-function clean_lines ()
+function clear_lines ()
 {
-    for (( i=1; i<$grid_rows; i++ )); do
+    case $orientation in
 
-	printf '\r'
-	tput el
-	tput cuu1
+	horizontal)
+	    for (( i=1; i<=$grid_rows; i++ )); do
 
-    done
+		printf '\r'
+		tput el
+		tput cuu1
+
+	    done
+	    ;;
+
+	vertical)
+	    for (( i=1; i<=$(( (grid_rows + 1) * decimals )); i++ )); do
+
+		printf '\r'
+		tput el
+		tput cuu1
+
+	    done
+	    ;;
+
+    esac
+}
+
+
+function reset_cursor_position ()
+{
+    case $orientation in
+
+	horizontal)
+	    for (( i=1; i<$grid_rows; i++ )); do
+
+		tput cuu1
+
+	    done
+	    ;;
+
+	vertical)
+	    for (( i=1; i<=$(( (grid_rows + 1) * decimals )); i++ )); do
+
+		tput cuu1
+
+	    done
+	    ;;
+
+    esac
+
+    printf '\r'
 }
 
 
@@ -416,6 +527,7 @@ function separate_container ()
 
 function finalize ()
 {
+    ## called by trap
     alacritty msg config font.size=11
     alacritty msg config font.offset.x=0
     alacritty msg config font.offset.y=0
@@ -437,7 +549,7 @@ function main ()
 	create_3x3
 	print_tix
 	sleep $main_refresh_period
-	clean_lines
+	reset_cursor_position
 
     done
 
