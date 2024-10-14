@@ -90,9 +90,12 @@ function get_parameters ()
     [[ -d $novies_config_dir ]] || mkdir -p $novies_config_dir
 
     #orientation=horizontal  #TODO make it work
-    orientation=vertical
-    #grid_fill_method=custom  ## random or custom; i.e. dice
-    grid_fill_method=random  ## random or custom; i.e. dice
+    grid_orientation=vertical
+    grid_fill_method=random
+    #grid_fill_method=dice_h
+    #grid_fill_method=dice_v
+    #grid_fill_method=pile
+    #grid_fill_method_pile_sequence=123456789
     grid_rows=3
     grid_columns=3
     column_width=88
@@ -109,6 +112,7 @@ function get_parameters ()
 
     declare -A grid
     declare -A colored_grid
+    declare -A grid_fill_sequence
 
     declare -A color_grid
     color_grid[1]=31
@@ -136,31 +140,6 @@ function get_parameters ()
     last_update_epoch_grid[6]=0
 
 
-    ## custom grid fill methods
-
-    declare -A grid_fill_method_dice_h
-    grid_fill_method_dice_h[0]=000000000
-    grid_fill_method_dice_h[1]=000010000
-    grid_fill_method_dice_h[2]=100000001
-    grid_fill_method_dice_h[3]=100010001
-    grid_fill_method_dice_h[4]=101000101
-    grid_fill_method_dice_h[5]=101010101
-    grid_fill_method_dice_h[6]=111000111
-    grid_fill_method_dice_h[7]=111010111
-    grid_fill_method_dice_h[8]=111101111
-    grid_fill_method_dice_h[9]=111111111
-
-    declare -A grid_fill_method_dice_v
-    grid_fill_method_dice_v[0]=$grid_fill_method_dice_h[0]
-    grid_fill_method_dice_v[1]=$grid_fill_method_dice_h[1]
-    grid_fill_method_dice_v[2]=010000010
-    grid_fill_method_dice_v[3]=010010010
-    grid_fill_method_dice_v[4]=$grid_fill_method_dice_h[4]
-    grid_fill_method_dice_v[5]=$grid_fill_method_dice_h[5]
-    grid_fill_method_dice_v[6]=101101101
-    grid_fill_method_dice_v[7]=101111101
-    grid_fill_method_dice_v[8]=$grid_fill_method_dice_h[8]
-    grid_fill_method_dice_v[9]=$grid_fill_method_dice_h[9]
 #}
 
 
@@ -233,15 +212,20 @@ function run_once ()
 
     if [[ -z "$mode" ]]; then
 
+	## no specific mode
 	grid_create
 
     elif [[ "$mode" == 'oxo' ]]; then
 
+	## execute oxo_grid_array
 	oxo_grid_array
 
     elif [[ "$mode" == 'oxo_color' ]]; then
 
+	## execute oxo_grid_array
 	oxo_grid_array
+
+	## execute grid_colorize for each grid
 	decimal_no=1
 	for grid in "${grid[@]}"; do
 
@@ -255,10 +239,12 @@ function run_once ()
 
     elif [[ "$mode" == '999999' ]]; then
 
+	## execute ninw_grid_array
 	nine_grid_array
 
     elif [[ "$mode" == '000000' ]]; then
 
+	## execute null_grid_array
 	null_grid_array
 
     fi
@@ -366,8 +352,8 @@ function grid_data ()
 	    ;;
 
 	*)
-	    ## grid fill method is defined
-	    onf_shuf=${grid_fill[$decimal_value]}
+	    ## grid fill sequence is defined in define_grid_fill
+	    onf_shuf=${grid_fill_sequence[$decimal_value]}
 	    ;;
 
     esac
@@ -378,45 +364,98 @@ function define_grid_fill ()
 {
     ## if no random grid fill; define fill here for decimals 1-8
     ## using grid fill method
-    ## 123456789 every number is a bit_position (bit 1 (sw) first, 9 (ne) last)
-    ## decimal fill method is defined, i.e.
-    ## decimal value 3 has lights 123 on, therefore
-    ## decimal values and shapes are related and
-    ## decimals can more easily be recognized
 
-    ## after fold we can loop through with herestring
-    grid_fill_method_fold=$(printf '%s' "$grid_fill_method" | fold -w 1)
+    case $grid_fill_method in
+
+	pile)
+	    ## grid fills with adding more lights on
+
+	    ## NOTICE the variable grid_fill_method_pile_sequence
+	    ##        must have nine unique single decimal digits
+
+	    ## 123456789 every number is a bit_position (bit 1 (sw) first, 9 (ne) last)
+	    ## decimal fill method is defined, i.e.
+	    ## decimal value 3 has lights 123 on, therefore
+	    ## decimal values and shapes are related and
+	    ## decimals can more easily be recognized
+
+	    ## after fold we can loop through with herestring
+	    gfmpsf=$(printf '%s' "$grid_fill_method_pile_sequence" | fold -w 1)
 
 
-    # define onoff strings with array
+	    # define onoff strings with array
 
-    declare -A grid_fill
+	    ## move declaration out of function into main script for script wide accessability
+	    #declare -A grid_fill_sequence
 
-    ## initialize decimal_value
-    decimal_value=0
-    on_off_string='000000000'
+	    ## initialize decimal_value
+	    decimal_value=0
+	    on_off_string='000000000'
 
-    ## write decimal_value 0 to array
-    grid_fill[$decimal_value]="$on_off_string"
+	    ## write decimal_value 0 to array
+	    grid_fill_sequence[$decimal_value]="$on_off_string"
 
-    ## write decimal 1-9 to array (herestring)
-    ### free lights method
-    #TODO
+	    ## write decimal 1-9 to array (herestring)
+	    ### free lights method
+	    #TODO
 
-    ### adding lights method
-    while IFS= read -r -u 5 bit_position; do
+	    ### adding lights method
+	    #while IFS= read -r -u 5 bit_position; do
+	    while IFS= read -r bit_position; do
 
-	## next decimal_value
-	(( decimal_value+=1 ))
+		## next decimal_value
+		(( decimal_value+=1 ))
 
-	## bit_position is the light number that comes on for current decimal_value
-	on_off_string=$(printf '%s' "$on_off_string" | sed "s/./1/$bit_position")
+		## bit_position is the light number that comes on for current decimal_value
+		on_off_string=$(printf '%s' "$on_off_string" | sed "s/./1/$bit_position")
 
-	## write current decimal_value to array
-	grid_fill[$decimal_value]="$on_off_string"
+		## write current decimal_value to array
+		grid_fill_sequence[$decimal_value]="$on_off_string"
 
-	## loop through all nine numbers that define grid_fill_method
-    done 5<<< "$grid_fill_method_fold"
+		## loop through all nine numbers that define grid_fill_method
+	    done <<< "$gfmpsf"
+
+	    #print_entire_array() { declare -n __p="$1"; for k in "${!__p[@]}"; do printf "%s=%s\n" "$k" "${__p[$k]}" ; done }
+	    #print_entire_array grid_fill_method_pile
+	    #exit 255
+	    ;;
+
+	dice_v)
+	    ## dice like fill vertically oriented
+	    declare -A grid_fill_method_dice_v
+	    grid_fill_method_dice_v[0]=000000000
+	    grid_fill_method_dice_v[1]=000010000
+	    grid_fill_method_dice_v[2]=010000010
+	    grid_fill_method_dice_v[3]=010010010
+	    grid_fill_method_dice_v[4]=101000101
+	    grid_fill_method_dice_v[5]=101010101
+	    grid_fill_method_dice_v[6]=101101101
+	    grid_fill_method_dice_v[7]=101111101
+	    grid_fill_method_dice_v[8]=111101111
+	    grid_fill_method_dice_v[9]=111111111
+
+	    #grid_fill_sequence[$decimal_value]="$on_off_string"
+	    ;;
+
+	dice_h)
+	    ## dice like fill horizontally oriented
+	    declare -A grid_fill_method_dice_h
+	    grid_fill_method_dice_h[0]=000000000
+	    grid_fill_method_dice_h[1]=000010000
+	    grid_fill_method_dice_h[2]=100000001
+	    grid_fill_method_dice_h[3]=100010001
+	    grid_fill_method_dice_h[4]=101000101
+	    grid_fill_method_dice_h[5]=101010101
+	    grid_fill_method_dice_h[6]=111000111
+	    grid_fill_method_dice_h[7]=111010111
+	    grid_fill_method_dice_h[8]=111101111
+	    grid_fill_method_dice_h[9]=111111111
+
+	    #grid_fill_sequence[$decimal_value]="$on_off_string"
+
+	    ;;
+
+    esac
 }
 
 
@@ -429,8 +468,10 @@ function grid_to_array ()
     lu_curr=''
 
     ## loop through onf_shuf and create grid file for current decimal
+    #printf 'DEV464 %s\n' "$onf_shuf"
     while IFS= read -r lu_bit; do
 
+	#printf 'DEV466 %s\n' "$lu_bit"
 	## define lu variable from lu_bit out of onf_shuf
 	define_light_unit
 
@@ -462,7 +503,7 @@ function grid_colorize ()
 function grid_print ()
 {
     ## print entire grid
-    case $orientation in
+    case $grid_orientation in
 
 	horizontal)
 	    ## replace spaces with shape_off
@@ -501,7 +542,7 @@ function grid_print ()
 
 function clear_lines ()
 {
-    #case $orientation in
+    #case $grid_orientation in
 
     #	horizontal)
     #	    for (( i=1; i<=$grid_rows; i++ )); do
@@ -526,7 +567,7 @@ function clear_lines ()
 
 function reset_cursor_position ()
 {
-    #case $orientation in
+    #case $grid_orientation in
 
     #	horizontal)
     #	    for (( i=1; i<$grid_rows; i++ )); do
