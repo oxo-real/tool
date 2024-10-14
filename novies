@@ -79,68 +79,63 @@ initial_release_year=2024
 
 args=$@
 tmp="$XDG_CACHE_HOME/temp"
-novies_config_dir="$XDG_CONFIG_HOME/novies"
+novies_config_dir="$XDG_CONFIG_HOME/novies" ## #TODO config file
 
 
-function get_parameters ()
-{
-    :
-    }
-    #TODO config file
-    [[ -d $novies_config_dir ]] || mkdir -p $novies_config_dir
-
-    #orientation=horizontal  #TODO make it work
-    grid_orientation=vertical
-    grid_fill_method=random
-    #grid_fill_method=dice_h
-    #grid_fill_method=dice_v
-    #grid_fill_method=pile
-    #grid_fill_method_pile_sequence=123456789
-    grid_rows=3
-    grid_columns=3
-    column_width=88
-    con_width_corr=0
-    row_height=22
-    font_size=11
-    shape_on='▄'
-    shape_off=' '
-    # ◼◻ ■□ ●○
-    spacing_x=0
-    spacing_y=0
-    opacity=0.0
-    alignment=40  ## #TODO does not align
-
-    declare -A grid
-    declare -A colored_grid
-    declare -A grid_fill_sequence
-
-    declare -A color_grid
-    color_grid[1]=31
-    color_grid[2]=31
-    color_grid[3]=32
-    color_grid[4]=32
-    color_grid[5]=34
-    color_grid[6]=34
-
-    main_refresh_period=1
-    declare -A refresh_period_grid
-    refresh_period_grid[1]=60
-    refresh_period_grid[2]=60
-    refresh_period_grid[3]=15
-    refresh_period_grid[4]=15
-    refresh_period_grid[5]=3
-    refresh_period_grid[6]=1
-
-    declare -A last_update_epoch_grid
-    last_update_epoch_grid[1]=0
-    last_update_epoch_grid[2]=0
-    last_update_epoch_grid[3]=0
-    last_update_epoch_grid[4]=0
-    last_update_epoch_grid[5]=0
-    last_update_epoch_grid[6]=0
+#orientation=horizontal  ## #TODO make it work
+grid_orientation=vertical
 
 
-#}
+#grid_fill_method=random
+#grid_fill_method=dice_h
+#grid_fill_method=dice_v
+grid_fill_method=pile
+
+
+grid_fill_method_pile_sequence=123456789
+grid_fill_method_pile_sequence=789456123
+grid_rows=3
+grid_columns=3
+column_width=88
+con_width_corr=0
+row_height=22
+font_size=11
+shape_on='▄'
+shape_off=' '
+# ◼◻ ■□ ●○
+spacing_x=0
+spacing_y=0
+opacity=0.0
+alignment=40  ## #TODO does not align
+
+declare -A grid
+declare -A colored_grid
+declare -A grid_fill_sequence
+
+declare -A color_grid
+color_grid[1]=31
+color_grid[2]=31
+color_grid[3]=32
+color_grid[4]=32
+color_grid[5]=34
+color_grid[6]=34
+
+main_refresh_period=1
+declare -A refresh_period_grid
+refresh_period_grid[1]=60
+refresh_period_grid[2]=60
+refresh_period_grid[3]=15
+refresh_period_grid[4]=15
+refresh_period_grid[5]=3
+refresh_period_grid[6]=1
+
+declare -A last_update_ts_grid
+last_update_ts_grid[1]=0
+last_update_ts_grid[2]=0
+last_update_ts_grid[3]=0
+last_update_ts_grid[4]=0
+last_update_ts_grid[5]=0
+last_update_ts_grid[6]=0
 
 
 function get_args ()
@@ -150,22 +145,29 @@ function get_args ()
 }
 
 
-function get_times ()
+function get_timestamp ()
 {
-    ## set current times
-    curr_epoch=$(date +'%s')
-    time_curr=$(date +'%H%M%S')
+    ## in epoch
+    ## out ts_epoch
+    ## out ts_hms
+
+    ts_epoch=$(date +'%s')
+    ts_hms=$(date -d @"$ts_epoch" +'%H%M%S')
 }
 
 function get_time_fold ()
 {
-    [[ -n $1 ]] && time_curr=$1
+    ## in
+    ## out time_fold
+    ## out decimals
 
-    ## time fold places every decimal of time_curr on a newline
-    time_fold=$(printf '%s' "$time_curr" | fold -w 1)
+    [[ -n $1 ]] && ts_hms=$1
+
+    ## time fold places every decimal of ts_hms on a newline
+    time_fold=$(printf '%s' "$ts_hms" | fold -w 1)
 
     ## number of decimals will become the number of grids
-    decimals=$(printf '%s' "$time_curr" | wc -c)
+    decimals=$(printf '%s' "$ts_hms" | wc -c)
 }
 
 
@@ -208,6 +210,9 @@ function initialize ()
 
 function run_once ()
 {
+    ## in mode
+    ## out grid_print
+
     mode=$1
 
     if [[ -z "$mode" ]]; then
@@ -257,6 +262,11 @@ function run_once ()
 
 function define_light_unit ()
 {
+    ## in lu_bit
+    ## out lu
+    ## in decimal_no
+    ## out color
+
     ## light status
     case $lu_bit in
 
@@ -279,6 +289,12 @@ function define_light_unit ()
 
 function grid_create ()
 {
+    ## in decimal_no
+    ## in time_fold
+    ## out grid_data
+    ## out grid_to_array
+    ## out grid_colorize
+
     ## reset decimal number
     decimal_no=1
 
@@ -289,30 +305,33 @@ function grid_create ()
 	rpg=${refresh_period_grid[$decimal_no]}
 
 	## get last update epoch for current grid (lueg)
-	lueg=${last_update_epoch_grid[$decimal_no]}
+	lueg=${last_update_ts_grid[$decimal_no]}
 
 	## leading zeros can occur octal instead of decimal interpretation
 	## (( 10#number )) removes any leading zeros
-	curr_epoch_second=$(( 10#$(date -d @"$curr_epoch" +'%S') ))
-	curr_epoch_minute=$(( 10#$(date -d @"$curr_epoch" +'%M') ))
-	curr_epoch_hour=$(( 10#$(date -d @"$curr_epoch" +'%H') ))
+	ts_second=$(( 10#$(printf '%s' "$ts_hms" | cut --characters 5-6) ))
+	#ts_second=$(( 10#$(date -d @"$ts_epoch" +'%S') ))
+	ts_minute=$(( 10#$(printf '%s' "$ts_hms" | cut --characters 3-4) ))
+	#ts_minute=$(( 10#$(date -d @"$ts_epoch" +'%M') ))
+	ts_hour=$(( 10#$(printf '%s' "$ts_hms" | cut --characters 1-2) ))
+	#ts_hour=$(( 10#$(date -d @"$ts_epoch" +'%H') ))
 	lueg_hour=$(( 10#$(date -d @"$lueg" +'%H') ))
 	lueg_minute=$(( 10#$(date -d @"$lueg" +'%M') ))
 
 	## refresh current nine bits decimal grid, only
 	## if last update is longer ago than threshold, or
-	if [[ $(( curr_epoch - lueg )) -ge $rpg ]] || \
-	       ## if curr_epoch minute differs from lueg minutes
-	       [[ $curr_epoch_minute -ne $lueg_minute ]] || \
-	       ## if curr_epoch hour differs from lueg hour, or
-	       [[ $curr_epoch_hour -ne $lueg_hour ]]; then
+	if [[ $(( ts_epoch - lueg )) -ge $rpg ]] || \
+	       ## if ts_epoch minute differs from lueg minutes
+	       [[ $ts_minute -ne $lueg_minute ]] || \
+	       ## if ts_epoch hour differs from lueg hour, or
+	       [[ $ts_hour -ne $lueg_hour ]]; then
 
 	    grid_data
 	    grid_to_array
 	    grid_colorize
 
 	    ## set last update epoch for current grid to current epoch
-	    last_update_epoch_grid[$decimal_no]="$curr_epoch"
+	    last_update_ts_grid[$decimal_no]="$ts_epoch"
 
 	fi
 
@@ -325,8 +344,10 @@ function grid_create ()
 
 function grid_data ()
 {
-    # create a binary string based on current decimal_value to fill grid
+    ## in decimal_value
+    ## out onf_shuf
 
+    # create a binary string based on current decimal_value to fill grid
     case $grid_fill_method in
 
 	random)
@@ -362,9 +383,10 @@ function grid_data ()
 
 function define_grid_fill ()
 {
-    ## if no random grid fill; define fill here for decimals 1-8
-    ## using grid fill method
+    ## in grid_fill_method
+    ## out grid_fill_sequence(s)
 
+    ## if no random grid fill; define fill here for decimals 1-8
     case $grid_fill_method in
 
 	pile)
@@ -414,45 +436,36 @@ function define_grid_fill ()
 
 		## loop through all nine numbers that define grid_fill_method
 	    done <<< "$gfmpsf"
-
-	    #print_entire_array() { declare -n __p="$1"; for k in "${!__p[@]}"; do printf "%s=%s\n" "$k" "${__p[$k]}" ; done }
-	    #print_entire_array grid_fill_method_pile
-	    #exit 255
 	    ;;
 
 	dice_v)
 	    ## dice like fill vertically oriented
-	    declare -A grid_fill_method_dice_v
-	    grid_fill_method_dice_v[0]=000000000
-	    grid_fill_method_dice_v[1]=000010000
-	    grid_fill_method_dice_v[2]=010000010
-	    grid_fill_method_dice_v[3]=010010010
-	    grid_fill_method_dice_v[4]=101000101
-	    grid_fill_method_dice_v[5]=101010101
-	    grid_fill_method_dice_v[6]=101101101
-	    grid_fill_method_dice_v[7]=101111101
-	    grid_fill_method_dice_v[8]=111101111
-	    grid_fill_method_dice_v[9]=111111111
-
-	    #grid_fill_sequence[$decimal_value]="$on_off_string"
+	    ## grid_fill_method_dice_v[decimal_value]=grid_fill_sequence
+	    grid_fill_sequence[0]=000000000
+	    grid_fill_sequence[1]=000010000
+	    grid_fill_sequence[2]=010000010
+	    grid_fill_sequence[3]=010010010
+	    grid_fill_sequence[4]=101000101
+	    grid_fill_sequence[5]=101010101
+	    grid_fill_sequence[6]=101101101
+	    grid_fill_sequence[7]=101111101
+	    grid_fill_sequence[8]=111101111
+	    grid_fill_sequence[9]=111111111
 	    ;;
 
 	dice_h)
 	    ## dice like fill horizontally oriented
-	    declare -A grid_fill_method_dice_h
-	    grid_fill_method_dice_h[0]=000000000
-	    grid_fill_method_dice_h[1]=000010000
-	    grid_fill_method_dice_h[2]=100000001
-	    grid_fill_method_dice_h[3]=100010001
-	    grid_fill_method_dice_h[4]=101000101
-	    grid_fill_method_dice_h[5]=101010101
-	    grid_fill_method_dice_h[6]=111000111
-	    grid_fill_method_dice_h[7]=111010111
-	    grid_fill_method_dice_h[8]=111101111
-	    grid_fill_method_dice_h[9]=111111111
-
-	    #grid_fill_sequence[$decimal_value]="$on_off_string"
-
+	    ## grid_fill_method_dice_h[decimal_value]=grid_fill_sequence
+	    grid_fill_sequence[0]=000000000
+	    grid_fill_sequence[1]=000010000
+	    grid_fill_sequence[2]=100000001
+	    grid_fill_sequence[3]=100010001
+	    grid_fill_sequence[4]=101000101
+	    grid_fill_sequence[5]=101010101
+	    grid_fill_sequence[6]=111000111
+	    grid_fill_sequence[7]=111010111
+	    grid_fill_sequence[8]=111101111
+	    grid_fill_sequence[9]=111111111
 	    ;;
 
     esac
@@ -461,36 +474,44 @@ function define_grid_fill ()
 
 function grid_to_array ()
 {
-    # nine bits three by three grid (representing one decimal)
+    ## in lu_no
+    ## in lu_curr
+    ## in onf_shuf
+    ## out grid[decimal_no]
+
+    ## nine bits three by three grid (representing one decimal)
 
     ## initialize light number (in current grid)
     lu_no=1
     lu_curr=''
 
+    onf_shuf_fold=$(printf '%s' "$onf_shuf" | fold -w 1)
+
     ## loop through onf_shuf and create grid file for current decimal
-    #printf 'DEV464 %s\n' "$onf_shuf"
     while IFS= read -r lu_bit; do
 
-	#printf 'DEV466 %s\n' "$lu_bit"
 	## define lu variable from lu_bit out of onf_shuf
 	define_light_unit
 
 	lu_curr+=$(printf '%s' "$lu")
 
-	## print light unit and write to grid file
-	#printf '%s' "$lu_curr" | fold -w "$grid_columns" > "$tmp"/grid"$decimal_no"
+	## print light unit to array grid
 	grid[$decimal_no]=$(printf '%s' "$lu_curr" | fold -w "$grid_columns")
 
 	## next light number
 	(( lu_no+=1 ))
 
 	## onf_shuf is a 9 bits binary string
-    done <<< "$onf_shuf"
+    done <<< "$onf_shuf_fold"
+    #done <<< "$onf_shuf"
 }
 
 
 function grid_colorize ()
 {
+    ## in grid[decimal_no]
+    ## out grid[decimal_no] (colorized)
+
     grid_to_color="${grid[$decimal_no]}"
     ## specific grid as argument gets priority
     [[ -n $1 ]] && grid_to_color="$1"
@@ -502,6 +523,10 @@ function grid_colorize ()
 
 function grid_print ()
 {
+    ## in grid_orientation
+    ## in grid[1-6]
+    ## out grid_time (final output)
+
     ## print entire grid
     case $grid_orientation in
 
@@ -652,12 +677,12 @@ function finalize ()
 function main ()
 {
     #get_args
-    get_parameters
+    #get_parameters
     initialize
 
     while true; do
 
-	get_times
+	get_timestamp
 	get_time_fold
 	grid_create
 	grid_print
