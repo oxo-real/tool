@@ -225,11 +225,11 @@ function run_once ()
 
     elif [[ "$mode" == '999999' ]]; then
 
-	nine_grid_files
+	nine_grid_array
 
     elif [[ "$mode" == '000000' ]]; then
 
-	null_grid_files
+	null_grid_array
 
     fi
 
@@ -250,7 +250,7 @@ function oxo_grid_array ()
 }
 
 
-function nine_grid_files ()
+function nine_grid_array
 {
     grid[1]='xxx|\nxxx|\nxxx|'
     grid[2]='xxx|\nxxx|\nxxx|'
@@ -261,7 +261,7 @@ function nine_grid_files ()
 }
 
 
-function null_grid_files ()
+function null_grid_array
 {
     grid[1]='   |\n   |\n   |'
     grid[2]='   |\n   |\n   |'
