@@ -91,8 +91,8 @@ function get_parameters ()
 
     #orientation=horizontal
     orientation=vertical
-    grid_fill_method=random
-    #grid_fill_method=741852963
+    #grid_fill_method=random
+    grid_fill_method=741852963
     grid_rows=3
     grid_columns=3
     column_width=88
@@ -241,12 +241,12 @@ function run_once ()
 
 function oxo_grid_array ()
 {
-    grid[1]='x  |\n   |\n   |'
-    grid[2]='   |\n   |\n   |'
-    grid[3]='x x|\n   |\nx x|'
-    grid[4]='x x|\n x |\nx x|'
-    grid[5]='x x|\n   |\nx x|'
-    grid[6]='   |\n   |\n  x|'
+    grid[1]='   |\n   |\n   |'
+    grid[2]='x x|\n   |\nx x|'
+    grid[3]='x x|\n x |\nx x|'
+    grid[4]='x x|\n   |\nx x|'
+    grid[5]='   |\n   |\n   |'
+    grid[6]='   |\n   |\n   |'
 }
 
 
@@ -290,7 +290,34 @@ function light_unit_definition ()
     esac
 
     ## light color
-    color=${color_grid[$decimal_no]}
+    color=${color_grid[$decimal_no}
+    #case $decimal_no in
+
+    #	1)
+    #	    color=$color_grid1
+    #	    ;;
+
+    #	2)
+    #	    color=$color_grid2
+    #	    ;;
+
+    #	3)
+    #	    color=$color_grid3
+    #	    ;;
+
+    #	4)
+    #	    color=$color_grid4
+    #	    ;;
+
+    #	5)
+    #	    color=$color_grid5
+    #	    ;;
+
+    #	6)
+    #	    color=$color_grid6
+    #	    ;;
+
+    #esac
 }
 
 
@@ -299,20 +326,18 @@ function grid_create ()
     ## reset decimal number
     decimal_no=1
 
-    ## create variable decimal_value and create 3x3 grid
-    while IFS= read -r decimal_value; do
+    ## create variable decimal and create 3x3 grid
+    while IFS= read -r decimal; do
 
 	## get refresh period for current grid (rpcg)
-	#refresh_period_current_grid=refresh_period_grid${decimal_no}
-	#rpcg=${!refresh_period_current_grid}
-	rpcg=${refresh_period_grid[$decimal_no]}
+	refresh_period_current_grid=refresh_period_grid${decimal_no}
+	rpcg=${!refresh_period_current_grid}
 
 	## get last update epoch for current grid (luecg)
-	#last_update_epoch_current_grid=last_update_epoch_grid${decimal_no}
-	#luecg=${!last_update_epoch_current_grid}
-	luecg=${last_update_epoch_grid[$decimal_no]}
+	last_update_epoch_current_grid=last_update_epoch_grid${decimal_no}
+	luecg=${!last_update_epoch_current_grid}
 
-	## leading zeros can occur octal instead of decimal interpretation
+	## leading zeros can occur octal interpretation instead of decimal
 	## (( 10#number )) removes any leading zeros
 	curr_epoch_hour=$(( 10#$(date -d @"$curr_epoch" +'%H') ))
 	curr_epoch_minute=$(( 10#$(date -d @"$curr_epoch" +'%M') ))
@@ -328,7 +353,7 @@ function grid_create ()
 	       [[ $curr_epoch_minute -ne $luecg_minute ]]; then
 
 	    grid_data
-	    grid_to_array
+	    grid_to_file  ## #TODO make variables instead of files
 	    grid_colorize
 
 	    ## set last update epoch for current grid to current epoch
@@ -345,7 +370,7 @@ function grid_create ()
 
 function grid_data ()
 {
-    # create a binary string based on current decimal_value to fill grid
+    # create a binary string based on current decimal to fill grid
 
     case $grid_fill_method in
 
@@ -353,8 +378,8 @@ function grid_data ()
 	    ## grid fill method is randomized
 
 	    ## number of light units on and off
-	    no_lu_on=$decimal_value
-	    no_lu_off=$(( 9 - $decimal_value ))
+	    no_lu_on=$decimal
+	    no_lu_off=$(( 9 - $decimal ))
 
 	    ## deduct onoff string
 	    on_string=$(printf '%0.s1' $(seq 1 $no_lu_on))
@@ -373,7 +398,7 @@ function grid_data ()
 
 	*)
 	    ## grid fill method is defined
-	    onf_shuf=${grid_fill[$decimal_value]}
+	    onf_shuf=${grid_fill[$decimal]}
 	    ;;
 
     esac
@@ -406,10 +431,6 @@ function define_grid_fill ()
     grid_fill[$decimal_value]="$on_off_string"
 
     ## write decimal 1-9 to array (herestring)
-    ### free lights method
-    #TODO
-
-    ### adding lights method
     while IFS= read -r -u 5 bit_position; do
 
 	## next decimal_value
@@ -425,8 +446,13 @@ function define_grid_fill ()
     done 5<<< "$grid_fill_method_fold"
 }
 
+#DEV
+#    print_entire_array() { declare -n __p="$1"; for k in "${!__p[@]}"; do printf "%s=%s\n" "$k" "${__p[$k]}" ; done }
+#    print_entire_array grid_fill
+#    exit 255
 
-function grid_to_array ()
+
+function grid_to_file ()
 {
     # nine bits three by three grid (representing one decimal)
 
@@ -440,11 +466,10 @@ function grid_to_array ()
 	## define lu variable from lu_bit out of onf_shuf
 	light_unit_definition
 
-	lu_curr+=$(printf '%s' "$lu")
+	lu_curr+=$(printf '%s\n' "$lu")
 
 	## print light unit and write to grid file
-	#printf '%s' "$lu_curr" | fold -w "$grid_columns" > "$tmp"/grid"$decimal_no"
-	grid[$decimal_no]=$(printf '%s' "$lu_curr" | fold -w "$grid_columns")
+	printf '%s' "$lu_curr" | fold -w "$grid_columns" > "$tmp"/grid"$decimal_no"
 
 	## next light number
 	(( lu_no+=1 ))
@@ -452,11 +477,6 @@ function grid_to_array ()
 	## onf_shuf is a 9 bits binary string
     done <<< "$onf_shuf"
 }
-#DEV
-#    print_entire_array() { declare -n __p="$1"; for k in "${!__p[@]}"; do printf "%s=%s\n" "$k" "${__p[$k]}" ; done }
-#    print_entire_array grid
-#    exit 255
-
 
 
 function grid_colorize ()
@@ -465,8 +485,11 @@ function grid_colorize ()
     ## specific grid as option gets priority
     [[ -n $1 ]] && grid_to_color="$1"
 
-    ## coloring grid array
-    grid[$decimal_no]="$(printf "${grid[$decimal_no]}" | sed ''/x/s//$(printf "\033[${color}mx\033[0m")/g'')"
+    color_code="\\033[${color}mx\\033[0m"
+    colored_grid[$decimal_no]="$(printf "${grid[$decimal_no]}" | sed ''s/x/${color_code}/g'')"
+    #colored_grid[$decimal_no]="$(printf "${grid[$decimal_no]}" | sed ''s/x/${color_code}/g'')"
+    #grid[$decimal_no]=${colored_grid[decimal_no]}
+    #colored_grid[$decimal_no]="$(printf "${grid[$decimal_no]}" | sed ''/x/s//$(printf "\033[${color}mx\033[0m")/g'')"
     ## coloring gridfiles
     #sed -i ''/x/s//$(printf "\033[${color}mx\033[0m")/g'' "$grid_to_color"
 }
@@ -493,13 +516,8 @@ function grid_print ()
 
 	vertical)
 	    grid_time=$(\
-			printf "${grid[1]}\n\n${grid[2]}\n\n${grid[3]}\n\n${grid[4]}\n\n${grid[5]}\n\n${grid[6]}\n\n"\
+			printf "${grid[1]}\n${colored_grid[2]}\n${grid[3]}\n${grid[4]}\n${grid[5]}\n${grid[6]}\n"\
 		     )
-			#printf '%s\n%s\n%s\n%s\n%s\n%s\n' "${grid[1]}" "${grid[2]}" "${grid[3]}" "${grid[4]}" "${grid[5]}" "${grid[6]}"\
-			#printf "${grid[1]}\n${grid[2]}\n${grid[3]}\n${grid[4]}\n${grid[5]}\n${grid[6]}\n"\
-
-	    ## save cursor position
-	    tput sc
 
 	    printf "%${alignment}s" "$grid_time" | \
 		sed -e "s/ / ${shape_off}/g" \
@@ -513,47 +531,55 @@ function grid_print ()
 
 function clear_lines ()
 {
-    #case $orientation in
+    case $orientation in
 
-    #	horizontal)
-    #	    for (( i=1; i<=$grid_rows; i++ )); do
+	horizontal)
+	    for (( i=1; i<=$grid_rows; i++ )); do
 
-    #		printf '\r'
-    #		tput el
-    #		tput cuu1
+		printf '\r'
+		tput el
+		tput cuu1
 
-    #	    done
-    #	    ;;
+	    done
+	    ;;
 
-    #	vertical)
-	    ## restore cursor position
-	    tput rc
-	    ## clear to end of screen
-	    tput ed
-	#    ;;
+	vertical)
+	    for (( i=1; i<=$(( (grid_rows + 1) * decimals )); i++ )); do
 
-    #esac
+		printf '\r'
+		tput el
+		tput cuu1
+
+	    done
+	    ;;
+
+    esac
 }
 
 
 function reset_cursor_position ()
 {
-    #case $orientation in
+    case $orientation in
 
-    #	horizontal)
-    #	    for (( i=1; i<$grid_rows; i++ )); do
+	horizontal)
+	    for (( i=1; i<$grid_rows; i++ )); do
 
-    #		tput cuu1
+		tput cuu1
 
-    #	    done
-    #	    ;;
+	    done
+	    ;;
 
-    #	vertical)
-	    ## restore cursor position
-	    tput rc
-	#    ;;
+	vertical)
+	    for (( i=1; i<=$(( (grid_rows + 1) * decimals )); i++ )); do
 
-    #esac
+		tput cuu1
+
+	    done
+	    ;;
+
+    esac
+
+    printf '\r'
 }
 
 

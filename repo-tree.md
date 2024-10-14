@@ -13,6 +13,7 @@
 ├── dedup-files
 ├── dedup-lines
 ├── dev
+│   ├── 20241012_182110-novies
 │   ├── cryptr2
 │   ├── cryptr_add
 │   ├── data_flow_mon
@@ -22,6 +23,7 @@
 │   ├── histcmdselector
 │   ├── histdel
 │   ├── location
+│   ├── noviesasdf
 │   ├── novies_copy
 │   ├── novies_copy3
 │   ├── novies_copy_sat
@@ -114,5 +116,5 @@
     ├── trashOLD
     └── wfa.py
 
-5 directories, 109 files
+5 directories, 111 files
 ```
