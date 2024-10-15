@@ -47,20 +47,6 @@ novies [options] [value]
 # examples
 % novies --gray --vertical --tty
 
-# todo
-no random grid fill, but fill pattern, i.e.:
-789
-456
-123
-which will be 123456789,
-or
-963
-852
-741
-which will be 741852963
-
-
-
 # '
 
 
@@ -82,18 +68,17 @@ tmp="$XDG_CACHE_HOME/temp"
 novies_config_dir="$XDG_CONFIG_HOME/novies" ## #TODO config file
 
 
-#orientation=horizontal  ## #TODO make it work
-grid_orientation=vertical
+grid_orientation=horizontal
+#grid_orientation=vertical
 
 
-#grid_fill_method=random
+#grid_fill_method=pile-741852963  ## vertical
+#grid_fill_method=pile-789456123  ## horizontal
+grid_fill_method=dice_v
 #grid_fill_method=dice_h
-#grid_fill_method=dice_v
-grid_fill_method=pile
+#grid_fill_method=random
 
 
-grid_fill_method_pile_sequence=123456789
-grid_fill_method_pile_sequence=789456123
 grid_rows=3
 grid_columns=3
 column_width=88
@@ -107,6 +92,7 @@ spacing_x=0
 spacing_y=0
 opacity=0.0
 alignment=40  ## #TODO does not align
+
 
 declare -A grid
 declare -A colored_grid
@@ -215,44 +201,47 @@ function run_once ()
 
     mode=$1
 
-    if [[ -z "$mode" ]]; then
+    case $mode in
 
-	## no specific mode
-	grid_create
+	'')
+	    ## no specific mode
+	    grid_create
+	    ;;
 
-    elif [[ "$mode" == 'oxo' ]]; then
+	oxo)
+	    ## execute oxo_grid_array
+	    oxo_grid_array
+	    ;;
 
-	## execute oxo_grid_array
-	oxo_grid_array
+	oxo_color)
+	    ## execute oxo_grid_array
+	    oxo_grid_array
 
-    elif [[ "$mode" == 'oxo_color' ]]; then
+	    ## execute grid_colorize for each decimal
+	    decimal_no=1
 
-	## execute oxo_grid_array
-	oxo_grid_array
+	    for grid in "${grid[@]}"; do
 
-	## execute grid_colorize for each grid
-	decimal_no=1
-	for grid in "${grid[@]}"; do
+		color=${color_grid[$decimal_no]}
 
-	    color=${color_grid[$decimal_no]}
+		grid_colorize "$grid"
 
-	    grid_colorize "$grid"
+		(( decimal_no++ ))
 
-	    (( decimal_no++ ))
+	    done
+	    ;;
 
-	done
+	999999)
+	    ## execute ninw_grid_array
+	    nine_grid_array
+	    ;;
 
-    elif [[ "$mode" == '999999' ]]; then
+	000000)
+	    ## execute null_grid_array
+	    null_grid_array
+	    ;;
 
-	## execute ninw_grid_array
-	nine_grid_array
-
-    elif [[ "$mode" == '000000' ]]; then
-
-	## execute null_grid_array
-	null_grid_array
-
-    fi
+    esac
 
     grid_print
     sleep $main_refresh_period
@@ -357,13 +346,13 @@ function grid_data ()
 	    no_lu_on=$decimal_value
 	    no_lu_off=$(( 9 - $decimal_value ))
 
-	    ## deduct onoff string
+	    ## synthesize onoff string
 	    on_string=$(printf '%0.s1' $(seq 1 $no_lu_on))
 	    off_string=$(printf '%0.s0' $(seq 1 $no_lu_off))
 
-	    ## alter onoff string
-	    [[ $no_lu_on == 0 ]] && on_string=''  ## and not 1; #TODO
-	    [[ $no_lu_off == 0 ]] && off_string=''  ## and not 1; #TODO
+	    ## adjust onoff string in case all lights are off
+	    [[ $no_lu_on == 0 ]] && on_string=''
+	    [[ $no_lu_off == 0 ]] && off_string=''
 
 	    ## define onoff string
 	    on_off_string=$(printf '%s%s' "$on_string" "$off_string")
@@ -384,12 +373,12 @@ function grid_data ()
 function define_grid_fill ()
 {
     ## in grid_fill_method
-    ## out grid_fill_sequence(s)
+    ## out grid_fill_sequence
 
-    ## if no random grid fill; define fill here for decimals 1-8
+    ## if no random grid fill; define fill sequence here
     case $grid_fill_method in
 
-	pile)
+	pile*)
 	    ## grid fills with adding more lights on
 
 	    ## NOTICE the variable grid_fill_method_pile_sequence
@@ -402,7 +391,7 @@ function define_grid_fill ()
 	    ## decimals can more easily be recognized
 
 	    ## after fold we can loop through with herestring
-	    gfmpsf=$(printf '%s' "$grid_fill_method_pile_sequence" | fold -w 1)
+	    gfmpsf=$(printf '%s' "$grid_fill_method" | awk -F '-' '{print $2}' | fold -w 1)
 
 
 	    # define onoff strings with array
@@ -422,7 +411,6 @@ function define_grid_fill ()
 	    #TODO
 
 	    ### adding lights method
-	    #while IFS= read -r -u 5 bit_position; do
 	    while IFS= read -r bit_position; do
 
 		## next decimal_value
@@ -527,6 +515,9 @@ function grid_print ()
     ## in grid[1-6]
     ## out grid_time (final output)
 
+    ## save cursor position
+    tput sc
+
     ## print entire grid
     case $grid_orientation in
 
@@ -534,10 +525,16 @@ function grid_print ()
 	    ## replace spaces with shape_off
 	    ## replace x-es with shape_on
 	    grid_time=$(\
-			printf "$(paste -d '|' $tmp/grid1 $tmp/grid2 $tmp/grid3 $tmp/grid4 $tmp/grid5 $tmp/grid6)" | \
-			    sed -e "s/ / ${shape_off}/g" \
-				-e "s/x/ ${shape_on}/g" \
-				-e 's/|/ /g'\
+			paste -d '|' \
+			      <(printf "${grid[1]}") \
+			      <(printf "${grid[2]}") \
+			      <(printf "${grid[3]}") \
+			      <(printf "${grid[4]}") \
+			      <(printf "${grid[5]}") \
+			      <(printf "${grid[6]}") | \
+			      sed -e "s/ / ${shape_off}/g" \
+			      -e "s/x/ ${shape_on}/g" \
+			      -e 's/|/ /g'\
 		     )
 
 	    ## print all grids
@@ -549,12 +546,9 @@ function grid_print ()
 			printf "${grid[1]}\n\n${grid[2]}\n\n${grid[3]}\n\n${grid[4]}\n\n${grid[5]}\n\n${grid[6]}\n\n"\
 		     )
 
-	    ## save cursor position
-	    tput sc
-
+	    ## print all grids
 	    ## replace spaces with shape_off
 	    ## replace x-es with shape_on
-	    ## print all grids
 	    printf "%${alignment}s" "$grid_time" | \
 		sed -e "s/ / ${shape_off}/g" \
 		    -e "s/x/ ${shape_on}/g" \
@@ -633,6 +627,7 @@ function separate_container ()
 function oxo_grid_array ()
 {
     grid[1]='x x|\n   |\n   |'
+    [[ $grid_orientation == 'horizontal' ]] && grid[1]='x  |\n   |\nx  |'
     grid[2]='x x|\n   |\nx x|'
     grid[3]='   |\n   |\n   |'
     grid[4]='x x|\n x |\nx x|'
