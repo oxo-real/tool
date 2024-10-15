@@ -29,6 +29,7 @@
 │   ├── novies_copy_sat
 │   ├── novies.sh
 │   ├── novies_working
+│   ├── novies_zcv
 │   ├── panel1row.sh
 │   ├── panel3x3.sh
 │   ├── rootkit
@@ -116,5 +117,5 @@
     ├── trashOLD
     └── wfa.py
 
-5 directories, 111 files
+5 directories, 112 files
 ```

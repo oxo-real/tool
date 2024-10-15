@@ -68,14 +68,14 @@ tmp="$XDG_CACHE_HOME/temp"
 novies_config_dir="$XDG_CONFIG_HOME/novies" ## #TODO config file
 
 
-grid_orientation=horizontal
-#grid_orientation=vertical
+#grid_orientation=horizontal
+grid_orientation=vertical
 
 
 #grid_fill_method=pile-741852963  ## vertical
 #grid_fill_method=pile-789456123  ## horizontal
-#grid_fill_method=sym_v
-grid_fill_method=sym_h
+grid_fill_method=dice_v
+#grid_fill_method=dice_h
 #grid_fill_method=random
 
 
@@ -432,9 +432,9 @@ function define_grid_fill ()
 	    done <<< "$gfmpsf"
 	    ;;
 
-	sym_v)
-	    ## vertically symmetric fill
-	    ## sym_v[decimal_value]=grid_fill_sequence
+	dice_v)
+	    ## dice like fill vertically oriented
+	    ## grid_fill_method_dice_v[decimal_value]=grid_fill_sequence
 	    grid_fill_sequence[0]=000000000
 	    grid_fill_sequence[1]=000010000
 	    grid_fill_sequence[2]=010000010
@@ -447,13 +447,13 @@ function define_grid_fill ()
 	    grid_fill_sequence[9]=111111111
 	    ;;
 
-	sym_h)
-	    ## horizontally symmetric fill
-	    ## sym_h[decimal_value]=grid_fill_sequence
+	dice_h)
+	    ## dice like fill horizontally oriented
+	    ## grid_fill_method_dice_h[decimal_value]=grid_fill_sequence
 	    grid_fill_sequence[0]=000000000
 	    grid_fill_sequence[1]=000010000
-	    grid_fill_sequence[2]=000101000
-	    grid_fill_sequence[3]=000111000
+	    grid_fill_sequence[2]=100000001
+	    grid_fill_sequence[3]=100010001
 	    grid_fill_sequence[4]=101000101
 	    grid_fill_sequence[5]=101010101
 	    grid_fill_sequence[6]=111000111
