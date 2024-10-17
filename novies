@@ -68,8 +68,8 @@ tmp="$XDG_CACHE_HOME/temp"
 novies_config_dir="$XDG_CONFIG_HOME/novies" ## #TODO config file
 
 
-grid_orientation=horizontal
-#grid_orientation=vertical
+#grid_orientation=horizontal
+grid_orientation=vertical
 
 
 #pattern_method=pile-741852963  ## vertical
@@ -183,51 +183,54 @@ function grid_create ()
     ## out grid_to_array
     ## out grid_decorate
 
-    if [[ -n $mode ]]; then
-
-	decimal_no=1
-	grid_decorate
-	return
-
-    fi
-
     ## reset decimal number
     decimal_no=0
 
-    ## loop through every decimal in time_fold (decimal_value)
-    while IFS= read -r decimal_value; do
+    if [[ -n $mode ]]; then
 
 	## next decimal
 	(( decimal_no+=1 ))
 
-	## get last update epoch for current grid (lueg)
-	lueg=${last_update_ts_grid[$decimal_no]}
+	grid_decorate
 
-	## no leading zeros in lueg values
-	lueg_hour=$(date -d @"$lueg" +'%-H')
-	lueg_minute=$(date -d @"$lueg" +'%-M')
+    else
 
-	## get refresh period for current grid (rpg)
-	rpg=${refresh_period_grid[$decimal_no]}
+	## loop through every decimal in time_fold (decimal_value)
+	while IFS= read -r decimal_value; do
 
-	## refresh current nine bits decimal grid, only
-	## if last update is longer ago than threshold, or
-	if [[ $(( ts_epoch - lueg )) -ge $rpg ]] || \
-	       ## if ts_epoch minute differs from lueg minutes
-	       [[ $ts_minute -ne $lueg_minute ]] || \
-	       ## if ts_epoch hour differs from lueg hour, or
-	       [[ $ts_hour -ne $lueg_hour ]]; then
+	    ## next decimal
+	    (( decimal_no+=1 ))
 
-	    grid_data
-	    #DELgrid_to_array
-	    grid_decorate
+	    ## get last update epoch for current grid (lueg)
+	    lueg=${last_update_ts_grid[$decimal_no]}
 
-	    ## set last update epoch for current grid to current epoch
-	    last_update_ts_grid[$decimal_no]="$ts_epoch"
+	    ## no leading zeros in lueg values
+	    lueg_hour=$(date -d @"$lueg" +'%-H')
+	    lueg_minute=$(date -d @"$lueg" +'%-M')
 
-	fi
+	    ## get refresh period for current grid (rpg)
+	    rpg=${refresh_period_grid[$decimal_no]}
 
-    done <<< "$time_fold"
+	    ## refresh current nine bits decimal grid, only
+	    ## if last update is longer ago than threshold, or
+	    if [[ $(( ts_epoch - lueg )) -ge $rpg ]] || \
+		   ## if ts_epoch minute differs from lueg minutes
+		   [[ $ts_minute -ne $lueg_minute ]] || \
+		       ## if ts_epoch hour differs from lueg hour, or
+		   [[ $ts_hour -ne $lueg_hour ]]; then
+
+		grid_data
+		#DELgrid_to_array
+		grid_decorate
+
+		## set last update epoch for current grid to current epoch
+		last_update_ts_grid[$decimal_no]="$ts_epoch"
+
+	    fi
+
+	done <<< "$time_fold"
+
+    fi
 }
 
 
@@ -277,38 +280,75 @@ function grid_decorate ()
     ## in decimal_bit_pattern[decimal_no]
     ## out grid[decimal_no] (decorated)
 
-    ## decimal_bit_pattern fold, so we can loop through easily
-    dbpf=$(printf '%s' "${decimal_bit_pattern[$decimal_no]}" | fold -w 1)
+    : '
+    ## replace light bits with color codes
+
+    grid[$decimal_no]=$(printf '%s' "${decimal_bit_pattern[$decimal_no]}" | fold -w 3)
+
+    color=${color_grid[$decimal_no]}
+    # workstring
+    workstring=$(printf "${grid[$decimal_no]}")
+    # workstring zero placeholder
+    wsz=${workstring//0/Z}
+    # workstirng color code on lights (1s) and adding space
+    wszc1=${wsz//1/\\033[${color}m1\\033[0m }
+    # workstring color code off lights (Zs) and adding space
+    wszc1z=${wszc1//Z/\\033[${color_grid[0]}m0\\033[0m }
+
+    printf "DEV$LINENO %s\n" "$wszc1z"
+    printf "$wszc1z"
+    #exit 255
+    grid[$decimal_no]=$(printf "$wszc1z")
+
+    # '
+
+    #: '
 
     ## build current grid with color codes
     ## loop through the 9 light bits of the current decimal
     light_bit_no=0
+
+    ## decimal_bit_pattern fold, for looping through light_bits
+    dbpf=$(printf '%s' "${decimal_bit_pattern[$decimal_no]}" | fold -w 1)
 
     while IFS= read -r light_bit; do
 
 	## next light_bit
 	(( light_bit_no+=1 ))
 
+	## add space before every light_bit
+	grid[$decimal_no]+=' '
+
+	## add color
 	case $light_bit in
 
 	    0)
 		## add off color
-		color=${color_grid[$light_bit]}
-		grid[$decimal_no]+="\e[${color}m0\e[0"
+		color=${color_grid[0]}
+		grid[$decimal_no]+="\033[${color}m0\033[0m"
 		;;
 
 	    1)
 		## add on color
 		color=${color_grid[$decimal_no]}
-		grid[$decimal_no]+="\e[${color}m1\e[0"
+		grid[$decimal_no]+="\033[${color}m1\033[0m"
 		;;
 
 	esac
 
-	## every third light_bit add space eol
-	[[ $(( $light_bit_no % 3 )) -eq 0 ]] && grid[$decimal_no]+=' \n'
+	## add placeholder for space after every light_bit
+	## add space after every light_bit
+	#grid[$decimal_no]+=' '
+
+	## every third light_bit add eol
+	[[ $(( $light_bit_no % 3 )) -eq 0 ]] && grid[$decimal_no]+='\n'
+
+	grid[$decimal_no]="$(printf '%s' "${grid[$decimal_no]}" | sed "s/m1/m${shape_on}/g")"
+	grid[$decimal_no]="$(printf '%s' "${grid[$decimal_no]}" | sed "s/m0/m${shape_off}/g")"
 
     done <<< "$dbpf"
+
+    # '
 }
 
 
@@ -408,8 +448,11 @@ function grid_print ()
     case $grid_orientation in
 
 	horizontal)
-	    ## replace spaces with shape_off
-	    ## replace x-es with shape_on
+	    ## replace zeros with space shape_off
+	    ## replace ones with space shape_on
+	    ## CC functions as temporary placeholder for colorcode 033
+	    ## in order to prevent replacement of its zero
+			#paste -d '|' \
 	    grid_time=$(\
 			paste \
 			    <(printf "${grid[1]}") \
@@ -417,13 +460,12 @@ function grid_print ()
 			    <(printf "${grid[3]}") \
 			    <(printf "${grid[4]}") \
 			    <(printf "${grid[5]}") \
-			    <(printf "${grid[6]}") | \
-			    sed -e "s/0/ ${shape_off}/g" \
-				-e "s/1/ ${shape_on}/g"\
+			    <(printf "${grid[6]}")
 		     )
 
 	    ## print all grids
-	    printf "%${alignment}s" "$grid_time"
+	    printf "$grid_time"
+	    #printf "%${alignment}s" "$grid_time"
 	    ;;
 
 	vertical)
@@ -432,11 +474,11 @@ function grid_print ()
 		     )
 
 	    ## print all grids
-	    ## replace spaces with shape_off
-	    ## replace x-es with shape_on
+	    ## replace zeros with space shape_off
+	    ## replace ones with space shape_on
 	    printf "%${alignment}s" "$grid_time" | \
-		sed -e "s/0/ ${shape_off}/g" \
-		    -e "s/1/ ${shape_on}/g"
+		sed -e "s/0/${shape_off}/g" \
+		    -e "s/1/${shape_on}/g"
 	    ;;
 
     esac
@@ -544,6 +586,7 @@ function clear_lines ()
     tput rc
     ## clear to end of screen
     tput ed
+    #clear
 }
 
 
@@ -633,6 +676,7 @@ function main ()
 	grid_print
 	sleep $main_refresh_period
 	reset_cursor_position
+	clear_lines
 
     done
 
