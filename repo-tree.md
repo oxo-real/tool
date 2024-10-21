@@ -23,6 +23,7 @@
 │   ├── histcmdselector
 │   ├── histdel
 │   ├── location
+│   ├── novies9931
 │   ├── noviesasdf
 │   ├── novies_copy
 │   ├── novies_copy3
@@ -117,5 +118,5 @@
     ├── trashOLD
     └── wfa.py
 
-5 directories, 112 files
+5 directories, 113 files
 ```

@@ -46,21 +46,21 @@ https://www.gnu.org/licenses/gpl-3.0.txt
 caclulate local tz correction to get foreign time
 
 formula:
-	d_local = dUTC_local - dUTC_foreign
+	d_local_foreign = d_UTC_local - d_UTC_foreign
 
 # examples
 analog watch (12 hour bezel) is on local tz
 left bezel rotation = negative tz correction
 right bezel rotation = positive tz correction
 
-dUTC_local = +0100
-dUTC_foreign = -0700
-d_local = dUTC_local - dUTC_foreign = +0100 - -0700 = +0800
+d_UTC_local = +0100
+d_UTC_foreign = -0700
+d_local_foreign = d_UTC_local - d_UTC_foreign = +0100 - -0700 = +0800
 right bezel rotation of 08 hours (0800)
 
-dUTC_local = -0600
-dUTC_foreign = +0500
-d_local = dUTC_local - dUTC_foreign = -0600 - +0500 = -1100
+d_UTC_local = -0600
+d_UTC_foreign = +0500
+d_local_foreign = d_UTC_local - d_UTC_foreign = -0600 - +0500 = -1100
 left bezel rotation of 11 hours (0100)
 
 # '

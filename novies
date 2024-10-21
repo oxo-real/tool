@@ -46,6 +46,7 @@ novies [options] [value]
 
 # examples
 % novies --gray --vertical --tty
+#TODO options
 
 # '
 
@@ -82,7 +83,8 @@ pattern_method=random
 row_height=22
 font_size=11
 shape_on='▄'
-shape_off=' '
+shape_off='.'
+#shape_off=' '
 # ◼◻ ■□ ●○
 spacing_x=0
 spacing_y=0
@@ -102,7 +104,8 @@ declare -A decimal_bit_pattern
 declare -A color_grid
 ## color_grid[decimal_no]=color_code
 ## off color
-color_grid[0]=30
+color_grid[0]=37
+#color_grid[0]=#ff73fd
 ## on color
 color_grid[1]=31
 color_grid[2]=31
@@ -168,6 +171,7 @@ function get_time_fold ()
     #[[ -n $1 ]] && ts_hms=$1
 
     ## time fold places every decimal of ts_hms on a newline
+    ## so we can loop through with a here string
     time_fold=$(printf '%s' "$ts_hms" | fold -w 1)
 
     ## number of decimals will become the number of grids
@@ -183,15 +187,21 @@ function grid_create ()
     ## out grid_to_array
     ## out grid_decorate
 
+    ## #looping through every decimal_no to create grid_data and decorate
+
     ## reset decimal number
     decimal_no=0
 
     if [[ -n $mode ]]; then
 
-	## next decimal
-	(( decimal_no+=1 ))
+	for (( i=1; i<=$decimals; i++ )); do
 
-	grid_decorate
+    	## next decimal
+    	(( decimal_no+=1 ))
+
+    	grid_decorate
+
+	done
 
     else
 
@@ -219,7 +229,8 @@ function grid_create ()
 		       ## if ts_epoch hour differs from lueg hour, or
 		   [[ $ts_hour -ne $lueg_hour ]]; then
 
-		grid_data
+		set_decimal_bit_pattern
+		#grid_data
 		#DELgrid_to_array
 		grid_decorate
 
@@ -234,7 +245,8 @@ function grid_create ()
 }
 
 
-function grid_data ()
+function set_decimal_bit_pattern ()
+#function grid_data ()
 {
     ## in decimal_value
     ## out decimal_bit_pattern (array)
@@ -267,7 +279,7 @@ function grid_data ()
 	    ;;
 
 	*)
-	    ## define (non random) patterns
+	    ## set pre-defined (non random) patterns
 	    define_grid_fill
 	    ;;
 
@@ -307,31 +319,53 @@ function grid_decorate ()
     ## build current grid with color codes
     ## loop through the 9 light bits of the current decimal
     light_bit_no=0
+    gdn=''
+
 
     ## decimal_bit_pattern fold, for looping through light_bits
     dbpf=$(printf '%s' "${decimal_bit_pattern[$decimal_no]}" | fold -w 1)
 
-    while IFS= read -r light_bit; do
+    #case method in
 
-	## next light_bit
+    #	random)
+    #	    dbpf=$(printf '%s' "${decimal_bit_pattern[$decimal_no]}" | fold -w 1)
+    #	    ;;
+
+    #	*)
+    #	    dbpf=$(printf '%s' "${decimal_bit_pattern[$decimal_value]}" | fold -w 1)
+    #	    ;;
+
+    #esac
+
+
+
+    while IFS= read -r light_bit_value; do
+
+	## next light_bit_no (1-9)
 	(( light_bit_no+=1 ))
 
 	## add space before every light_bit
-	grid[$decimal_no]+=' '
+	gdn+=' '
 
-	## add color
-	case $light_bit in
+	## add light_bit and color
+	case $light_bit_value in
 
 	    0)
-		## add off color
-		color=${color_grid[0]}
-		grid[$decimal_no]+="\033[${color}m0\033[0m"
+		## add off light_bit (0) and off color code
+		color=${color_grid[0]/'#'/''}
+		#color=$(printf '%s' $color | sed -e 's/.\{2\}/&;/g' -e 's/;$//')
+		#printf "DEV$LINENO %s\n" "${color}"
+		gdn+="\033[38;2;${color}m0\033[0m"
+		#gdn+="\033[${color}m0\033[0m"
+		#grid[$decimal_no]+="\033[${color}m0\033[0m"
+		#exit 255
 		;;
 
 	    1)
-		## add on color
+		## add on light_bit (1) and on color code
 		color=${color_grid[$decimal_no]}
-		grid[$decimal_no]+="\033[${color}m1\033[0m"
+		gdn+="\033[${color}m1\033[0m"
+		#grid[$decimal_no]+="\033[${color}m1\033[0m"
 		;;
 
 	esac
@@ -341,14 +375,34 @@ function grid_decorate ()
 	#grid[$decimal_no]+=' '
 
 	## every third light_bit add eol
-	[[ $(( $light_bit_no % 3 )) -eq 0 ]] && grid[$decimal_no]+='\n'
+	[[ $(( $light_bit_no % 3 )) -eq 0 ]] && gdn+='\n'
+	#[[ $(( $light_bit_no % 3 )) -eq 0 ]] && grid[$decimal_no]+='\n'
 
-	grid[$decimal_no]="$(printf '%s' "${grid[$decimal_no]}" | sed "s/m1/m${shape_on}/g")"
-	grid[$decimal_no]="$(printf '%s' "${grid[$decimal_no]}" | sed "s/m0/m${shape_off}/g")"
+	## replace light_bit with on off shape
+	case $light_bit_value in
+
+	    0)
+		gdn="${gdn//m0/m${shape_off}}"
+		#grid[$decimal_no]="$(printf '%s' "${grid[$decimal_no]}" | sed "s/m0/m${shape_off}/g")"
+		;;
+
+	    1)
+		gdn="${gdn//m1/m${shape_on}}"
+		#grid[$decimal_no]="$(printf '%s' "${grid[$decimal_no]}" | sed "s/m1/m${shape_on}/g")"
+		;;
+
+	esac
+
+	grid[$decimal_no]="$gdn"
 
     done <<< "$dbpf"
 
     # '
+	#print_entire_array() { declare -n __p="$1"; for k in "${!__p[@]}"; do printf "%s=%s\n" "$k" "${__p[$k]}" ; done }
+	#pea () { declare -n __p="$1"; for k in "${!__p[@]}"; do printf "%s=%s\n" "$k" "${__p[$k]}"; done }
+	#printf "DEV$LINENO %s\n" "${v}"
+	#pea grid
+	#exit 255
 }
 
 
@@ -452,6 +506,12 @@ function grid_print ()
 	    ## replace ones with space shape_on
 	    ## CC functions as temporary placeholder for colorcode 033
 	    ## in order to prevent replacement of its zero
+#printf "DEV$LINENO \n" "${grid[1]}"
+#printf "DEV$LINENO \n" "${grid[2]}"
+#printf "DEV$LINENO \n" "${grid[3]}"
+#printf "DEV$LINENO \n" "${grid[4]}"
+#printf "DEV$LINENO \n" "${grid[5]}"
+#printf "DEV$LINENO \n" "${grid[6]}"
 			#paste -d '|' \
 	    grid_time=$(\
 			paste \
@@ -460,28 +520,49 @@ function grid_print ()
 			    <(printf "${grid[3]}") \
 			    <(printf "${grid[4]}") \
 			    <(printf "${grid[5]}") \
-			    <(printf "${grid[6]}")
+			    <(printf "${grid[6]}")\
+			    #<(printf "${grid[6]}") | \
+			    #sed -e 's/\t/ \t/g' | \
+			    #column -t -s$'\t'
 		     )
 
-	    ## print all grids
-	    printf "$grid_time"
-	    #printf "%${alignment}s" "$grid_time"
+
+#	    grid_time=$(\
+#			printf "${grid[1]}" "${grid[2]}" "${grid[3]}" "${grid[4]}" "${grid[5]}" "${grid[6]}" | \
+#			    awk '
+#			        {x=ARGIND;a[x]=a[x]>(b=length($0))?a[x]:b}
+#				{F[FNR,x]=$0}
+#				END{
+#					for(q=1;q<=FNR;q++)
+#            				{
+#                    				for(i=1;i<=ARGC;i++)
+#                    				{
+#                    				printf( "%-"a[i]"s ",F[q,i])
+#						}print ""
+#					}
+#    				}'\
+#			)
 	    ;;
 
 	vertical)
 	    grid_time=$(\
-			printf "${grid[1]}\n\n${grid[2]}\n\n${grid[3]}\n\n${grid[4]}\n\n${grid[5]}\n\n${grid[6]}\n\n"\
+			printf "${grid[1]}\n${grid[2]}\n${grid[3]}\n${grid[4]}\n${grid[5]}\n${grid[6]}\n"\
 		     )
 
 	    ## print all grids
 	    ## replace zeros with space shape_off
 	    ## replace ones with space shape_on
-	    printf "%${alignment}s" "$grid_time" | \
-		sed -e "s/0/${shape_off}/g" \
-		    -e "s/1/${shape_on}/g"
+	    #printf "%${alignment}s" "$grid_time"
+	    #printf "%${alignment}s" "$grid_time" | \
+	    #	sed -e "s/0/${shape_off}/g" \
+	    #	    -e "s/1/${shape_on}/g"
 	    ;;
 
     esac
+
+	    ## print all grids
+	    #printf "$grid_time"
+	    printf "%${alignment}s" "$grid_time"
 }
 
 
@@ -504,14 +585,12 @@ function initialize ()
 
     ## oxo banner
     main_refresh_period=1
-    get_time_fold 045400
     run_once oxo
     main_refresh_period=2
     run_once oxo_color
 
     ## lights out
     main_refresh_period=0.5
-    get_time_fold 000000
     run_once 000000
 
     ## reset default update period
@@ -539,11 +618,16 @@ function run_once ()
     	oxo)
     	    ## execute oxo_grid_array
     	    oxo_decimal_bit_pattern
+	    time_fold=999999
+	    decimals=6
+	    color=31
     	    ;;
 
     	oxo_color)
     	    ## execute oxo_grid_array
     	    oxo_decimal_bit_pattern
+	    time_fold=999999
+	    decimals=6
 
     	    ## execute grid_decorate for each decimal
     	    #decimal_no=1
@@ -563,18 +647,25 @@ function run_once ()
     	999999)
     	    ## execute nine_grid_array
     	    nine_decimal_bit_pattern
+	    time_fold=999999
+	    decimals=6
     	    ;;
 
     	000000)
     	    ## execute null_grid_array
     	    null_decimal_bit_pattern
+	    time_fold=999999
+	    decimals=6
     	    ;;
 
     esac
 
+    #get_timestamp  ## #TODO no time no timestamp
+    #get_time_fold $mode  ## #TODO no time no timestamp
     grid_create
     grid_print
     sleep $main_refresh_period
+    grid_reset
     clear_lines
     unset mode
 }
@@ -594,6 +685,12 @@ function reset_cursor_position ()
 {
     ## restore cursor position
     tput rc
+}
+
+
+function grid_reset ()
+{
+    unset grid
 }
 
 
@@ -619,7 +716,7 @@ function separate_container ()
 function oxo_decimal_bit_pattern ()
 {
     decimal_bit_pattern[1]='101000000'
-    [[ $decimal_bit_pattern_orientation == 'horizontal' ]] && \
+    [[ $grid_orientation == 'horizontal' ]] && \
 	decimal_bit_pattern[1]='100000100'
     decimal_bit_pattern[2]='101000101'
     decimal_bit_pattern[3]='000000000'
@@ -675,6 +772,7 @@ function main ()
 	grid_create
 	grid_print
 	sleep $main_refresh_period
+	#grid_reset
 	reset_cursor_position
 	clear_lines
 
