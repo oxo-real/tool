@@ -82,8 +82,8 @@ pattern_method=random
 
 row_height=22
 font_size=11
-#shape_on='▄'
-shape_on='◼'
+shape_on='▄'
+#shape_on='◼'
 shape_off=' '
 #shape_off='◻'
 # ◼◻ ■□ ●○
@@ -117,24 +117,24 @@ color_grid[6]=34
 
 ## set refresh periods for decimals
 main_refresh_period=1
-declare -ga refresh_period_grid
-## refresh_period_grid[decimal_no]=seconds
-refresh_period_grid[1]=60
-refresh_period_grid[2]=60
-refresh_period_grid[3]=15
-refresh_period_grid[4]=15
-refresh_period_grid[5]=3
-refresh_period_grid[6]=1
+declare -ga refresh_period_decimal
+## refresh_period_decimal[decimal_no]=seconds
+refresh_period_decimal[1]=60
+refresh_period_decimal[2]=60
+refresh_period_decimal[3]=15
+refresh_period_decimal[4]=15
+refresh_period_decimal[5]=3
+refresh_period_decimal[6]=1
 
-## initialize as global array last_update_ts_grid
-declare -ga last_update_ts_grid
-## last_update_ts_grid[decimal_no]=seconds
-#last_update_ts_grid[1]=0
-#last_update_ts_grid[2]=0
-#last_update_ts_grid[3]=0
-#last_update_ts_grid[4]=0
-#last_update_ts_grid[5]=0
-#last_update_ts_grid[6]=0
+## initialize as global array last_update_ts_decimal
+declare -ga last_update_ts_decimal
+## last_update_ts_decimal[decimal_no]=seconds
+#last_update_ts_decimal[1]=0
+#last_update_ts_decimal[2]=0
+#last_update_ts_decimal[3]=0
+#last_update_ts_decimal[4]=0
+#last_update_ts_decimal[5]=0
+#last_update_ts_decimal[6]=0
 
 
 function get_args ()
@@ -185,44 +185,48 @@ function grid_create ()
     ## #looping through every decimal_no to create grid_data and decorate
 
     ## set decimal bit pattern
+#TODO only run once (at the start)
     set_decimal_bit_pattern
 
     ## loop through every decimal in time_fold (decimal_value)
     #for i in "${!time_value[@]}"; do
     for (( decimal_no=1; decimal_no<=$decimals; decimal_no++ )); do
 
-	## get last update epoch for current grid (lueg)
-	lueg=${last_update_ts_grid[$decimal_no]:-0}
+	## get last update epoch for current decimal (lueg)
+	lueg=${last_update_ts_decimal[$decimal_no]:-0}
 
-	## no leading zeros in lueg values
-	lueg_hour=$(date -d @"$lueg" +'%-H')
-	lueg_minute=$(date -d @"$lueg" +'%-M')
-
-	## get refresh period for current grid (rpg)
-	rpg=${refresh_period_grid[$decimal_no]}
+	## get refresh period for current decimal (rpd)
+	rpd=${refresh_period_decimal[$decimal_no]}
 
 	## refresh current nine bits decimal grid, only
 	## if last update is longer ago than threshold, or
-	case $pattern_method in
+	if [[ $(( ts_epoch - lueg )) -ge $rpd ]] || \
+	       ## if ts_epoch minute differs from lueg minutes
+	       [[ $ts_minute -ne $lueg_minute ]] || \
+	       ## if ts_epoch hour differs from lueg hour, or
+	       [[ $ts_hour -ne $lueg_hour ]]; then
 
-	    random)
+	    ## no leading zeros in lueg values
+	    lueg_hour=$(date -d @"$lueg" +'%-H')
+	    lueg_minute=$(date -d @"$lueg" +'%-M')
 
-		if [[ $(( ts_epoch - lueg )) -ge $rpg ]] || \
-		       ## if ts_epoch minute differs from lueg minutes
-		       [[ $ts_minute -ne $lueg_minute ]] || \
-			   ## if ts_epoch hour differs from lueg hour, or
-		       [[ $ts_hour -ne $lueg_hour ]]; then
+	    case $pattern_method in
+
+		random)
 
 		    ## reset time decimal bit pattern (random)
+		#TODO only for current decimal_no
 		    set_decimal_bit_pattern
+		    ;;
 
-		fi
-		;;
+	    esac
 
-	esac
+	    ## set last update epoch for current grid to current epoch
+	    last_update_ts_decimal[$decimal_no]="$ts_epoch"
 
-	## set last update epoch for current grid to current epoch
-	last_update_ts_grid[$decimal_no]="$ts_epoch"
+	fi
+
+	#printf "DEV$LINENO %s\n" "${last_update_ts_decimal[$decimal_no]}"
 
 	grid_decorate
 
@@ -311,7 +315,8 @@ function set_decimal_bit_pattern ()
 	    ## create nine random patterns
 
 	    for decimal_value in {1..8}; do
-
+	#TODO initially set for all decimals (which it does now)
+	#TODO reset for single decimal
 		## in decimal_value
 		## out random decimal_bit_pattern (array)
 
