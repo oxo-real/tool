@@ -64,12 +64,14 @@ license='gplv3'
 initial_release_year=2024
 
 
-args=$@
 tmp="$XDG_CACHE_HOME/temp"
 novies_config_dir="$XDG_CONFIG_HOME/novies" ## #TODO config file
 
 
-grid_orientation=horizontal
+args="$@"
+
+
+#grid_orientation=horizontal
 #grid_orientation=vertical
 
 
@@ -77,16 +79,16 @@ grid_orientation=horizontal
 #pattern_method=pile-789456123  ## horizontal
 #pattern_method=sym_v
 #pattern_method=sym_h
-pattern_method=random
+#pattern_method=random
 
 
-row_height=22
-font_size=11
 shape_on='▄'
 #shape_on='◼'
 shape_off=' '
 #shape_off='◻'
 # ◼◻ ■□ ●○
+row_height=22
+font_size=11
 spacing_x=0
 spacing_y=0
 opacity=0.0
@@ -116,7 +118,7 @@ color_grid[5]=34
 color_grid[6]=34
 
 ## set refresh periods for decimals
-main_refresh_period=1
+#main_refresh_period=1
 declare -ga refresh_period_decimal
 ## refresh_period_decimal[decimal_no]=seconds
 refresh_period_decimal[1]=60
@@ -139,8 +141,61 @@ declare -ga last_update_ts_decimal
 
 function get_args ()
 {
-    #TODO
-    :
+    while true; do
+
+	case "$1" in
+
+	    interval | --interval | -i )
+		shift
+		main_refresh_period="$1"
+		shift
+		;;
+
+	    pattern | --pattern | -p )
+		shift
+		pattern_method="$1"
+		shift
+		;;
+
+	    orientation | --orientation | -o )
+		shift
+
+		case "$1" in
+
+		    v)
+			grid_orientation='vertical'
+			;;
+		    h)
+			grid_orientation='horizontal'
+			;;
+		    *)
+			grid_orientation="$1"
+			;;
+
+		esac
+
+		shift
+		;;
+
+	    on | shape-on | --shape-on | -n )
+		shift
+		shape_on="$1"
+		shift
+		;;
+
+	    off | shape-off | --shape-off | -f )
+		shift
+		shape_off="$1"
+		;;
+
+	    *)
+		input_star=$@
+		return
+		;;
+
+	esac
+
+    done
 }
 
 
@@ -186,7 +241,7 @@ function grid_create ()
 
     ## set decimal bit pattern
 #TODO only run once (at the start)
-    set_decimal_bit_pattern
+    #set_decimal_bit_pattern
 
     ## loop through every decimal in time_fold (decimal_value)
     #for i in "${!time_value[@]}"; do
@@ -215,8 +270,11 @@ function grid_create ()
 		random)
 
 		    ## reset time decimal bit pattern (random)
-		#TODO only for current decimal_no
-		    set_decimal_bit_pattern
+		    if [[ $time_value -ne 9 || $time_value -ne 0 ]]; then
+
+			set_decimal_bit_pattern ${time_value[$decimal_no]}
+
+		    fi
 		    ;;
 
 	    esac
@@ -228,7 +286,8 @@ function grid_create ()
 
 	#printf "DEV$LINENO %s\n" "${last_update_ts_decimal[$decimal_no]}"
 
-	grid_decorate
+	#grid_decorate
+	grid_decorate ${time_value[$decimal_no]}
 
     done
 }
@@ -243,7 +302,8 @@ function grid_decorate ()
 
     ## decimal_bit_pattern fold, for looping through light_bits
     ## one step:
-    dbpf=$(fold -w 1 <<< ${decimal_bit_pattern[${time_value[$decimal_no]}]})
+    dbpf=$(fold -w 1 <<< ${decimal_bit_pattern[$1]})
+    #dbpf=$(fold -w 1 <<< ${decimal_bit_pattern[${time_value[$decimal_no]}]})
     ## two step:
     ## tvdn=${time_value[$decimal_no]}
     ## dbpf=$(fold -w 1 <<< ${decimal_bit_pattern[$tvdn]})
@@ -281,7 +341,7 @@ function grid_decorate ()
 	## eol every third light_bit
 	[[ $(( $light_bit_no % 3 )) -eq 0 ]] && gdn+='\n'
 
-	## replace light_bit with on off shape
+	## replace light_bits with on off shape
 	case $light_bit_value in
 
 	    0)
@@ -300,45 +360,59 @@ function grid_decorate ()
 }
 
 
+function set_random_bit_pattern ()
+{
+    ## in decimal_value
+    ## out random decimal_bit_pattern (array)
+
+    # create a random binary string based on current decimal_value to fill grid
+
+    ## number of light units on and off
+    lu_on_no=$decimal_value
+    lu_off_no=$(( 9 - $decimal_value ))
+
+    ## synthesize 9 bit string with number of lights
+    ## on (1) off (0)
+    on_string=$(printf '%0.s1' $(seq 1 $lu_on_no))
+    off_string=$(printf '%0.s0' $(seq 1 $lu_off_no))
+
+    ## define on_off_string
+    on_off_string=$(printf '%s%s' "$on_string" "$off_string")
+
+    ## writing on_off_pattern to decimal_bit_pattern array
+    ## randomize on_off_string with shuf, creating on_off_pattern
+    decimal_bit_pattern[$decimal_value]=$(fold -w 1 <<< "$on_off_string" | shuf | tr -d '\n')
+}
+
+
 function set_decimal_bit_pattern ()
 {
     ## in pattern_method
     ## out decimal_bit_pattern array for values 0-9
 
-    decimal_bit_pattern[0]=000000000
-    decimal_bit_pattern[9]=111111111
+    decimal_value=$1
 
     ## if no random grid fill; define fill sequence here
     case $pattern_method in
 
 	random)
-	    ## create nine random patterns
+	    case $1 in
 
-	    for decimal_value in {1..8}; do
-	#TODO initially set for all decimals (which it does now)
-	#TODO reset for single decimal
-		## in decimal_value
-		## out random decimal_bit_pattern (array)
+		'')
+		    ## create nine random patterns
+		    for decimal_value in {1..8}; do
 
-		# create a random binary string based on current decimal_value to fill grid
+			set_random_bit_pattern
 
-		## number of light units on and off
-		lu_on_no=$decimal_value
-		lu_off_no=$(( 9 - $decimal_value ))
+		    done
+		    ;;
 
-		## synthesize 9 bit string with number of lights
-		## on (1) off (0)
-		on_string=$(printf '%0.s1' $(seq 1 $lu_on_no))
-		off_string=$(printf '%0.s0' $(seq 1 $lu_off_no))
+		*)
+		    ## recreate one random pattern
+		    set_random_bit_pattern
+		    ;;
 
-		## define on_off_string
-		on_off_string=$(printf '%s%s' "$on_string" "$off_string")
-
-		## writing on_off_pattern to decimal_bit_pattern array
-		## randomize on_off_string with shuf, creating on_off_pattern
-		decimal_bit_pattern[$decimal_value]=$(fold -w 1 <<< "$on_off_string" | shuf | tr -d '\n')
-
-	    done
+	    esac
 	    ;;
 
 	pile*)
@@ -410,6 +484,10 @@ function set_decimal_bit_pattern ()
 	    ;;
 
     esac
+
+    ## 0&9 always have the same pattern
+    decimal_bit_pattern[0]=000000000
+    decimal_bit_pattern[9]=111111111
 }
 
 
@@ -425,7 +503,7 @@ function grid_print ()
     ## print entire grid
     case $grid_orientation in
 
-	horizontal)
+	horizontal )
 	    grid_time=$(\
 			paste \
 			    <(printf "${grid[1]}") \
@@ -437,7 +515,7 @@ function grid_print ()
 		     )
 	    ;;
 
-	vertical)
+	vertical )
 	    grid_time=$(\
 			printf "${grid[1]}\n${grid[2]}\n${grid[3]}\n${grid[4]}\n${grid[5]}\n${grid[6]}\n"\
 		     )
@@ -450,6 +528,7 @@ function grid_print ()
 
     ## restore cursor position
     tput rc
+    printf '\r'
 }
 
 
@@ -503,13 +582,15 @@ function finalize ()
 
 function main ()
 {
-    #get_args
+    get_args $args
     #get_parameters
     initialize
+    set_decimal_bit_pattern
 
     while true; do
 
 	get_timestamp
+	#set_decimal_bit_pattern
 	grid_create
 	grid_print
 	sleep $main_refresh_period
