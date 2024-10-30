@@ -45,7 +45,11 @@ zsh (probably)
 novies [option value]
 
 # examples
-% novies -i 3 -o v -p pile-741852963 --shape-off '.' --tty
+## default
+% novies -i 3 -o h -p random --shape-off '▄' shape_on='▄'
+
+
+% novies -i 3 -o v -p pile-741852963 --shape-off '.' --color1 #ff73fd --tty
 
 # '
 
@@ -86,8 +90,7 @@ shape_off='▄'
 font_size=11
 spacing_x=0
 spacing_y=0
-opacity=1.0
-color_background='#550000'
+opacity=0.0
 alignment=0  ## #TODO does not align
 grid_rows=3
 grid_columns=3
@@ -131,12 +134,6 @@ refresh_period_decimal[6]=1
 ## initialize as global array last_update_ts_decimal
 declare -ga last_update_ts_decimal
 ## last_update_ts_decimal[decimal_no]=seconds
-#last_update_ts_decimal[1]=0
-#last_update_ts_decimal[2]=0
-#last_update_ts_decimal[3]=0
-#last_update_ts_decimal[4]=0
-#last_update_ts_decimal[5]=0
-#last_update_ts_decimal[6]=0
 
 
 function get_args ()
@@ -189,6 +186,14 @@ function get_args ()
 		shift
 		shape_off="$1"
 		shift
+		;;
+
+	    color* | --color* )
+		decimal_no="${1/*color/}"
+		shift
+		grid_color="$1"
+		shift
+		custom_colors
 		;;
 
 	    -t | -nw | --tty )
@@ -400,7 +405,7 @@ function set_decimal_bit_pattern ()
     ## if no random grid fill; define fill sequence here
     case $pattern_method in
 
-	random)
+	random )
 	    case $1 in
 
 		'')
@@ -420,14 +425,15 @@ function set_decimal_bit_pattern ()
 	    esac
 	    ;;
 
-	pile*)
+	pile* )
 	    ## grid fills with adding more lights
 	    ## on top of those already on
 
 	    ## NOTICE the variable pattern_method_pile_sequence
 	    ##        must have nine unique single decimal digits
 
-	    ## 123456789 every number is a bit_position (bit 1 (sw) first, 9 (ne) last)
+	    ## 123456789 every number is a bit_position
+	    ## bit 1 (sw) first, 9 (ne) last
 	    ## decimal fill method is defined, i.e.
 	    ## decimal value 3 has lights 123 on, therefore
 	    ## decimal values and shapes are related and
@@ -462,7 +468,7 @@ function set_decimal_bit_pattern ()
 	    done <<< "$gfmpsf"
 	    ;;
 
-	sym_v)
+	sym_v )
 	    ## vertically symmetric fill
 	    ## decimal_bit_pattern[$decimal_value]=$on_off_pattern
 	    decimal_bit_pattern[1]=000010000
@@ -475,7 +481,7 @@ function set_decimal_bit_pattern ()
 	    decimal_bit_pattern[8]=111101111
 	    ;;
 
-	sym_h)
+	sym_h )
 	    ## horizontally symmetric fill
 	    ## sym_h[decimal_value]=decimal_bit_pattern
 	    decimal_bit_pattern[1]=000010000
@@ -502,8 +508,8 @@ function grid_print ()
     ## in grid[1-6]
     ## out grid_time (final output)
 
-    ## save cursor position
-    tput sc
+    ## restore cursor position
+    tput rc
 
     ## print entire grid
     case $grid_orientation in
@@ -530,25 +536,6 @@ function grid_print ()
 
     ## print all grids
     printf "%${alignment}s" "$grid_time"
-
-    ## restore cursor position
-    tput rc
-}
-
-
-function initialize ()
-{
-    if [[ -n $new_tty ]]; then
-
-	sway exec $csc/term-spawn
-	separate_container
-
-    fi
-
-    tput civis
-    alacritty msg config font.size=$font_size
-    alacritty msg config font.offset.x=$spacing_x
-    alacritty msg config font.offset.y=$spacing_y
 }
 
 
@@ -558,13 +545,36 @@ function grid_reset ()
 }
 
 
+function custom_colors ()
+{
+    ## process custom colors flags
+    case $decimal_no in
+
+	a )
+	    ## option flag --colora is given (with rgb 0x color code)
+	    ## all grids have the same color
+	    for decimal_no in {1..6}; do
+
+		color_grid[$decimal_no]=$grid_color
+
+	    done
+	    ;;
+
+	* )
+	    color_grid[$decimal_no]=$grid_color
+	    ;;
+
+    esac
+}
+
+
 function separate_container ()
 {
     ## set floating container
     sway floating enable
 
     ## container opacity
-    alacritty msg config window.opacity=$opacity colors.primary.background='"$color_background"'
+    alacritty msg config window.opacity=$opacity
     #alacritty msg config window.opacity=$opacity colors.primary.background='"$color_background"'
 
     ## container dimensions
@@ -575,12 +585,38 @@ function separate_container ()
 }
 
 
+function initialize ()
+{
+    set_decimal_bit_pattern
+
+    ## save cursor position
+    tput sc
+    ## hide cursor
+    tput civis
+
+    if [[ -n $new_tty ]]; then
+
+	sway exec $csc/term-spawn
+	separate_container
+
+    fi
+
+    alacritty msg config font.size=$font_size
+    alacritty msg config font.offset.x=$spacing_x
+    alacritty msg config font.offset.y=$spacing_y
+
+    ## signal interrupt
+    trap "finalize; return 0" SIGINT
+}
+
+
 function finalize ()
 {
-    ## called by trap
-    tput rc
-    tput ed
+    # called by trap
+
+    ## normal cursor
     tput cnorm
+    echo
 
     alacritty msg config font.size=11
     alacritty msg config font.offset.x=0
@@ -592,10 +628,6 @@ function main ()
 {
     get_args $args
     initialize
-    set_decimal_bit_pattern
-
-    ## signal interrupt
-    trap "finalize; return 0" SIGINT
 
     while :; do
 
