@@ -36,7 +36,7 @@ https://www.gnu.org/licenses/gpl-3.0.txt
 
 
 # dependencies
-zsh (probably)
+oxo text_appearance (or use ANSI escape codes for colors)
 
 # requirements
 
@@ -45,11 +45,8 @@ zsh (probably)
 novies [option value]
 
 # examples
-## default
 % novies -i 3 -o h -p random --shape-off '▄' shape_on='▄'
-
-
-% novies -i 3 -o v -p pile-741852963 --shape-off '.' --color1 #ff73fd --tty
+% novies -i 3 -o v -p pile-741852963 --shape-off '.' --colora #ff0000 --color6 #ffffff --tty
 
 # '
 
@@ -68,6 +65,17 @@ initial_release_year=2024
 
 
 args="$@"
+
+## dependencies
+function include ()
+{
+    [[ -f "$1" ]] && source "$1"
+}
+### 24bit colors
+XDG_DATA_HOME="$HOME/.local/share"
+source_dir="$XDG_DATA_HOME/c/git/code/source/function"
+include "$source_dir/text_appearance"
+### spawn container
 csc="$XDG_CONFIG_HOME/sway/code"
 
 
@@ -95,17 +103,14 @@ alignment=0  ## #TODO does not align
 grid_rows=3
 grid_columns=3
 row_height=22
-column_width=44
+column_width=70
 con_width_corr=0
+term_width=$COLUMNS
 
 
 declare -ga grid
 declare -ga time_value
 declare -ga decimal_bit_pattern
-
-XDG_DATA_HOME="$HOME/.local/share"
-source_dir="$XDG_DATA_HOME/c/git/code/source/function"
-source "$source_dir/text_appearance"
 
 ## set on off colors for decimal light units
 declare -ga color_grid
@@ -119,6 +124,7 @@ color_grid[3]=#a8ff60
 color_grid[4]=#a8ff60
 color_grid[5]=#96cbfe
 color_grid[6]=#96cbfe
+#ansi_color_grid[6]=#31
 
 ## set refresh periods for decimals
 main_refresh_period=1
@@ -335,6 +341,7 @@ function grid_decorate ()
 		color=${color_grid[0]/'#'/''}
 
 		gdn+="$(FGx $color)x${st_def}"
+		#gdn+="\033[38;2;${ansi_color}m0\033[0m"
 		;;
 
 	    1)
@@ -342,6 +349,7 @@ function grid_decorate ()
 		color=${color_grid[$decimal_no]/'#'/''}
 
 		gdn+="$(FGx $color)v${st_def}"
+		#gdn+="\033[${ansi_color}m1\033[0m
 		;;
 
 	esac
@@ -353,13 +361,13 @@ function grid_decorate ()
 	case $light_bit_value in
 
 	    0)
-		#gdn="${gdn//m0/m${shape_off}}"
 		gdn="${gdn//x/${shape_off}}"
+		#gdn="${gdn//m0/m${shape_off}}"
 		;;
 
 	    1)
-		#gdn="${gdn//m1/m${shape_on}}"
 		gdn="${gdn//v/${shape_on}}"
+		#gdn="${gdn//m1/m${shape_on}}"
 		;;
 
 	esac
@@ -535,7 +543,7 @@ function grid_print ()
     esac
 
     ## print all grids
-    printf "%${alignment}s" "$grid_time"
+    printf "%${term_width}s" "$grid_time"
 }
 
 
@@ -570,6 +578,9 @@ function custom_colors ()
 
 function separate_container ()
 {
+    ## save cursor position in new container
+    tput sc
+
     ## set floating container
     sway floating enable
 
@@ -578,8 +589,57 @@ function separate_container ()
     #alacritty msg config window.opacity=$opacity colors.primary.background='"$color_background"'
 
     ## container dimensions
-    con_width=$(( decimals * column_width - con_width_corr ))
-    con_height=$(( grid_rows * row_height ))
+    case $grid_orientation in
+
+	horizontal )
+	    con_width=$(( 6 * column_width + con_width_corr ))
+	    con_height=$(( grid_rows * row_height ))
+	    ;;
+
+	vertical )
+	    con_width_corr=10
+	    con_height=$(( 6 * column_width + con_width_corr + con_width_corr ))
+	    con_width=$(( grid_rows * row_height ))
+	    ;;
+
+    esac
+
+    sway resize set width $con_width
+    sway resize set height $con_height
+}
+
+
+function initialize ()
+{
+    set_decimal_bit_pattern
+
+    ## save cursor position
+    tput sc
+
+    ## set floating container
+    sway floating enable
+
+    ## container opacity
+    alacritty msg config window.opacity=$opacity
+    #alacritty msg config window.opacity=$opacity colors.primary.background='"$color_background"'
+
+    ## container dimensions
+    case $grid_orientation in
+
+	horizontal )
+	    con_width=$(( 6 * column_width + con_width_corr ))
+	    con_height=$(( grid_rows * row_height ))
+	    ;;
+
+	vertical )
+	    con_width_corr=9
+	    con_height_corr=0
+	    con_height=$(( 6 * column_width + con_width_corr + con_width_corr ))
+	    con_width=$(( grid_rows * row_height + con_height_corr ))
+	    ;;
+
+    esac
+
     sway resize set width $con_width
     sway resize set height $con_height
 }
