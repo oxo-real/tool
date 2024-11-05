@@ -13,7 +13,6 @@
 ├── dedup-files
 ├── dedup-lines
 ├── dev
-│   ├── 20241012_182110-novies
 │   ├── cryptr2
 │   ├── cryptr_add
 │   ├── data_flow_mon
@@ -23,16 +22,18 @@
 │   ├── histcmdselector
 │   ├── histdel
 │   ├── location
-│   ├── novies9931
-│   ├── noviesasdf
-│   ├── novies_copy
-│   ├── novies_copy3
-│   ├── novies_copy_sat
-│   ├── novies.sh
-│   ├── novies_working
-│   ├── novies_zcv
-│   ├── panel1row.sh
-│   ├── panel3x3.sh
+│   ├── novies
+│   │   ├── 20241012_182110-novies
+│   │   ├── novies9931
+│   │   ├── noviesasdf
+│   │   ├── novies_copy
+│   │   ├── novies_copy3
+│   │   ├── novies_copy_sat
+│   │   ├── novies.sh
+│   │   ├── novies_working
+│   │   ├── novies_zcv
+│   │   ├── panel1row.sh
+│   │   └── panel3x3.sh
 │   ├── rootkit
 │   ├── sexager
 │   ├── snapshot
@@ -118,5 +119,5 @@
     ├── trashOLD
     └── wfa.py
 
-5 directories, 113 files
+6 directories, 113 files
 ```

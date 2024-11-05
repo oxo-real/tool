@@ -37,6 +37,7 @@ https://www.gnu.org/licenses/gpl-3.0.txt
 
 # dependencies
 oxo text_appearance (or use ANSI escape codes for colors)
+bc for fractal magnification
 
 # requirements
 
@@ -105,7 +106,7 @@ grid_columns=3
 row_height=22
 column_width=70
 con_width_corr=0
-term_width=$COLUMNS
+magnification=1
 
 
 declare -ga grid
@@ -179,6 +180,12 @@ function get_args ()
 
 		esac
 
+		shift
+		;;
+
+	    magnification | --magnification | -m )
+		shift
+		magnification="$1"
 		shift
 		;;
 
@@ -543,7 +550,7 @@ function grid_print ()
     esac
 
     ## print all grids
-    printf "%${term_width}s" "$grid_time"
+    printf "$grid_time"
 }
 
 
@@ -560,7 +567,7 @@ function custom_colors ()
 
 	a )
 	    ## option flag --colora is given (with rgb 0x color code)
-	    ## all grids have the same color
+	    ## all grids same color
 	    for decimal_no in {1..6}; do
 
 		color_grid[$decimal_no]=$grid_color
@@ -592,14 +599,26 @@ function separate_container ()
     case $grid_orientation in
 
 	horizontal )
-	    con_width=$(( 6 * column_width + con_width_corr ))
-	    con_height=$(( grid_rows * row_height ))
+	    con_w_fractal=$(echo "$magnification * 6 * $column_width + $con_width_corr" | bc)
+	    #con_width=$(( magnification * 6 * column_width + con_width_corr ))
+	    con_h_fractal=$(echo "$magnification * $grid_rows * $row_height" | bc)
+	    #con_height=$(( magnification * grid_rows * row_height ))
+
+	    ## remove magnifcation originated decimals
+	    con_width=${con_w_fractal%.*}
+	    con_height=${con_h_fractal%.*}
 	    ;;
 
 	vertical )
 	    con_width_corr=10
-	    con_height=$(( 6 * column_width + con_width_corr + con_width_corr ))
-	    con_width=$(( grid_rows * row_height ))
+	    con_h_fractal=$(echo "$magnification * 6 * $column_width + $con_width_corr" | bc)
+	    #con_height=$(( magnification * 6 * column_width + con_width_corr + con_width_corr ))
+	    con_w_fractal=$(echo "$magnification * $grid_rows * $row_height" | bc)
+	    #con_width=$(( magnification * grid_rows * row_height ))
+
+	    ## remove magnifcation originated decimals
+	    con_width=${con_w_fractal%.*}
+	    con_height=${con_h_fractal%.*}
 	    ;;
 
     esac
@@ -612,47 +631,6 @@ function separate_container ()
 function initialize ()
 {
     set_decimal_bit_pattern
-
-    ## save cursor position
-    tput sc
-
-    ## set floating container
-    sway floating enable
-
-    ## container opacity
-    alacritty msg config window.opacity=$opacity
-    #alacritty msg config window.opacity=$opacity colors.primary.background='"$color_background"'
-
-    ## container dimensions
-    case $grid_orientation in
-
-	horizontal )
-	    con_width=$(( 6 * column_width + con_width_corr ))
-	    con_height=$(( grid_rows * row_height ))
-	    ;;
-
-	vertical )
-	    con_width_corr=9
-	    con_height_corr=0
-	    con_height=$(( 6 * column_width + con_width_corr + con_width_corr ))
-	    con_width=$(( grid_rows * row_height + con_height_corr ))
-	    ;;
-
-    esac
-
-    sway resize set width $con_width
-    sway resize set height $con_height
-}
-
-
-function initialize ()
-{
-    set_decimal_bit_pattern
-
-    ## save cursor position
-    tput sc
-    ## hide cursor
-    tput civis
 
     if [[ -n $new_tty ]]; then
 
@@ -661,7 +639,15 @@ function initialize ()
 
     fi
 
+    clear
+    ## save cursor position
+    tput sc
+    ## hide cursor
+    tput civis
+
+    font_size=$(echo "$magnification * $font_size" | bc)
     alacritty msg config font.size=$font_size
+
     alacritty msg config font.offset.x=$spacing_x
     alacritty msg config font.offset.y=$spacing_y
 
