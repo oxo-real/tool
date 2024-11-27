@@ -4,18 +4,20 @@
 #set -o nounset
 set -o pipefail
 
+## arg should be realpath to file
 arg=$1
 
 source $XDG_DATA_HOME/c/git/code/source/function/text_appearance
 
 if [[ -z $arg ]]; then
 
+    ## compute and check regularly on cwd 
     sha3-512sum -c $PWD/sha3-512sums
     exit 0
 
 fi
 
-file_name=$(realpath $arg)
+[[ -f $arg ]] && file_name=$(realpath $arg)
 
 
 # calculate ist of file_name
@@ -35,6 +37,8 @@ if [[ -f $hash_list ]]; then
 else
 
     printf "${fg_amber}%s${st_def} does not exist\n" "$hash_list"
+    printf 'sha3-512sum:\n' 
+    sha3-512sum $file_name
     exit 88
 
 fi
@@ -47,7 +51,10 @@ printf "$(BGx 222222)%s${st_def}\r" "$file_name"
 if [[ "$file_name" != "$soll_name" ]]; then
 
     ## exit if file_name does not match soll_name
-    printf "$(BGx 222222)${fg_amber}%s${st_def} checksum FAILED" "$file_name"
+    printf "$(BGx 222222)${fg_amber}%s${st_def} checksum FAILED\n" "$file_name"
+    printf 'validate code integrity, then run:\n'
+    printf 'calc-sum %s' "${file_name%/*}" | wl-copy
+    printf "calc-sum %s ${st_ital}(copied)${st_def}\n" "${file_name%/*}"
 #    sleep 1
     echo
     exit 88

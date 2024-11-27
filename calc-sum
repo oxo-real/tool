@@ -1,6 +1,7 @@
 #! /usr/bin/env sh
 
 ## get arg
+## for check-sum; intended to be a directory
 arg="$1"
 
 ## if no arg, then set dir to pwd
