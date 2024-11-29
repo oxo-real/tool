@@ -47,23 +47,33 @@ https://www.gnu.org/licenses/gpl-3.0.txt
   % otp95 d [key $keyfile] [out $outfile] [in $infile] ['cipher_text']
 
   GENERAL NOTICE
-  	  commandline text input, although possible, is not recommended
-	  commandline text input must always be the last argument
- 	  keyfile needs a minimum of 2 lines (at least 96 recommended)
-	  keyfile lines should be randomly ordered
-	  keyfile can be generated from $ASCII
+  keyfile needs a minimum of 2 lines (96 recommended minimum)
+  keyfile lines should be randomly ordered
+  keyfile can be generated from $ASCII
+  input via script build-in cat is recommended (exit with C-d)
+  commandline text input, although possible, is not recommended
+  because of (special) character interference
+  commandline text input must always be the last argument
 
   SPECIFIC NOTICE
-  	   for decryption subcommand d is compulsory
-  	   commandline text input (not recommended) must be quoted
+  for decryption:
+  subcommand d is compulsory
+  input via script build-in cat is recommended (exit with C-d)
+  commandline text input, although possible, is not recommended
+  because of (special) character interference
+  when using commandline text input it must be (single) quoted
+  commandline text input must always be the last argument
 
   SECURITY NOTICE
-  	   keyfiles must be kept secret at all times!!
-	   base64 is keyfiles minimum character space
+  keyfiles must be kept secret at all times!!
+  base64 is keyfiles minimum character space
 
   TECHNICAL NOTICE
-	  ## > encryption: input = plain_text > code_text > cipher_text = output
-	  ## > decryption: input = cipher_text > code_text > plain_text = output
+  % cat /home/oxo/c/git/code/tool/otp95 | grep -A 1 --line-number '(encr)'
+  ## > encryption: input = plain_text > code_text > cipher_text = output
+  % cat /home/oxo/c/git/code/tool/otp95 | grep -A 1 --line-number '(decr)'
+  ## > decryption: input = cipher_text > code_text > plain_text = output
+
 
 # example
   ascii=$(for (( i=32; i<127; i++ )) do; printf "\\$(printf %03o "$i")"; done)
@@ -74,13 +84,10 @@ https://www.gnu.org/licenses/gpl-3.0.txt
   % otp95 in plain_file key key_file out crypt_file
 
   ## decryption
-  % otp95 d 'text'
+  % otp95 d 'text'  ## check notices
   % otp95 d in crypt_file key key_file out plain_file
 
 # '
-
-# cat /home/oxo/c/git/code/tool/otp95 | grep -A 1 --line-number '(encr)'
-# cat /home/oxo/c/git/code/tool/otp95 | grep -A 1 --line-number '(decr)'
 
 
 #set -o errexit
@@ -434,8 +441,8 @@ run_action()
 
 encrypt()
 {
-    ## > encrypt (encr): input = plain_text > code_text > cipher_text = output
-    ## >                                      ^^^^^^^^^^^^^^^^^^^^^^^
+        ## > encrypt (encr): input = plain_text > code_text > cipher_text = output
+        ## >                                      ^^^^^^^^^^^^^^^^^^^^^^^
 
     ## get the otp session key
     session_key=$(sed -n ${session_key_line}p <<< $key_file_mem)
@@ -485,8 +492,8 @@ encrypt()
 
 decrypt()
 {
-    ## > decrypt (decr): input = cipher_text > code_text > plain_text = output
-    ## >                         ^^^^^^^^^^^^^^^^^^^^^^^
+        ## > decrypt (decr): input = cipher_text > code_text > plain_text = output
+        ## >                         ^^^^^^^^^^^^^^^^^^^^^^^
 
     ## get the otp session key
     session_key=$(sed -n ${session_key_line}p <<< $key_file_mem)
@@ -536,11 +543,11 @@ decrypt()
 
 output()
 {
-    ## > output (encr): input = plain_text > code_text > cipher_text = output
-    ## >                                                 ^^^^^^^^^^^^^^^^^^^^
+        ## > output (encr): input = plain_text > code_text > cipher_text = output
+        ## >                                                 ^^^^^^^^^^^^^^^^^^^^
 
-    ## > output (decr): input = cipher_text > code_text > plain_text = output
-    ## >                                                  ^^^^^^^^^^^^^^^^^^^
+        ## > output (decr): input = cipher_text > code_text > plain_text = output
+        ## >                                                  ^^^^^^^^^^^^^^^^^^^
 
     [[ $action == 'encrypt' ]] && output="$cipher_text"
     [[ $action == 'decrypt' ]] && output="$plain_text"
