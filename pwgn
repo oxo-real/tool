@@ -342,8 +342,6 @@ running_rounds ()
 	# show iterations
 	## restore cursor position
 	tput rc
-	## clear to end of screen
-	tput ed
 
 	print_qr_codeblock
 	print_blocks $output
