@@ -80,6 +80,9 @@
 ├── rename-exif
 ├── repo-tree.md
 ├── secure-core
+│   ├── askpass -> ../askpass
+│   ├── calc-sum -> ../calc-sum
+│   ├── check-sum -> ../check-sum
 │   ├── cryptr -> ../cryptr
 │   ├── mountr -> ../mountr
 │   ├── otp95 -> ../otp95
@@ -119,5 +122,5 @@
     ├── trashOLD
     └── wfa.py
 
-6 directories, 113 files
+6 directories, 116 files
 ```
