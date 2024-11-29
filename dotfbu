@@ -41,8 +41,6 @@ dotfbu restore [<rs_src> <rs_dest>]
 
 ### i.e.: dotfbu backup $XDG_CONFIG_HOME $XDG_DATA_HOME/c/git/dotf
 ###	  dotfbu restore $XDG_DATA_HOME/c/git/dotf $XDG_CONFIG_HOME
-##
-#
 
 
 # dependencies

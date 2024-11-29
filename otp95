@@ -46,20 +46,20 @@ https://www.gnu.org/licenses/gpl-3.0.txt
   ## decryption
   % otp95 d [key $keyfile] [out $outfile] [in $infile] ['cipher_text']
 
-  SECURITY NOTICE
-  	   keyfiles must be kept secret at all times!!
-	   base64 is keyfiles minimum character space
-
-  SPECIFIC NOTICE
-  	   for decryption subcommand d is compulsory
-  	   commandline text input (not recommended) must be quoted
-
   GENERAL NOTICE
   	  commandline text input, although possible, is not recommended
 	  commandline text input must always be the last argument
  	  keyfile needs a minimum of 2 lines (at least 96 recommended)
 	  keyfile lines should be randomly ordered
 	  keyfile can be generated from $ASCII
+
+  SPECIFIC NOTICE
+  	   for decryption subcommand d is compulsory
+  	   commandline text input (not recommended) must be quoted
+
+  SECURITY NOTICE
+  	   keyfiles must be kept secret at all times!!
+	   base64 is keyfiles minimum character space
 
   TECHNICAL NOTICE
 	  ## > encryption: input = plain_text > code_text > cipher_text = output
