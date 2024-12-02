@@ -46,35 +46,6 @@ https://www.gnu.org/licenses/gpl-3.0.txt
   ## decryption
   % otp95 d [key $keyfile] [out $outfile] [in $infile] ['cipher_text']
 
-  GENERAL NOTICE
-  keyfile needs a minimum of 2 lines (96 recommended minimum)
-  keyfile lines should be randomly ordered
-  keyfile can be generated from $ASCII
-  input via script build-in cat is recommended (exit with C-d)
-  commandline text input, although possible, is not recommended
-  because of (special) character interference
-  commandline text input must always be the last argument
-
-  SPECIFIC NOTICE
-  for decryption:
-  subcommand d is compulsory
-  input via script build-in cat is recommended (exit with C-d)
-  commandline text input, although possible, is not recommended
-  because of (special) character interference
-  when using commandline text input it must be (single) quoted
-  commandline text input must always be the last argument
-
-  SECURITY NOTICE
-  keyfiles must be kept secret at all times!!
-  base64 is keyfiles minimum character space
-
-  TECHNICAL NOTICE
-  % cat /home/oxo/c/git/code/tool/otp95 | grep -A 1 --line-number '(encr)'
-  ## > encryption: input = plain_text > code_text > cipher_text = output
-  % cat /home/oxo/c/git/code/tool/otp95 | grep -A 1 --line-number '(decr)'
-  ## > decryption: input = cipher_text > code_text > plain_text = output
-
-
 # example
   ascii=$(for (( i=32; i<127; i++ )) do; printf "\\$(printf %03o "$i")"; done)
   key_file=$(for i in {1..95}; do; printf '%s' "$ASCII" | fold -w 1 | shuf | tr -d '\n'; echo; done; echo)
@@ -84,10 +55,40 @@ https://www.gnu.org/licenses/gpl-3.0.txt
   % otp95 in plain_file key key_file out crypt_file
 
   ## decryption
-  % otp95 d 'text'  ## check notices
+  % otp95 d 'text'  ## WARNING check notices
   % otp95 d in crypt_file key key_file out plain_file
 
+## todo
+case if last encrypted character is a space
 # '
+
+#  GENERAL NOTICE
+#  keyfile needs a minimum of 2 lines (96 recommended minimum)
+#  keyfile lines should be randomly ordered
+#  keyfile can be generated from $ASCII
+#  input via script build-in cat is recommended (exit with C-d)
+#  commandline text input, although possible, is not recommended
+#  because of (special) character interference
+#  commandline text input must always be the last argument
+#
+#  SPECIFIC NOTICE
+#  for decryption:
+#  subcommand d is compulsory
+#  input via script build-in cat is recommended (exit with C-d)
+#  commandline text input, although possible, is not recommended
+#  because of (special) character interference
+#  when using commandline text input it must be (single) quoted
+#  commandline text input must always be the last argument
+#
+#  SECURITY NOTICE
+#  keyfiles must be kept secret at all times!!
+#  base64 is keyfiles minimum character space
+#
+#  TECHNICAL NOTICE
+#  % cat /home/oxo/c/git/code/tool/otp95 | grep -A 1 --line-number '(encr)'
+#  ## > encryption: input = plain_text > code_text > cipher_text = output
+#  % cat /home/oxo/c/git/code/tool/otp95 | grep -A 1 --line-number '(decr)'
+#  ## > decryption: input = cipher_text > code_text > plain_text = output
 
 
 #set -o errexit
@@ -111,7 +112,7 @@ args="$@"
 session_key_line='1'  ## default value of the session key line
 key_dir="$XDG_DATA_HOME/c/keys/otp95"
 ### dynamic variables
-timestamp="$(date +'%Y%m%d_%H%M%S_%s')"
+timestamp="$(date +'%Y%m%dT%H%M%SE%s')"
 
 
 check_sum()
@@ -145,6 +146,7 @@ getargs()
 		;;
 
 	    keyo | -o | --key-options )
+		## key-options: tac, rev. sort
 		shift
 		key_options=$1
 		shift
@@ -247,12 +249,12 @@ process_args()
     if [[ -z $key_file ]]; then
 
 	## use default keyfile (not recommended)
-	#: '
+	: '
 	key_file="$key_dir/keyfile"
 	# '
 
 	## generate keyfile (recommended)
-	: '
+	#: '
 	key_file="${key_dir}/${timestamp}_keyfile"
 
 	for i in {1..95}; do
@@ -265,8 +267,7 @@ process_args()
 	## keyfile file mode: user rw
 	chmod 600 $key_file
 
-	printf 'NOTICE generated keyfile: %s\n' "$key_file"
-	printf 'WARNING keyfiles must be kept secret at all times!!\n'
+	printf '%s\n' "$key_file"
 	# '
 
     fi
@@ -331,7 +332,7 @@ run_skl()
 	## key_line_num can be 0 and sed can't have 0p
 	## correct with +1 for sed later on
 	## see encrypt() for more info
-	session_key_line=$(( ( keyl + keyl_option % key_lines ) +1 ))
+	session_key_line=$(( ( keyl + keyl_option % key_lines ) + 1 ))
 
     fi
 }
@@ -548,6 +549,16 @@ output()
 
         ## > output (decr): input = cipher_text > code_text > plain_text = output
         ## >                                                  ^^^^^^^^^^^^^^^^^^^
+
+    ## too short keyfile warning
+    len_code_text=$(wc -c <<< "$code_text")
+    len_key_file=$(wc -l <<< "$key_file_mem")
+
+    if [[ $len_code_text -gt $len_key_file ]]; then
+
+	printf 'WARNING codetext %s keyfile %s add %s or more\n' "$len_code_text" "$len_key_file" "$(( len_key_file - len_code_text ))"
+
+    fi
 
     [[ $action == 'encrypt' ]] && output="$cipher_text"
     [[ $action == 'decrypt' ]] && output="$plain_text"
