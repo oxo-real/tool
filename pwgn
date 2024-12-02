@@ -84,7 +84,7 @@ sourcing ()
     source "$source_dir/get_sudo"
 
     ## progress bar
-    source "$source_dir/progress_bar"
+    source "$source_dir/progress-bar"
 }
 
 
@@ -351,6 +351,7 @@ running_rounds ()
 
     ## show cursor
     tput cnorm
+    echo
 
 	# for input='s' output='b68a..027a'
 }
@@ -363,7 +364,7 @@ print_progress_bar ()
 
     bar_width=38
     # progress percentage indicator
-    if [[ $round -lt $rounds ]]; then
+    if [[ $round -le $rounds ]]; then
 
 	prog_perc=$(awk "BEGIN {print ($round/$rounds*100)}" | cut -f 1 -d .)
 
