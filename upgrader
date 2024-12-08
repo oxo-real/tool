@@ -134,14 +134,36 @@ get_ipex()
 internet_conn_check()
 {
     # check internet connection
-
+    try=1
     get_ipex
+
+    ## if internet is not up; try 2 more times (in case dns issue)
+    if [ -z $ipex ]; then
+
+	for try in {1..2}; do
+
+	    if [ -z $ipex ]; then
+
+		printf "try $try\r"
+		sleep $try
+		get_ipex
+		try+=1
+
+	    elif [ -n $ipex]; then
+
+		continue
+
+	    fi
+
+	done
+
+    fi
 
     if [ -z $ipex ]; then
 
 	printf "${fg_amber}unable to retrieve external ip address (ipv4)${st_def}\n"
 
-	printf "run netconn? (Y/n) "
+	printf "run nmconn? (Y/nEtconn/n) "
 	reply_read_single_hidden_timer
 	echo
 	echo
@@ -151,21 +173,25 @@ internet_conn_check()
 	    printf "exiting\n"
 	    exit 117
 
-	else
+	elif printf "$reply" | grep -iq "^e" ; then
 
 	    sh $netconn
 	    echo
 
 	    get_ipex
 
-	    if [ -z $ipex ]; then
+	else
 
-		printf "again: unable to retrieve external ip address (ipv4)\n"
-		printf "${fg_red}check physical connections${st_def}\n"
-		printf "exiting\n"
-		exit 131
+	    nmconn
 
-	    fi
+	fi
+
+	if [ -z $ipex ]; then
+
+	    printf "again: unable to retrieve external ip address (ipv4)\n"
+	    printf "${fg_red}check physical connections${st_def}\n"
+	    printf "exiting\n"
+	    exit 131
 
 	fi
 
