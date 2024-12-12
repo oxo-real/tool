@@ -41,7 +41,7 @@ aur_pkgs=( $(fd . --max-depth 1 --type directory $aur_src) )
 #aur_pkgs=( $(yay -Qqm) )
 
 
-rsync_all_packages()
+rsync_all_packages ()
 {
     rsync -aAXv \
 	$options \
@@ -62,7 +62,7 @@ rsync_all_packages()
 }
 
 
-build_custom_pkg_db()
+build_custom_pkg_db ()
 {
     # build custom pacman package database
     ## .zst and older .xz packages
@@ -81,7 +81,7 @@ build_custom_pkg_db()
 }
 
 
-copy_aur_packages()
+copy_aur_packages ()
 {
     ## sync aur_src to aur_dst
     rsync -aAXv --delete --info=progress2,stats --progress \
@@ -119,11 +119,12 @@ copy_aur_packages()
 }
 
 
-ln_package_dst()
+ln_package_dst ()
 {
+    # create links in $dst to aur packages that are in $
     package_dir_raw=$1
 
-    ## remove trailing slash
+    ## sed removes trailing slash
     package_dir=$(printf "$package_dir_raw" | sed 's/\/$//')
     ## package example: /home/oxo/dock/2/aur/yay
 
@@ -139,7 +140,7 @@ ln_package_dst()
 }
 
 
-aur_packages_build()
+aur_packages_build ()
 {
     # compile source code from aur packages
     ## source for hajime/4apps.sh#aur_install
@@ -159,7 +160,7 @@ aur_packages_build()
 }
 
 
-main()
+main ()
 {
     rsync_all_packages
     #aur_packages_build
