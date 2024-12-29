@@ -671,15 +671,28 @@ ua_upgrade()
 kernel_reboot_check()
 {
     active_kernel=$(uname -r)
-    disk_kernel=$(file /boot/vmlinuz-linux | cut -d " " -f 9)
+
+    ## kernel version
+    if [[ "$active_kernel" =~ 'lts$' ]]; then
+
+	## lts
+	disk_kernel=$(file /boot/vmlinuz-linux-lts | cut -d " " -f 9)
+
+    else
+
+	## no lts
+	disk_kernel=$(file /boot/vmlinuz-linux | cut -d " " -f 9)
+
+    fi
+
 
     if [ "$active_kernel" != "$disk_kernel" ]; then
 
 	echo
 	printf "currently active kernel version: ${fg_magenta}$active_kernel${st_def}\n"
-	printf "upgraded disk kernel version:     ${fg_blue}$disk_kernel${st_def}\n"
+	printf "upgraded disk kernel version:    ${fg_blue}$disk_kernel${st_def}\n"
 	echo
-	printf "kernel needs reboot!\n"
+	printf "kernel reboot advised\n"
 	echo
 	printf "reboot now? (y/N) "
 	reply_read_single_hidden_timer
