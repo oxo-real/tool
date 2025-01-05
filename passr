@@ -143,6 +143,8 @@ crypto_source="$XDG_DATA_HOME/c/keys/pass/vlt_pass"
 ## then symlink .password-store to a container mountpoint
 ## default symlink:	$HOME/.password-store
 ## default target:	$HOME/dock/vlt/pass
+## ln -s $HOME/dock/vlt/pass $HOME/.password-store
+## use option -f to replace an existing link
 store_l="$HOME/.password-store"
 
 ## $store is the pass password store location

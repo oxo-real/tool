@@ -1,67 +1,165 @@
 #! /usr/bin/env sh
 
-#set -o errexit
+###       _               _
+###   ___| |__   ___  ___| | __     ___ _   _ _ __ ___
+###  / __| '_ \ / _ \/ __| |/ /____/ __| | | | '_ ` _ \
+### | (__| | | |  __/ (__|   <_____\__ \ |_| | | | | | |
+###  \___|_| |_|\___|\___|_|\_\    |___/\__,_|_| |_| |_|
+###
+###
+###  # # # # # #
+###       #
+###  # # # # # #
+###
+
+: '
+check-sum
+file integrity check
+copyright (c) 2022 - 2024  |  oxo
+----------------------------------------------------------------------
+GNU GPLv3 GENERAL PUBLIC LICENSE
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+https://www.gnu.org/licenses/gpl-3.0.txt
+
+@oxo@qoto.org
+======================================================================
+
+# dependencies
+  sha3-512sum
+  source functions
+
+# usage
+  check-sum [$realpath_to_file]
+
+# examples
+  n/a
+
+# '
+
+set -o errexit
 #set -o nounset
 set -o pipefail
 
 ## arg should be realpath to file
 arg=$1
-
-source $XDG_DATA_HOME/c/git/code/source/function/text_appearance
-
-if [[ -z $arg ]]; then
-
-    ## compute and check regularly on cwd
-    sha3-512sum -c $PWD/sha3-512sums
-    exit 0
-
-fi
-
-[[ -f $arg ]] && file_name=$(realpath $arg)
+args=$@
 
 
-# calculate ist of file_name
+function get_args ()
+{
+    if [[ -z $arg ]]; then
 
-ist_sum=$(sha3-512sum "$file_name" | cut -d ' ' -f 1)
+	## compute and check regularly on cwd
+	## grep colorizes 'Fail', print all lines
+	sha3-512sum -c $PWD/sha3-512sums | grep -i --color -e 'fail' -e '^'
+	## grep colorizes 'Fail', print those only
+	#sha3-512sum -c $PWD/sha3-512sums | grep -i --color -e 'fail'
+	#exit 0
 
-
-# define hashlist (sha3-512sums)
-
-hash_list=$(dirname $file_name)/sha3-512sums
-
-if [[ -f $hash_list ]]; then
-
-    ## search ist of file_name in hashlist and grep the matching soll script_name
-    soll_name=$(grep $ist_sum $hash_list | awk '{print $2}')
-
-else
-
-    printf "${fg_amber}%s${st_def} does not exist\n" "$hash_list"
-    printf 'sha3-512sum:\n'
-    sha3-512sum $file_name
-    exit 88
-
-fi
+    fi
+}
 
 
-# verify checksum
+function sourching ()
+{
+    source $XDG_DATA_HOME/c/git/code/source/function/text_appearance
+}
 
-printf "$(BGx 222222)%s${st_def}\r" "$file_name"
-#sleep 0.5
-if [[ "$file_name" != "$soll_name" ]]; then
 
-    ## exit if file_name does not match soll_name
-    printf 'calc-sum %s' "${file_name%/*}" | wl-copy
-    printf "checksum ERROR $(BGx 222222)${fg_amber}%s${st_def}\n" "$file_name"
-    printf "ensure the program's code integrity, then (re)calc-sum ${st_ital}(copied)${st_def}\n"
-    echo
-    exit 88
+function set_file_name ()
+{
+    ## set file_name
+    [[ -f $arg ]] && file_name=$(realpath $arg)
+}
 
-else
 
-    printf "$(BGx 222222)${fg_green}%s${st_def} checksum OK\r" "$file_name"
-#    sleep 1
-    tput el
-    exit 0
+function ist_sum ()
+{
+    # calculate ist_sum of file_name
 
-fi
+    ist_sum=$(sha3-512sum "$file_name" | cut -d ' ' -f 1)
+}
+
+
+function define_hash_list ()
+{
+    # define hashlist (sha3-512sums)
+
+    hash_list=$(dirname $file_name)/sha3-512sums
+}
+
+
+function soll_sum ()
+{
+    # get soll_sum of file_name
+
+    if [[ -f $hash_list ]]; then
+
+	## search file_name in hash_list and get the matching soll_sum
+	soll_sum=$(grep $file_name $hash_list | awk '{print $1}')
+
+	#!!!!!!!!!!
+	#TODO calc-sum generated filename must be realpath
+
+    else
+
+	printf "${fg_amber}%s${st_def} does not exist\n" "$hash_list"
+	printf 'sha3-512sum:\n'
+	sha3-512sum $file_name
+	exit 88
+
+    fi
+}
+
+
+function verify_checksum ()
+{
+    # compare ist_sum with soll_sum
+
+    printf "$(BGx 222222)%s${st_def}\r" "$file_name"
+    #sleep 0.5
+
+    if [[ "$ist_sum" != "$soll_sum" ]]; then
+	#if [[ "$file_name" != "$soll_name" ]]; then
+
+	## exit if file_name does not match soll_name
+	printf 'calc-sum %s' "${file_name}" | wl-copy
+	#printf 'calc-sum %s' "${file_name%/*}" | wl-copy
+	printf "$(BGx 222222)${fg_amber}%s${st_def} ${fg_red}${st_bold}Fail${st_def}\n" "$file_name"
+	printf "verify code integrity, then calc-sum ${st_ital}(copied)${st_def}\n"
+	exit 88
+
+    else
+
+	printf "$(BGx 222222)${fg_green}%s${st_def} checksum OK\r" "$file_name"
+	#sleep 1
+	tput el
+	exit 0
+
+    fi
+}
+
+
+main ()
+{
+    get_args
+    sourching
+    set_file_name
+    ist_sum
+    define_hash_list
+    soll_sum
+    verify_checksum
+}
+
+main

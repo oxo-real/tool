@@ -1,28 +1,145 @@
 #! /usr/bin/env sh
 
-## get arg
+###            _
+###   ___ __ _| | ___      ___ _   _ _ __ ___
+###  / __/ _` | |/ __|____/ __| | | | '_ ` _ \
+### | (_| (_| | | (_|_____\__ \ |_| | | | | | |
+###  \___\__,_|_|\___|    |___/\__,_|_| |_| |_|
+###
+###
+###  # # # # # #
+###       #
+###  # # # # # #
+###
+
+: '
+calc-sum
+calc checksum and update hash-list
+copyright (c) 2022 - 2024  |  oxo
+----------------------------------------------------------------------
+GNU GPLv3 GENERAL PUBLIC LICENSE
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+https://www.gnu.org/licenses/gpl-3.0.txt
+
+@oxo@qoto.org
+======================================================================
+
+# dependencies
+  sha3-512sum
+
+# usage
+  calc-sum [file_or_dir]
+
+# examples
+  n/a
+
+# '
+
+#TODO
 ## for check-sum; intended to be a directory
+#TODO
+## multiple args
+
+## get arg
 arg="$1"
 
-## if no arg, then set dir to pwd
-[[ -z $arg ]] && dir="$PWD"
+## switch to full path
+cd $(realpath $PWD)
 
-## check if dir is a vaild directory
-#[[ ! -d "$dir" ]] && printf '%s is not a valid directory\n' "$1" && exit 3
-if [[ -f $arg ]]; then
+if [[ -z $arg ]]; then
 
-    sha3-512sum $arg
+    ## if no arg, then set dir to pwd
+    dir="$PWD"
 
-elif [[ -d $arg || -d $dir ]]; then
+else
 
-    ## get resolved dir name from $arg else from $dir
-    dir=$(realpath "${arg:-$dir}")
+    dir=$(dirname $arg)
+    ## expand symlinks and relative dirs
+    arg=$(realpath "$1")
 
+fi
+
+
+hash_list="${dir}"/sha3-512sums
+
+
+function replace_add_create ()
+{
+    ## replace or add lines inside hash_list,
+    ## or create hash_list for given files or directories
+    #TODO directories
+
+    if [[ -f $arg ]]; then
+
+	## argument is a file
+
+	if [[ -f $hash_list ]]; then
+
+	    ## hash_list exists
+	    if [[ -n $(grep -riIn "$arg" "$hash_list") ]]; then
+
+		## filename exists in hash_list
+		file_hash=$(sha3-512sum $arg)
+
+		## replace line containing filename
+		sed -i "s;.*$arg.*;$file_hash;" "${dir}"/sha3-512sums
+
+	    else
+
+		## filename does not exist in hash_list
+		file_hash=$(sha3-512sum $arg)
+
+		## add file_hash to hash_list
+		printf '%s' "$file_hash" >> "${dir}"/sha3-512sums
+
+	    fi
+
+	else
+
+	    ## no hash-list exists
+	    file_hash=$(sha3-512sum "$dir"/$arg)
+
+	    ## create hash_list with one file_hash
+	    printf '%s\n' "$file_hash" > "$hash_list" 2>/dev/null
+
+	fi
+
+    elif [[ -d $arg || -d $dir ]]; then
+
+	## argument is a directory
+
+	replace_hash_list
+
+    fi
+}
+
+
+function replace_hash_list ()
+{
     ## calculate and write sha512sums of all items in dir
-    hash_list=$(find $dir -maxdepth 1 -type f -exec sha3-512sum {} \;)
+    hash_list=$(fd --max-depth 1 --type file --exec sha3-512sum {} \; -- . $dir)
+    #hash_list=$(find $dir -maxdepth 1 -type f -exec sha3-512sum {} \;)
     printf '%s\n' "$hash_list" > "$dir"/sha3-512sums 2>/dev/null
 
     ## user feedback
     ls -ila "${dir}/sha3-512sums"
+}
 
-fi
+
+function main ()
+{
+    replace_add_create
+}
+
+main
