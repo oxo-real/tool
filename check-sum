@@ -40,7 +40,10 @@ https://www.gnu.org/licenses/gpl-3.0.txt
   source functions
 
 # usage
-  check-sum [$realpath_to_file]
+  check-sum [--fail-only] [$file1] [$file2] [...]
+  #TODO DEV option --fail-only
+
+  WARNING does not work (reliabely) when filenames contain spaces
 
 # examples
   n/a
@@ -52,43 +55,107 @@ set -o errexit
 set -o pipefail
 
 ## arg should be realpath to file
-arg=$1
+#arg=$1
 args=$@
 
 
-function get_args ()
-{
-    if [[ -z $arg ]]; then
-
-	## compute and check regularly on cwd
-	## grep colorizes 'Fail', print all lines
-	sha3-512sum -c $PWD/sha3-512sums | grep -i --color -e 'fail' -e '^'
-	## grep colorizes 'Fail', print those only
-	#sha3-512sum -c $PWD/sha3-512sums | grep -i --color -e 'fail'
-	#exit 0
-
-    fi
-}
-
-
-function sourching ()
+function sourcing ()
 {
     source $XDG_DATA_HOME/c/git/code/source/function/text_appearance
 }
 
 
-function set_file_name ()
+function process_args ()
 {
-    ## set file_name
-    [[ -f $arg ]] && file_name=$(realpath $arg)
+    if [ "$#" -eq 0 ]; then
+
+	## no args given
+	no_files
+
+    fi
+
+    while [ "$#" -gt 0 ]; do
+
+	## looping through arguments
+	case "$1" in
+
+	    all | --all | -a )
+		mode='all'
+		shift
+		;;
+
+	    fail-only | --fail-only | -f )
+		mode='fail-only'
+		shift
+		;;
+
+	    -- )
+		shift
+		continue
+		;;
+
+	    *)
+		## rest of args are files
+		files_ssl=$@
+		shift
+		;;
+
+	esac
+
+    done
 }
 
 
-function ist_sum ()
+function no_files ()
 {
-    # calculate ist_sum of file_name
+    if [[ "$mode" == 'fail-only' ]]; then
 
-    ist_sum=$(sha3-512sum "$file_name" | cut -d ' ' -f 1)
+	## grep colorizes 'Fail', print those only
+	sha3-512sum -c $PWD/sha3-512sums | grep -i --color -e 'fail'
+
+    else
+
+	## compute and check regularly on cwd
+	## grep colorizes 'Fail', print all lines
+	sha3-512sum -c $PWD/sha3-512sums | grep -i --color -e 'fail' -e '^'
+
+    fi
+
+    #exit 0
+}
+
+
+function process_files_ssl ()
+{
+    if [[ -n $files_ssl ]]; then
+
+	conv_ssl_to_arr "$files_ssl"
+	check_sums "${files_arr[@]}"
+	break
+
+    else
+
+	no_files
+
+    fi
+}
+
+
+function set_file_name ()
+{
+    if [[ -f $file ]]; then
+
+	## set file_name
+	file_name=$(realpath $file)
+
+    else
+
+	printf "%s does not exist\n" "$file"
+	#printf "${fg_amber}%s${st_def} does not exist\n" "$file"
+
+	continue
+
+    fi
 }
 
 
@@ -96,25 +163,32 @@ function define_hash_list ()
 {
     # define hashlist (sha3-512sums)
 
-    hash_list=$(dirname $file_name)/sha3-512sums
-}
+    if [[ -f $file_name ]]; then
 
-
-function soll_sum ()
-{
-    # get soll_sum of file_name
-
-    if [[ -f $hash_list ]]; then
-
-	## search file_name in hash_list and get the matching soll_sum
-	soll_sum=$(grep $file_name $hash_list | awk '{print $1}')
-
-	#!!!!!!!!!!
-	#TODO calc-sum generated filename must be realpath
+	hash_list=$(dirname $file_name)/sha3-512sums
 
     else
 
-	printf "${fg_amber}%s${st_def} does not exist\n" "$hash_list"
+	continue
+
+    fi
+}
+
+
+function verify_hash_list ()
+{
+    if [[ -z $hash_list ]]; then
+
+	printf "%s does not exist\n" 'hash_list'
+	#printf "${fg_amber}%s${st_def} does not exist\n" 'hash_list'
+	printf 'sha3-512sum:\n'
+	sha3-512sum $file_name
+	exit 88
+
+    elif [[ ! -f $hash_list ]]; then
+
+	printf "%s does not exist\n" "$hash_list"
+	#printf "${fg_amber}%s${st_def} does not exist\n" "$hash_list"
 	printf 'sha3-512sum:\n'
 	sha3-512sum $file_name
 	exit 88
@@ -123,26 +197,68 @@ function soll_sum ()
 }
 
 
+function calc_ist_sum ()
+{
+    # calculate ist_sum of file_name
+
+    ist_sum=$(sha3-512sum "$file_name" | cut -d ' ' -f 1)
+}
+
+
+function get_soll_sum ()
+{
+    # get soll_sum of file_name
+
+    ## get matching soll_sum in hash_list for short file_name
+    soll_sum=$(grep ${file_name##*/} $hash_list | awk '{print $1}')
+}
+
+
 function verify_checksum ()
 {
     # compare ist_sum with soll_sum
 
-    printf "$(BGx 222222)%s${st_def}\r" "$file_name"
+    printf "%s\r" "$file_name"
+    #printf "$(BGx 222222)%s${st_def}\r" "$file_name"
     #sleep 0.5
 
-    if [[ "$ist_sum" != "$soll_sum" ]]; then
+    if [[ "$soll_sum" == '' ]]; then
+    #if [[ -z "$soll_sum" ]]; then
+
+	printf "no exact match for: %s\n" "$file_name"
+	#printf "no exact match for: $(BGx 222222)%s${st_def}\n" "$file_name"
+	printf 'searching ist-sum in %s\n' "$hash_list"
+
+	printf "DEV$LINENO %s\n" "${ist_sum}"
+	printf "DEV$LINENO %s\n" "${hash_list}"
+	file_match=$(grep $ist_sum $hash_list | awk '{print $2}')
+
+	if [[ -z file_match ]]; then
+
+	    printf 'ist-sum not found in %s\n' "$hash_list"
+
+	else
+
+	    printf 'matching ist-sum found for %s\n' "$file_match"
+
+	fi
+
+    elif [[ "$ist_sum" != "$soll_sum" ]]; then
 	#if [[ "$file_name" != "$soll_name" ]]; then
 
 	## exit if file_name does not match soll_name
 	printf 'calc-sum %s' "${file_name}" | wl-copy
 	#printf 'calc-sum %s' "${file_name%/*}" | wl-copy
-	printf "$(BGx 222222)${fg_amber}%s${st_def} ${fg_red}${st_bold}Fail${st_def}\n" "$file_name"
-	printf "verify code integrity, then calc-sum ${st_ital}(copied)${st_def}\n"
+	printf "%s Fail\n" "$file_name"
+	#printf "$(BGx 222222)${fg_amber}%s${st_def} ${fg_red}${st_bold}Fail${st_def}\n" "$file_name"
+	printf "verify code integrity, then calc-sum (copied)\n"
+	#printf "verify code integrity, then calc-sum ${st_ital}(copied)${st_def}\n"
 	exit 88
 
-    else
+    elif [[ "$ist_sum" = "$soll_sum" ]]; then
 
-	printf "$(BGx 222222)${fg_green}%s${st_def} checksum OK\r" "$file_name"
+	printf "%s checksum OK\r" "$file_name"
+	#printf "$(BGx 222222)${fg_green}%s${st_def} checksum OK\r" "$file_name"
 	#sleep 1
 	tput el
 	exit 0
@@ -151,15 +267,45 @@ function verify_checksum ()
 }
 
 
-main ()
+function conv_ssl_to_arr ()
 {
-    get_args
-    sourching
-    set_file_name
-    ist_sum
-    define_hash_list
-    soll_sum
-    verify_checksum
+    if [[ -n "$files_ssl" ]]; then
+
+	## convert space separated list (ssl) to array
+	IFS=' '
+	read -r -a files_arr <<< "$files_ssl"
+
+    else
+
+	no_files
+
+    fi
 }
+
+
+function check_sums ()
+{
+    for file in "${files_arr[@]}"; do
+
+	set_file_name
+	define_hash_list
+	verify_hash_list
+	calc_ist_sum
+	get_soll_sum
+	verify_checksum
+
+    done
+}
+
+
+function main ()
+{
+    #sourcing
+    process_args $args
+    process_files_ssl
+    conv_ssl_to_arr
+    check_sums
+}
+
 
 main
