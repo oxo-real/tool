@@ -61,6 +61,7 @@ args=$@
 sleep_on=''  ## if empty; no sleeps
 sleep_time=1
 
+
 function sourcing ()
 {
     source $XDG_DATA_HOME/c/git/code/source/function/text_appearance
@@ -146,6 +147,7 @@ function set_file_name ()
     if [[ -f $file ]]; then
 
 	## set file_name
+	## expand symlinks and relative directories
 	file_name=$(realpath $file)
 
     elif [[ -d $file ]]; then
@@ -219,12 +221,15 @@ function verify_hash_list ()
 
 function file_on_hash_list ()
 {
+    ## check if file_name is on hash_list
+
     if [[ -f $file_name ]]; then
 
 	if [[ ! $(grep $file_name $hash_list) ]]; then
 
 	    ## file_name not on hash_list
-	    calc-sum $file_name
+	    exit 232
+	    #calc-sum $file_name
 
 	fi
 

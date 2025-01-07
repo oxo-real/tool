@@ -94,7 +94,7 @@ function process_args ()
 
 function no_args ()
 {
-    printf "no valid ${fg_amber}%s${st_def}\n" 'filename'
+    printf "missing ${fg_amber}%s${st_def} or ${fg_amber}%s${st_def}\n" 'file' 'directory'
     exit 40
 }
 
@@ -128,6 +128,9 @@ function replace_add_create ()
 		## replace line containing filename
 		sed -i "s;.*$file_name.*;$file_hash;" $hash_list
 
+		## human info
+		printf "${fg_amber}%s${st_def} hashlist updated\n" "$file_name"
+
 	    else
 
 		## filename does not exist in hash_list
@@ -135,6 +138,9 @@ function replace_add_create ()
 
 		## add file_hash to hash_list
 		printf '\n%s\n' "$file_hash" >> $hash_list
+
+		## human info
+		printf "${fg_green}%s${st_def} added to hashlist\n" "$file_name"
 
 	    fi
 
@@ -172,11 +178,49 @@ function replace_hash_list ()
 }
 
 
-function conv_ssl_to_arr ()
+function set_file_name ()
 {
-    ## convert space separated list (ssl) to array
-    IFS=' '
-    read -r -a files_arr <<< "$files_ssl"
+    if [[ -f $file ]]; then
+
+	## set file_name
+	## expand symlinks and relative directories
+	file_name=$(realpath $file)
+
+    elif [[ -d $file ]]; then
+
+	## $file is directory
+	dir_name=$(realpath $file)
+
+    else
+
+	## unvalid location
+	printf "${fg_amber}%s${st_def} not a valid location\n" "$file"
+
+    fi
+
+    ## set hash_list for file_name
+    hash_list="${dir_name}"/sha3-512sums
+}
+
+
+
+function define_hash_list ()
+{
+    # define hashlist (sha3-512sums)
+
+    if [[ -f $file_name ]]; then
+
+	hash_list=$(dirname $file_name)/sha3-512sums
+
+    elif [[ -d $dir_name ]]; then
+
+	hash_list=$dir_name/sha3-512sums
+
+    else
+
+	hash_list=''
+
+    fi
 }
 
 
@@ -184,21 +228,22 @@ function loop_through_files ()
 {
     for file in "${files_arr[@]}"; do
 
-	## expand symlinks and relative directories
-	file_name=$(realpath "$file")
+	set_file_name
+	define_hash_list
 
-	## set file_name directory
-	if [[ -d $file_name ]]; then
+	### expand symlinks and relative directories
+	#file_name=$(realpath "$file")
 
-	    dir_name=$file_name
+	### set file_name directory
+	#if [[ -d $file_name ]]; then
 
-	elif [[ -f $file_name ]]; then
+	#    dir_name=$file_name
 
-	    dir_name=$(dirname $file_name)
+	#elif [[ -f $file_name ]]; then
 
-	fi
+	#    dir_name=$(dirname $file_name)
 
-	hash_list="${dir_name}"/sha3-512sums
+	#fi
 
 	replace_add_create
 
