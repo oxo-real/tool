@@ -55,9 +55,11 @@ set -o errexit
 set -o pipefail
 
 ## arg should be realpath to file
-#arg=$1
 args=$@
 
+## sleep
+sleep_on=''  ## if empty; no sleeps
+sleep_time=1
 
 function sourcing ()
 {
@@ -97,7 +99,7 @@ function process_args ()
 	    *)
 		## rest of args are files
 		files_ssl=$@
-		shift
+		break
 		;;
 
 	esac
@@ -130,8 +132,6 @@ function process_files_ssl ()
     if [[ -n $files_ssl ]]; then
 
 	conv_ssl_to_arr "$files_ssl"
-	check_sums "${files_arr[@]}"
-	break
 
     else
 
@@ -148,12 +148,16 @@ function set_file_name ()
 	## set file_name
 	file_name=$(realpath $file)
 
+    elif [[ -d $file ]]; then
+
+	## $file is directory
+	dir_name=$(realpath $file)
+
     else
 
-	printf "%s does not exist\n" "$file"
-	#printf "${fg_amber}%s${st_def} does not exist\n" "$file"
+	printf "${fg_amber}%s${st_def} not a valid location\n" "$file"
 
-	continue
+	#continue
 
     fi
 }
@@ -167,9 +171,13 @@ function define_hash_list ()
 
 	hash_list=$(dirname $file_name)/sha3-512sums
 
+    elif [[ -d $dir_name ]]; then
+
+	hash_list=$dir_name/sha3-512sums
+
     else
 
-	continue
+	hash_list=''
 
     fi
 }
@@ -177,21 +185,48 @@ function define_hash_list ()
 
 function verify_hash_list ()
 {
-    if [[ -z $hash_list ]]; then
+    # provide info on hash-list status
 
-	printf "%s does not exist\n" 'hash_list'
-	#printf "${fg_amber}%s${st_def} does not exist\n" 'hash_list'
-	printf 'sha3-512sum:\n'
-	sha3-512sum $file_name
-	exit 88
+    if [[ ! -f $hash_list ]]; then
 
-    elif [[ ! -f $hash_list ]]; then
+	if [[ -z $hash_list ]]; then
 
-	printf "%s does not exist\n" "$hash_list"
-	#printf "${fg_amber}%s${st_def} does not exist\n" "$hash_list"
-	printf 'sha3-512sum:\n'
-	sha3-512sum $file_name
-	exit 88
+	    printf "no valid ${fg_amber}%s${st_def}\n" 'hash-list'
+
+	else
+
+	    printf "no valid hash-list ${fg_amber}%s${st_def}\n" "$hash_list"
+
+	fi
+
+	if [[ -f $file_name ]]; then
+
+	    printf 'sha3-512sum:\n'
+	    sha3-512sum $file_name
+
+	elif [[ ! -f $file_name ]]; then
+
+	    ## no extra comment needed; removing
+	    printf '\r'
+	    tput cuu1
+	    tput el
+
+	fi
+
+    fi
+}
+
+
+function file_on_hash_list ()
+{
+    if [[ -f $file_name ]]; then
+
+	if [[ ! $(grep $file_name $hash_list) ]]; then
+
+	    ## file_name not on hash_list
+	    calc-sum $file_name
+
+	fi
 
     fi
 }
@@ -201,7 +236,11 @@ function calc_ist_sum ()
 {
     # calculate ist_sum of file_name
 
-    ist_sum=$(sha3-512sum "$file_name" | cut -d ' ' -f 1)
+    if [[ -f $file_name ]]; then
+
+	ist_sum=$(sha3-512sum "$file_name" | cut -d ' ' -f 1)
+
+    fi
 }
 
 
@@ -209,59 +248,88 @@ function get_soll_sum ()
 {
     # get soll_sum of file_name
 
-    ## get matching soll_sum in hash_list for short file_name
-    soll_sum=$(grep ${file_name##*/} $hash_list | awk '{print $1}')
+    if [[ -f $file_name ]] && [[ -f $hash_list ]]; then
+
+	## get matching soll_sum in hash_list for short file_name
+	soll_sum=$(grep ${file_name##*/} $hash_list | awk '{print $1}')
+
+    fi
+}
+
+
+function check_dups ()
+{
+    if [[ -f $file_name && -f $hash_list ]]; then
+
+	## check duplicate sums
+	sum_entries=$(grep $soll_sum $hash_list | wc -l)
+
+	if [[ "$sum_entries" -gt 1 ]]; then
+
+	    ## warning for duplicate sums in hash-list
+	    printf "${fg_red}${st_bold}%s${st_def} %s\n" "${sum_entries}" "${soll_sum}"
+	    grep $soll_sum $hash_list | awk '{print $2}'
+	    #echo 'aaa'
+
+	fi
+
+	## check duplicate filenames
+	file_entries=$(grep $file_name $hash_list | wc -l)
+
+	if [[ "$file_entries" -gt 1 ]]; then
+
+	    ## warning for duplicate sums in hash-list
+	    printf "${fg_red}${st_bold}%s${st_def} %s\n" "${file_entries}" "${file_name}"
+	    grep $file_name $hash_list | awk '{print $1}'
+	    #echo 'bbb'
+
+	fi
+
+    fi
 }
 
 
 function verify_checksum ()
 {
-    # compare ist_sum with soll_sum
+    if [[ -f $file_name && -f $hash_list ]]; then
 
-    printf "%s\r" "$file_name"
-    #printf "$(BGx 222222)%s${st_def}\r" "$file_name"
-    #sleep 0.5
+	# compare ist_sum with soll_sum
 
-    if [[ "$soll_sum" == '' ]]; then
-    #if [[ -z "$soll_sum" ]]; then
+	printf "$(BGx 222222)%s${st_def}\r" "$file_name"
+	[[ -n $sleep_on ]] && sleep $((1 * sleep_time))
 
-	printf "no exact match for: %s\n" "$file_name"
-	#printf "no exact match for: $(BGx 222222)%s${st_def}\n" "$file_name"
-	printf 'searching ist-sum in %s\n' "$hash_list"
+	if [[ -z "$soll_sum" ]]; then
 
-	printf "DEV$LINENO %s\n" "${ist_sum}"
-	printf "DEV$LINENO %s\n" "${hash_list}"
-	file_match=$(grep $ist_sum $hash_list | awk '{print $2}')
+	    printf "no exact match for: $(BGx 222222)%s${st_def}\n" "$file_name"
+	    printf 'searching ist-sum in %s\n' "$hash_list"
 
-	if [[ -z file_match ]]; then
+	    file_match=$(grep $ist_sum $hash_list | awk '{print $2}')
 
-	    printf 'ist-sum not found in %s\n' "$hash_list"
+	    if [[ -z file_match ]]; then
 
-	else
+		printf 'no matching ist-sum found\n'
 
-	    printf 'matching ist-sum found for %s\n' "$file_match"
+	    else
+
+		printf 'matching ist-sum for: %s\n' "$file_match"
+
+	    fi
+
+	elif [[ "$ist_sum" != "$soll_sum" ]]; then
+
+	    ## exit if file_name does not match soll_name
+	    printf 'calc-sum %s' "${file_name}" | wl-copy
+	    printf "$(BGx 222222)${fg_amber}%s${st_def} ${fg_red}${st_bold}Fail${st_def}\n" "$file_name"
+	    printf "verify code integrity, then calc-sum ${st_ital}(copied)${st_def}\n"
+	    exit 88
+
+	elif [[ "$ist_sum" = "$soll_sum" ]]; then
+
+	    printf "$(BGx 222222)${fg_green}%s${st_def} checksum OK\r" "$file_name"
+	    [[ -n $sleep_on ]] && sleep $((2 * sleep_time))
+	    tput el
 
 	fi
-
-    elif [[ "$ist_sum" != "$soll_sum" ]]; then
-	#if [[ "$file_name" != "$soll_name" ]]; then
-
-	## exit if file_name does not match soll_name
-	printf 'calc-sum %s' "${file_name}" | wl-copy
-	#printf 'calc-sum %s' "${file_name%/*}" | wl-copy
-	printf "%s Fail\n" "$file_name"
-	#printf "$(BGx 222222)${fg_amber}%s${st_def} ${fg_red}${st_bold}Fail${st_def}\n" "$file_name"
-	printf "verify code integrity, then calc-sum (copied)\n"
-	#printf "verify code integrity, then calc-sum ${st_ital}(copied)${st_def}\n"
-	exit 88
-
-    elif [[ "$ist_sum" = "$soll_sum" ]]; then
-
-	printf "%s checksum OK\r" "$file_name"
-	#printf "$(BGx 222222)${fg_green}%s${st_def} checksum OK\r" "$file_name"
-	#sleep 1
-	tput el
-	exit 0
 
     fi
 }
@@ -290,8 +358,10 @@ function check_sums ()
 	set_file_name
 	define_hash_list
 	verify_hash_list
+	file_on_hash_list
 	calc_ist_sum
 	get_soll_sum
+	check_dups
 	verify_checksum
 
     done
@@ -300,7 +370,7 @@ function check_sums ()
 
 function main ()
 {
-    #sourcing
+    sourcing
     process_args $args
     process_files_ssl
     conv_ssl_to_arr

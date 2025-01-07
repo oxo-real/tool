@@ -36,18 +36,28 @@ https://www.gnu.org/licenses/gpl-3.0.txt
 ======================================================================
 
 # dependencies
-  sha3-512sum
+sha3-512sum
 
 # usage
-  calc-sum file|directory
+calc-sum file(s)|directory
 
 # examples
-  n/a
+## add file hash to hash-list
+calc-sum file1 [file2]
+
+## add all files to hash-list
+calc-sum directory
 
 # '
 
 ## get arg
 args="$@"
+
+
+function sourcing ()
+{
+    source $XDG_DATA_HOME/c/git/code/source/function/text_appearance
+}
 
 
 function process_args ()
@@ -103,43 +113,42 @@ function replace_add_create ()
     ## or create hash_list for given files or directories
     #TODO directories
 
-    if [[ -f $file ]]; then
+    if [[ -f $file_name ]]; then
 
 	## argument is a file
 
 	if [[ -f $hash_list ]]; then
 
 	    ## hash_list exists
-	    if [[ -n $(grep -riIn "$file" "$hash_list") ]]; then
+	    if [[ -n $(grep -riIn "$file_name" "$hash_list") ]]; then
 
 		## filename exists in hash_list
-		file_hash=$(sha3-512sum $file)
+		file_hash=$(sha3-512sum $file_name)
 
 		## replace line containing filename
-		sed -i "s;.*$file.*;$file_hash;" $hash_list
+		sed -i "s;.*$file_name.*;$file_hash;" $hash_list
 
 	    else
 
 		## filename does not exist in hash_list
-		file_hash=$(sha3-512sum $file)
+		file_hash=$(sha3-512sum $file_name)
 
 		## add file_hash to hash_list
-		printf '%s\n' "$file_hash" >> $hash_list
+		printf '\n%s\n' "$file_hash" >> $hash_list
 
-		#TODO sort?
 	    fi
 
 	else
 
 	    ## no hash-list exists
-	    file_hash=$(sha3-512sum $file)
+	    file_hash=$(sha3-512sum $file_name)
 
 	    ## create hash_list with one file_hash
 	    printf '%s\n' "$file_hash" > "$hash_list" 2>/dev/null
 
 	fi
 
-    elif [[ -d $file ]]; then
+    elif [[ -d $file_name ]]; then
 
 	## argument is a directory
 
@@ -153,8 +162,8 @@ function replace_hash_list ()
 {
     [[ -f $hash_list ]] && rm $hash_list
 
-    ## calculate and write sha512sums of all items in dir
-    hashes=$(fd --max-depth 1 --type file --exec sha3-512sum {} \; -- . $dir)
+    ## calculate and write sha512sums of all items in dir_name
+    hashes=$(fd --max-depth 1 --type file --exec sha3-512sum {} \; -- . $dir_name)
     printf '%s\n' "$hashes" > $hash_list 2>/dev/null
 
     ## user feedback
@@ -175,21 +184,21 @@ function loop_through_files ()
 {
     for file in "${files_arr[@]}"; do
 
-	## expand symlinks and relative dirs
-	file=$(realpath "$file")
+	## expand symlinks and relative directories
+	file_name=$(realpath "$file")
 
-	## set file dir
-	if [[ -d $file ]]; then
+	## set file_name directory
+	if [[ -d $file_name ]]; then
 
-	    dir=$file
+	    dir_name=$file_name
 
-	elif [[ -f $file ]]; then
+	elif [[ -f $file_name ]]; then
 
-	    dir=$(dirname $file)
+	    dir_name=$(dirname $file_name)
 
 	fi
 
-	hash_list="${dir}"/sha3-512sums
+	hash_list="${dir_name}"/sha3-512sums
 
 	replace_add_create
 
@@ -197,10 +206,19 @@ function loop_through_files ()
 }
 
 
+function sort_hash_list ()
+{
+    hash_list_sorted=$(sort -k 2,2 $hash_list)
+    printf '%s' "$hash_list_sorted" > $hash_list 2>/dev/null
+}
+
+
 function main ()
 {
+    sourcing
     process_args $args
     loop_through_files
+    sort_hash_list
 }
 
 main
