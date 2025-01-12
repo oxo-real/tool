@@ -15,7 +15,7 @@
 : '
 passr
 fzf cli wrapper for pass
-copyright (c) 2020 - 2024  |  oxo
+copyright (c) 2020 - 2025  |  oxo
 ----------------------------------------------------------------------
 GNU GPLv3 GENERAL PUBLIC LICENSE
 This program is free software: you can redistribute it and/or modify
@@ -505,8 +505,41 @@ pass_new()
 
 
 pass_edit() {
-    object=$arg_element
+    [[ -z $object ]] && object=$arg_element
+
     process_object
+
+    ## timestamp
+    timestamp_1=$(date +'%Y%m%dT%H%M%S_%s')
+
+    ## create backup
+    pass cp $object tmp/${timestamp_1}--$object
+
+    ## current content
+    obj_content_0="$(pass $object)"
+
+    ## number of edits
+    last_edit_0=$(grep 'last-edit:' <<< "$obj_content_0" | awk '{print $2}')
+    obj_edits_0=${last_edit_0:-0}
+    obj_edits_1=$(( obj_edits_0 + 1 ))
+
+    ## designate last edit log line
+    obj_edit_log_1="last-edit:"  # $obj_edits_1 $timestamp_1"
+
+    ## replace last edit log line
+    if [[ $obj_edits_0 -eq 0 ]]; then
+
+	obj_content_1=$(printf '%s\nlast-edit: 1 %s' "$obj_content_0" $timestamp_1)
+
+    else
+
+	last_edit_1=$(printf 'last-edit: %s %s' $obj_edits_1 $timestamp_1)
+	obj_content_1=$(sed "s/^last-edit:.*$/$last_edit_1/" <<< "$obj_content_0")
+
+    fi
+
+    ## inject last-edit line
+    printf '%s' "$obj_content_1" | pass insert --force --multiline $object
 
     pass edit $object
 
@@ -798,7 +831,7 @@ process_object()
 	case $object in
 
 	    new | n)
-		## prevent creating existing object
+		## prevent duplicate object names
 		printf "object ${MAGENTA}$object${NOC} exists\n"; exit 47
 		;;
 
@@ -1162,7 +1195,8 @@ process_element()
 
     	edit)
 	    element='edit'
-	    pass_element
+	    pass_edit
+	    #pass_element
 	    ;;
 
     	new)
