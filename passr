@@ -471,7 +471,7 @@ pass_new()
     esac
 
     ## get creation time
-    c_time=$(date +'%Y%m%d_%H%M%S_%s_%z_%Z_%V')
+    c_time=$(date +'%Y%m%dT%H%M%S_%s')
 
     ## get url
     printf "%"$align"s %s" "url: "
@@ -488,17 +488,22 @@ pass_new()
     ## get password
     gen_sel_pw
 
-    ## synthesize string
-    printf "%s\n%s\n%s\n%s\n%s\n%s\n" \
-	"$password" \
-	"userid: $userid" \
-	"url: $url" \
-	"created: $c_time" \
-	"comments:" "$comments" | \
-	wl-copy -o
+    ## create timestamp
+    timestamp=$(date +'%Y%m%dT%H%M%S_%s')
 
-    ## create new object gpg file
-    pass edit $object
+    ## synthesize string
+    obj_content=$(printf '%s\nuserid: %s\nurl: %s\ncomments: %s\ncreated: %s\n' \
+	"$password" \
+	"$userid" \
+	"$url" \
+	"$comments" \
+	"$c_time")
+
+    ## inject content
+    printf '%s' "$obj_content" | pass insert --force --multiline $object
+
+    ## edit new object
+    pass edit $object > /dev/null 2>&1
 
     exit 0
 }
@@ -509,11 +514,9 @@ pass_edit() {
 
     process_object
 
-    ## timestamp
-    timestamp_1=$(date +'%Y%m%dT%H%M%S_%s')
-
-    ## create backup
-    pass cp $object tmp/${timestamp_1}--$object
+    ## create timestamp & backup
+    timestamp=$(date +'%Y%m%dT%H%M%S_%s')
+    pass cp $object tmp/${timestamp}--$object > /dev/null 2>&1
 
     ## current content
     obj_content_0="$(pass $object)"
@@ -529,11 +532,11 @@ pass_edit() {
     ## replace last edit log line
     if [[ $obj_edits_0 -eq 0 ]]; then
 
-	obj_content_1=$(printf '%s\nlast-edit: 1 %s' "$obj_content_0" $timestamp_1)
+	obj_content_1=$(printf '%s\nlast-edit: 1 %s' "$obj_content_0" $timestamp)
 
     else
 
-	last_edit_1=$(printf 'last-edit: %s %s' $obj_edits_1 $timestamp_1)
+	last_edit_1=$(printf 'last-edit: %s %s' $obj_edits_1 $timestamp)
 	obj_content_1=$(sed "s/^last-edit:.*$/$last_edit_1/" <<< "$obj_content_0")
 
     fi
@@ -541,7 +544,8 @@ pass_edit() {
     ## inject last-edit line
     printf '%s' "$obj_content_1" | pass insert --force --multiline $object
 
-    pass edit $object
+    #pass edit $object
+    pass edit $object > /dev/null 2>&1
 
     exit 0
 }
