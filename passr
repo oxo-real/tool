@@ -492,12 +492,13 @@ pass_new()
     timestamp=$(date +'%Y%m%dT%H%M%S_%s')
 
     ## synthesize string
-    obj_content=$(printf '%s\nuserid: %s\nurl: %s\ncomments: %s\ncreated: %s\n' \
+    obj_content=$(printf '%s\nuserid: %s\nurl: %s\ncomments: %s\n%s\ncreated: %s\n' \
 	"$password" \
 	"$userid" \
 	"$url" \
 	"$comments" \
-	"$c_time")
+	'#-------------------------------------' \
+	"   $c_time")
 
     ## inject content
     printf '%s' "$obj_content" | pass insert --force --multiline $object
@@ -514,30 +515,31 @@ pass_edit() {
 
     process_object
 
-    ## create timestamp & backup
-    timestamp=$(date +'%Y%m%dT%H%M%S_%s')
+    ## create timestamp & backup inside tmp directory
+    timestamp=$(date +'%Y%m%dT%H%M%S%z_%Z_%V_%s')
     pass cp $object tmp/${timestamp}--$object > /dev/null 2>&1
 
     ## current content
     obj_content_0="$(pass $object)"
 
-    ## number of edits
-    last_edit_0=$(grep 'last-edit:' <<< "$obj_content_0" | awk '{print $2}')
-    obj_edits_0=${last_edit_0:-0}
+    ## number of edits (for version) sed removes leading zero
+    obj_edits_0=$(grep 'version:' <<< "$obj_content_0" | awk '{print $2}' | sed 's/^0*//')
+    obj_edits_0=${obj_edits_0:-0}
     obj_edits_1=$(( obj_edits_0 + 1 ))
 
-    ## designate last edit log line
-    obj_edit_log_1="last-edit:"  # $obj_edits_1 $timestamp_1"
+    ## define version
+    version_1=$(printf 'version: %02d %s' $obj_edits_1 $timestamp)
 
-    ## replace last edit log line
-    if [[ $obj_edits_0 -eq 0 ]]; then
+    ## version log line
+    if [[ $obj_edits_1 -eq 1 ]]; then
 
-	obj_content_1=$(printf '%s\nlast-edit: 1 %s' "$obj_content_0" $timestamp)
+	## insert version
+	obj_content_1=$(printf '%s\n%s' "$obj_content_0" "$version_1")
 
     else
 
-	last_edit_1=$(printf 'last-edit: %s %s' $obj_edits_1 $timestamp)
-	obj_content_1=$(sed "s/^last-edit:.*$/$last_edit_1/" <<< "$obj_content_0")
+	## update version
+	obj_content_1=$(sed "s/^version:.*$/$version_1/" <<< "$obj_content_0")
 
     fi
 
