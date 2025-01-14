@@ -41,7 +41,7 @@ https://www.gnu.org/licenses/gpl-3.0.txt
   pwgn, vault, source functions
 
 # usage
-  passr [action|object] [element|object|other_arguments]
+  passr [action|object] [element|object|arguments]
 
 # examples
 
@@ -167,8 +167,8 @@ element_menu=(\
 	"5 unlock" \
 	"6 peacto" \
 	"" \
-	"A autoentry" \
-	"O other" \
+	"A all" \
+	"O autoentry" \
 	"" \
 	"S show" \
 	"C copy" \
@@ -224,7 +224,7 @@ otp-strings can be stored i.e.: otp_mail_john.gpg
 #--------------------------------
 
 
-check_sum()
+function check_sum ()
 {
     ## check file integrity
     if [[ -z $checked ]]; then
@@ -238,7 +238,7 @@ check_sum()
 }
 
 
-get_object()
+function get_object ()
 {
     # passr $object $element
 
@@ -318,8 +318,8 @@ get_object()
 	otp | \
 	unlock | \
 	peacto | \
+	all | \
 	autoentry | \
-	other | \
 	show | \
 	copy)
 	    element_as_object
@@ -393,7 +393,7 @@ get_object()
 }
 
 
-element_as_object()
+function element_as_object ()
 {
     arg_element_tmp="$arg_object"
 
@@ -406,7 +406,7 @@ element_as_object()
 }
 
 
-check_new_obj_names()
+function check_new_obj_names ()
 {
     declare -a prohibited_object_names=( \
 	url \
@@ -416,7 +416,7 @@ check_new_obj_names()
 	otp \
 	unlock \
 	peacto \
-	other \
+	all \
 	autoentry \
 	show \
 	copy \
@@ -437,7 +437,7 @@ check_new_obj_names()
 }
 
 
-pass_new()
+function pass_new ()
 {
     ## prevent 'passr non_existent_object' from being emptied out
     case $object in
@@ -471,7 +471,7 @@ pass_new()
     esac
 
     ## get creation time
-    c_time=$(date +'%Y%m%dT%H%M%S_%s')
+    c_time=$(date $DTZWE)
 
     ## get url
     printf "%"$align"s %s" "url: "
@@ -488,20 +488,18 @@ pass_new()
     ## get password
     gen_sel_pw
 
-    ## create timestamp
-    timestamp=$(date +'%Y%m%dT%H%M%S_%s')
+    echo
 
     ## synthesize string
-    obj_content=$(printf '%s\nuserid: %s\nurl: %s\ncomments: %s\n%s\ncreated: %s\n' \
+    obj_content_1=$(printf '%s\nuserid: %s\nurl: %s\ncomments: %s\n%s\ncreated: %s\n' \
 	"$password" \
 	"$userid" \
 	"$url" \
 	"$comments" \
-	'#-------------------------------------' \
+	'#-------------------------------------------------' \
 	"   $c_time")
 
-    ## inject content
-    printf '%s' "$obj_content" | pass insert --force --multiline $object
+    inject_content
 
     ## edit new object
     pass edit $object > /dev/null 2>&1
@@ -510,13 +508,13 @@ pass_new()
 }
 
 
-pass_edit() {
+function pass_edit () {
     [[ -z $object ]] && object=$arg_element
 
     process_object
 
     ## create timestamp & backup inside tmp directory
-    timestamp=$(date +'%Y%m%dT%H%M%S%z_%Z_%V_%s')
+    timestamp=$(date $DTZWE)
     pass cp $object tmp/${timestamp}--$object > /dev/null 2>&1
 
     ## current content
@@ -543,8 +541,7 @@ pass_edit() {
 
     fi
 
-    ## inject last-edit line
-    printf '%s' "$obj_content_1" | pass insert --force --multiline $object
+    inject_content
 
     #pass edit $object
     pass edit $object > /dev/null 2>&1
@@ -553,7 +550,14 @@ pass_edit() {
 }
 
 
-pass_grep()
+function inject_content ()
+{
+    ## silent execution to prevent: Enter contents of 1test and press Ctrl+D when finished
+    printf '%s\n' "$obj_content_1" | pass insert --force --multiline $object > /dev/null 2>&1
+}
+
+
+function pass_grep ()
 {
     ## search object data
     grep_string="$(printf "$args" | cut -d ' ' -f 2-)"
@@ -563,7 +567,7 @@ pass_grep()
 }
 
 
-pass_search()
+function pass_search ()
 {
     ## search objects
     search_string="$element"
@@ -573,7 +577,7 @@ pass_search()
 }
 
 
-gen_sel_pw()
+function gen_sel_pw ()
 {
     password=$(\
 	tr -d -c "[:alnum:]"'~!@#$%^&*()-=[];\,./_+{}:|<>?' < /dev/urandom | \
@@ -583,13 +587,13 @@ gen_sel_pw()
 }
 
 
-vault_open()
+function vault_open ()
 {
     pass_mount
 }
 
 
-log_in()
+function log_in ()
 {
     get_mountpoint_status
 
@@ -611,13 +615,13 @@ log_in()
 }
 
 
-pass_quit()
+function pass_quit ()
 {
     exit 0
 }
 
 
-log_out()
+function log_out ()
 {
     gpg-connect-agent -q reloadagent /bye >/dev/null
 
@@ -627,14 +631,14 @@ log_out()
 }
 
 
-close()
+function close ()
 {
     sh vault close $store
     exit 0
 }
 
 
-show_status()
+function show_status ()
 {
     get_mountpoint_status
     get_cache_status
@@ -642,7 +646,7 @@ show_status()
 }
 
 
-copy_text()
+function copy_text ()
 {
     ## # 20230826
     ## # --paste-once does not work in $browser
@@ -658,13 +662,13 @@ copy_text()
 }
 
 
-get_mountpoint_status()
+function get_mountpoint_status ()
 {
     mountpoint -q $store_l && mp_status=$store || mp_status=0
 }
 
 
-get_cache_status()
+function get_cache_status ()
 {
     ## 1 | 0 (no cache)
     cache_status=$(gpg-connect-agent 'keyinfo --list' /bye 2>/dev/null | \
@@ -673,7 +677,7 @@ get_cache_status()
 }
 
 
-pass_mount()
+function pass_mount ()
 {
     ## pass crypto source location
 
@@ -717,7 +721,7 @@ pass_mount()
 }
 
 
-gpg_decrypt()
+function gpg_decrypt ()
 {
     ## always reset cached gpg password
     gpg-connect-agent -q reloadagent /bye >/dev/null
@@ -735,14 +739,14 @@ gpg_decrypt()
 }
 
 
-erase_line()
+function erase_line ()
 {
     printf "\r"
     tput el
 }
 
 
-process_reply()
+function process_reply ()
 {
     action_reply='^a'
     answer=$(printf "$1" | grep -iq "$action_reply")
@@ -762,7 +766,7 @@ process_reply()
 }
 
 
-generate_pw()
+function generate_pw ()
 {
     ## permanently run without pwgn set environment variable PWGN_OFF
     if [[ -z "$PWGN_OFF" ]]; then
@@ -794,25 +798,32 @@ generate_pw()
 }
 
 
-get_element()
+function get_element ()
 {
     if [[ -z $element ]]; then
 
+	## default element menu
     	element=$(printf '%s\n' "${element_menu[@]}" | \
 	    fzf --height=19 --prompt="$object element " | \
 	    awk '{print $2}')
+
+    elif [[ $element == 'all' ]]; then
+
+	## all element list
+    	element=$(printf '%s\n' "${all_element_list[@]}" | \
+	    fzf --height=19 --prompt="$object element")
 
     fi
 }
 
 
-check_obj_exist()
+function check_obj_exist ()
 {
    [[ -f "${store}/${object}.gpg" ]] && obj_exist=1
 }
 
 
-object_is_quit()
+function object_is_quit ()
 {
     case $object in
 
@@ -826,7 +837,73 @@ object_is_quit()
 }
 
 
-process_object()
+function process_object ()
+{
+    object_is_quit
+    check_obj_exist
+
+    if [[ $obj_exist -eq 1 ]]; then
+
+	## object does exist
+	case $object in
+
+	    new | n)
+		## prevent duplicate object names
+		printf "object ${MAGENTA}$object${NOC} exists\n"; exit 47
+		;;
+
+	    *)
+		continue
+		;;
+
+	esac
+
+    else
+
+	## object does not exist
+	if [[ "$mode" == "persist" ]]; then
+
+	    case $hold_status in
+
+		1)
+		    ## hold same object
+		    object=$object_to_hold
+		    #get_object
+		    ;;
+
+		*)
+		    ## get next object
+		    get_object
+
+	    esac
+
+	fi
+
+    fi
+}
+
+
+function check_obj_exist ()
+{
+   [[ -f "${store}/${object}.gpg" ]] && obj_exist=1
+}
+
+
+function object_is_quit ()
+{
+    case $object in
+
+	quit)
+	    element='quit'
+	    human_info
+	    pass_quit
+	    ;;
+
+    esac
+}
+
+
+function process_object ()
 {
     object_is_quit
     check_obj_exist
@@ -883,7 +960,7 @@ process_object()
 
 		*)
 		    ## non-existent object
-        	    printf "${MAGENTA}$object${NOC} not found\n"
+        	    printf "not found ${fg_amber}$object${st_def}; "
 
 		    ## prompt create object
 		    printf "create [Y/n]? "
@@ -927,7 +1004,7 @@ process_object()
 }
 
 
-get_element_value()
+function get_element_value ()
 {
     element_value=$(pass show $object | grep ^$element: | awk '{print $2}')
 
@@ -939,13 +1016,13 @@ get_element_value()
 }
 
 
-get_password()
+function get_password ()
 {
     pass $object | head -n 1 | copy_text
 }
 
 
-get_otp()
+function get_otp ()
 {
     ## redirection to the separate otp file
     if [[ "$(printf $object | head -c 4)" != "otp_" ]]; then
@@ -967,7 +1044,7 @@ get_otp()
 }
 
 
-pass_element()
+function pass_element ()
 {
     ## run pass natively with $element
     case $from_log_in in
@@ -1000,18 +1077,18 @@ pass_element()
 }
 
 
-check_element_value()
+function check_element_value ()
 {
     ## no autoentry
     if [[ -z $ae ]]; then
 
     	if [[ -z $element ]]; then
 
-    	    element="${MAGENTA}element${NOC} no selection"
+    	    element="${fg_amber}element${st_def} no selection"
 
     	elif [[ -z $element_value ]]; then
 
-    	    element="${MAGENTA}$element${NOC} no value"
+    	    element="${fg_amber}$element${st_def} no value"
 
     	fi
 
@@ -1026,7 +1103,7 @@ check_element_value()
 }
 
 
-error_message()
+function error_message ()
 {
     ## selected empty line in element menu
     if [[ -z $element ]]; then
@@ -1041,7 +1118,7 @@ error_message()
 }
 
 
-human_info()
+function human_info ()
 {
     ## get error message if applicable
     error_message
@@ -1091,7 +1168,7 @@ human_info()
 }
 
 
-autoentry()
+function autoentry ()
 {
     ae=1
     ## sleep time
@@ -1100,20 +1177,18 @@ autoentry()
     element="url"
     get_element_value
     qutebrowser --target tab $element_value &
-    t=$((t * 2))
     human_info
     notify-send "$element"
     sleep $((t * 2))
 
     element="userid"
     get_element_value
-    t=$t
     human_info
     notify-send "$element"
     sleep $t
 
     element="password"
-    get_password 1> /dev/null #no stdout
+    get_password 1> /dev/null  ## no stdout
     human_info
     notify-send "$element"
     sleep $t
@@ -1140,38 +1215,37 @@ autoentry()
 }
 
 
-show_other_element()
+function get_all_element_list ()
 {
-    #TODO
-    :
+    ## create all element list
+    content=$(pass show $object)
+    all_element_list=()
+
+    while read line; do
+
+	all_element_list+=($(grep '^.*: ' <<< $line | awk -F ':' '{print $1}'))
+
+    done <<< "$content"
+#
+    get_element
+    process_element
+#
+#    get_element_value
 }
 
 
-get_other_element()
-{
-    #DEV
-    # other non-default element field name i.e.: 'email'
-
-    printf "%s" "other element: "
-    read -r -e other_element
-
-    element=$other_element
-    get_element_value
-}
-
-
-get_object_name()
+function get_object_name ()
 {
     printf "$object" | copy_text
     #printf "$object" | wl-copy -n -o
 }
 
 
-process_element()
+function process_element ()
 {
     case $element in
 
-    	password)
+    	password )
 	    get_password
 	    human_info
 	    ;;
@@ -1185,8 +1259,9 @@ process_element()
 	    autoentry
 	    ;;
 
-    	other)
-	    get_other_element
+    	all)
+	    element='all'
+	    get_all_element_list
 	    ;;
 
     	show)
@@ -1202,7 +1277,6 @@ process_element()
     	edit)
 	    element='edit'
 	    pass_edit
-	    #pass_element
 	    ;;
 
     	new)
@@ -1261,7 +1335,7 @@ process_element()
 }
 
 
-check_mode()
+function check_mode ()
 {
     ## persist mode
     ## reopen the menu
@@ -1279,7 +1353,7 @@ check_mode()
 }
 
 
-change_menu()
+function change_menu ()
 {
     ## passr started in persistent mode
 
@@ -1331,7 +1405,7 @@ change_menu()
 }
 
 
-list_otps()
+function list_otps ()
 {
     otp_files=$(fd '^otp_*' $HOME/.password-store | sort)
 
@@ -1371,7 +1445,7 @@ list_otps()
 }
 
 
-main()
+function main ()
 {
     check_sum
     get_object
