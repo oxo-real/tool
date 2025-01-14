@@ -244,61 +244,60 @@ function get_object ()
 
     case $object in
 
-	create | new | n)
+	create | new | n )
 	    object='new'
 	    pass_new
 	    ;;
 
-	edit | e)
+	edit | e )
 	    object='edit'
 	    pass_edit
 	    ;;
 
-	open | o)
+	open | o )
 	    object='open'
 	    vault_open
 	    ;;
 
-	login | i)
+	login | i )
 	    object='login'
 	    log_in
 	    ;;
 
-	status | s | info)
+	status | s | info )
 	    object='status'
 	    show_status
 	    exit 0
 	    ;;
 
-	logout | u)
+	logout | u )
 	    object='logout'
 	    log_out
 	    ;;
 
-	close | c)
+	close | c )
 	    object='close'
 	    log_out
 	    close
 	    ;;
 
-	persist | p)
+	persist | p )
 	    mode='persist'
 	    object=''
-	    #hold_status=0
 	    change_menu
 	    ;;
 
-	grep | g)
+	grep | g )
 	    object='grep'
 	    pass_grep
 	    ;;
 
-	search | z)
+	search | z )
 	    object='search'
 	    pass_search
 	    ;;
 
-	otp_list)
+	otp_list )
 	    object='otp_list'
 	    list_otps
 	    ;;
@@ -309,7 +308,7 @@ function get_object ()
 	## case: the user reverses the primarily intended order
 	## which is: $object and then $element
 	## with this i.e. 'passr url $object' also works
-	## as a result below are forbidden object names
+	## as a result below are prohibited object names
 	## which are checked when creating new objects
 	url | \
 	userid | \
@@ -321,39 +320,39 @@ function get_object ()
 	all | \
 	autoentry | \
 	show | \
-	copy)
+	copy )
 	    element_as_object
 	    ;;
 
-	*)
+	* )
 	    get_mountpoint_status
 
 	    case $mp_status in
 
-		0)
+		0 )
 		    ## pass_vlt not mounted
 		    object='login'
 		    pass_mount
 		    ;;
 
-		$store)
+		$store )
 		    ## pass_vlt already mounted
 		    get_cache_status
 
 		    case $cache_status in
 
-			0)
+			0 )
 			    ## no gpg_agent cache; need to login
 			    log_in
 
 			    [[ -n $object ]] && get_object
 			    ;;
 
-			1)
+			1 )
 			    ## have gpg_agent cache; no need to login
 			    case $object in
 
-				'')
+				'' )
 				    ## no object arg given; fzf prompts for it
 				    object=$(find -L $store_l -type f -iname '*.gpg' | \
 			   	         ## remove $store_l leading path
@@ -368,7 +367,7 @@ function get_object ()
 			   	         fzf --height=20% --prompt='object ')
 				    ;;
 
-				*)
+				* )
 				    ## we have an $object
 				    case $hold_status in
 
@@ -428,7 +427,7 @@ function check_new_obj_names ()
 
 	if [[ $object == $prohibited_name ]];then
 
-	    printf "${MAGENTA}$object${NOC} object name prohibited\n"
+	    printf "${fg_amber}$object${st_def} object name prohibited\n"
 	    exit 55
 
 	fi
@@ -658,7 +657,6 @@ function copy_text ()
     #wl-copy --type text/plain --paste-once
     #wl-copy --trim-newline --paste-once --type text/plain
     #wl-copy --trim-newline --paste-once --type text/plain;charset=utf-8
-
 }
 
 
@@ -783,7 +781,6 @@ function generate_pw ()
 	if printf "$reply" | grep -iq "^a"; then
 
 	    # enter password w/o pwgn
-
 	    tput cuu1
 	    erase_line
 
@@ -849,7 +846,7 @@ function process_object ()
 
 	    new | n)
 		## prevent duplicate object names
-		printf "object ${MAGENTA}$object${NOC} exists\n"; exit 47
+		printf "object ${fg_amber}$object${st_def} exists\n"; exit 47
 		;;
 
 	    *)
@@ -915,7 +912,7 @@ function process_object ()
 
 	    new | n)
 		## prevent duplicate object names
-		printf "object ${MAGENTA}$object${NOC} exists\n"; exit 47
+		printf "object ${fg_amber}$object${st_def} exists\n"; exit 47
 		;;
 
 	    *)
@@ -1012,7 +1009,6 @@ function get_element_value ()
 
     ## '%s' prevents 'invalid format character' error
     printf '%s' "$element_value" | copy_text
-    #printf '%s' "$element_value" | wl-copy --type=text/plain -n -o
 }
 
 
@@ -1133,7 +1129,7 @@ function human_info ()
 	    if [[ -n $error ]]; then
 
 		## print error message
-		printf "$(date +%H%M%S) ${MAGENTA}$object${NOC} $error\n"
+		printf "$(date +%H%M%S) ${fg_amber}$object${st_def} $error\n"
 
 	    else
 
@@ -1148,11 +1144,11 @@ function human_info ()
 	    if [[ -n $error ]]; then
 
 		## print error message
-		printf "$(date +%H%M%S) ${MAGENTA}$object${NOC} $error\n"
+		printf "$(date +%H%M%S) ${fg_amber}$object${st_def} $error\n"
 
 	    else
 
-	    	printf "$(date +%H%M%S) ${BLUE}$object${NOC} $element\n"
+	    	printf "$(date +%H%M%S) ${fg_blue}$object${st_def} $element\n"
 
 	    fi
 
@@ -1226,18 +1222,15 @@ function get_all_element_list ()
 	all_element_list+=($(grep '^.*: ' <<< $line | awk -F ':' '{print $1}'))
 
     done <<< "$content"
-#
+
     get_element
     process_element
-#
-#    get_element_value
 }
 
 
 function get_object_name ()
 {
     printf "$object" | copy_text
-    #printf "$object" | wl-copy -n -o
 }
 
 
@@ -1250,59 +1243,59 @@ function process_element ()
 	    human_info
 	    ;;
 
-    	otp)
+    	otp )
 	    get_otp
 	    human_info
 	    ;;
 
-    	autoentry)
+    	autoentry )
 	    autoentry
 	    ;;
 
-    	all)
+    	all )
 	    element='all'
 	    get_all_element_list
 	    ;;
 
-    	show)
+    	show )
 	    element='show'
 	    pass_element
 	    ;;
 
-    	copy)
+    	copy )
 	    get_object_name
 	    human_info
 	    ;;
 
-    	edit)
+    	edit )
 	    element='edit'
 	    pass_edit
 	    ;;
 
-    	new)
+    	new )
 	    element='new'
 	    pass_new
 	    ;;
 
-	quit)
+	quit )
 	    element='quit'
 	    human_info
 	    pass_quit
 	    ;;
 
-    	log_out)
+    	log_out )
 	    log_out
 	    ;;
 
-    	"")
+    	"" )
 	    human_info
 	    ;;
 
-	hold_on | hold_off)
+	hold_on | hold_off )
 	    ## toggle object hold status
 	    case $hold_status in
 
-		1)
+		1 )
 		    ## toggle hold_off
 		    hold_status=0
 		    object="$object_to_hold"
@@ -1313,7 +1306,7 @@ function process_element ()
 		    get_object
 		    ;;
 
-		*)
+		* )
 		    ## toggle hold_on
 		    hold_status=1
 		    element='hold_on'
@@ -1371,12 +1364,12 @@ function change_menu ()
     ## define hold menu item
     case $hold_status in
 
-	1)
+	1 )
 	    ## hold=1
 	    hold_menu_item='H hold_off'
 	    ;;
 
-	*)
+	* )
 	    ## hold=0
 	    hold_menu_item='H hold_on'
 	    ;;
@@ -1388,12 +1381,12 @@ function change_menu ()
 
     case $last_menu_item in
 
-	'Q quit')
+	'Q quit' )
 	    ## add hold menu item
 	    element_menu+=("$hold_menu_item")
 	    ;;
 
-	*)
+	* )
 	    ## we need to change hold menu item
 	    ## delete last menu item
 	    unset 'element_menu[${#element_menu[@]}-1]'
@@ -1436,7 +1429,6 @@ function list_otps ()
     else
 
 	printf "$otp_selected" | awk -F ' ' '{print $(NF-1)$NF}' | copy_text
-	#printf "$otp_selected" | awk -F ' ' '{print $(NF-1)$NF}' | wl-copy -n -o
     	otp_list='' && unset otp_list
     	otp_selected='' && unset otp_selected
     	exit 0
