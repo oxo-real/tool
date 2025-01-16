@@ -128,6 +128,7 @@ arg_object=$1
 arg_element=$2
 tool_dir="$script_dir"
 pwgn="$tool_dir/pwgn"
+passstring_size=64
 ### dynamic variables
 object="$arg_object"
 element="$arg_element"
@@ -484,14 +485,14 @@ function pass_new ()
     printf "%"$align"s %s" "comments: "
     read -r -e comments
 
-    ## get password
-    gen_sel_pw
+    ## generate passstring
+    gen_passstring
 
     echo
 
     ## synthesize string
     obj_content_1=$(printf '%s\nuserid: %s\nurl: %s\ncomments: %s\n%s\ncreated: %s\n' \
-	"$password" \
+	"$passstring" \
 	"$userid" \
 	"$url" \
 	"$comments" \
@@ -576,13 +577,11 @@ function pass_search ()
 }
 
 
-function gen_sel_pw ()
+function gen_passstring ()
 {
-    password=$(\
-	tr -d -c "[:alnum:]"'~!@#$%^&*()-=[];\,./_+{}:|<>?' < /dev/urandom | \
-	fold -w 32 | head -n 16 | cat -b | \
-	fzf --height=17 --prompt=' passstring: ' | awk '{print $2}')
-
+    ## tr no spaces in generated passstring
+    passstring=$(\
+	tr -d -c "$ASCII" < /dev/urandom | tr -d ' ' | fold -w $passstring_size | head -n 1)
 }
 
 
@@ -766,7 +765,7 @@ function process_reply ()
 
 function generate_pw ()
 {
-    ## permanently run without pwgn set environment variable PWGN_OFF
+    ## permanently run without pwgn; set environment variable PWGN_OFF
     if [[ -z "$PWGN_OFF" ]]; then
 
 	echo
@@ -808,7 +807,7 @@ function get_element ()
 
 	## all element list
     	element=$(printf '%s\n' "${all_element_list[@]}" | \
-	    fzf --height=19 --prompt="$object element")
+	    fzf --height=19 --prompt="$object element ")
 
     fi
 }
