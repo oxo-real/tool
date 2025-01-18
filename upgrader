@@ -183,6 +183,7 @@ internet_conn_check()
 	else
 
 	    nmconn
+	    internet_conn_check
 
 	fi
 
