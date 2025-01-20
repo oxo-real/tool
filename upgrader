@@ -674,7 +674,7 @@ kernel_reboot_check()
     active_kernel=$(uname -r)
 
     ## kernel version
-    if [[ "$active_kernel" =~ 'lts$' ]]; then
+    if [[ "$active_kernel" =~ '.*lts$' ]]; then
 
 	## lts
 	disk_kernel=$(file /boot/vmlinuz-linux-lts | cut -d " " -f 9)
