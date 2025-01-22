@@ -15,8 +15,8 @@
 : '
 upgrader
 arch linux upgrade script
-copyright (c) 2019 - 2024  |  oxo
-
+copyright (c) 2019 - 2025  |  oxo
+----------------------------------------------------------------------
 GNU GPLv3 GENERAL PUBLIC LICENSE
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -33,7 +33,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 https://www.gnu.org/licenses/gpl-3.0.txt
 
 @oxo@qoto.org
-
+======================================================================
 
 # dependencies:
 text_appearance, reply_functions, splash_screen, get_sudo
@@ -94,7 +94,7 @@ source $source_dir/splash_screen
 source $source_dir/get_sudo
 
 
-check_sum()
+check_sum ()
 {
     ## check file integrity
     check-sum $(realpath $script_dir/$script_name)
@@ -102,7 +102,7 @@ check_sum()
 }
 
 
-set_clock()
+set_clock ()
 {
     # synchronize clocks
     printf "${st_bold}timedatectl status${st_def}\n"
@@ -121,7 +121,7 @@ set_clock()
 }
 
 
-get_ipex()
+get_ipex ()
 {
     ## retrieve external ip address
     ipex=$(host myip.opendns.com resolver2.opendns.com \
@@ -131,7 +131,7 @@ get_ipex()
 }
 
 
-internet_conn_check()
+internet_conn_check ()
 {
     # check internet connection
     try=1
@@ -200,7 +200,7 @@ internet_conn_check()
 }
 
 
-package_lists_before()
+package_lists_before ()
 {
     # backup package lists before upgrade
     ## define variables
@@ -245,8 +245,8 @@ package_lists_before()
 }
 
 
-boot_usr_presence() {
-
+boot_usr_presence ()
+{
     ## check mountpoint presence
     for mountpoint in "${mpts_rw[@]}"; do
 
@@ -264,7 +264,7 @@ boot_usr_presence() {
 }
 
 
-boot_usr_rw()
+boot_usr_rw ()
 {
     ## make mountpoints rw
     for mountpoint in "${mpts_rw[@]}"; do
@@ -277,7 +277,7 @@ boot_usr_rw()
 }
 
 
-update_mirrors()
+update_mirrors ()
 {
     # update mirrorlist
     sudo cp $mirror_location/mirrorlist $mirror_location/mirrorlist.old
@@ -293,7 +293,7 @@ update_mirrors()
 }
 
 
-show_package_info()
+show_package_info ()
 {
     yay -Ps
 
@@ -308,7 +308,7 @@ show_package_info()
     echo
 }
 
-show_file_info()
+show_file_info ()
 {
     printf "\e[4m   file statistics\e[0m\n"
     printf "\033[1m%7s %s\033[0m\n" "$(yay -Ql | wc -l)" "total count"
@@ -318,7 +318,7 @@ show_file_info()
 }
 
 
-show_news()
+show_news ()
 {
     printf "arch linux news (Pw)\n"
 
@@ -338,13 +338,13 @@ show_news()
 }
 
 
-upgrade_keyring()
+upgrade_keyring ()
 {
     sudo pacman -Sy --needed archlinux-keyring
 }
 
 
-refresh_package_database()
+refresh_package_database ()
 {
     # refresh package database
     printf "refresh (update) package database (Sy)\n"
@@ -357,7 +357,7 @@ refresh_package_database()
 
 
 
-list_marked_upgrade()
+list_marked_upgrade ()
 {
     # list packages marked for upgrade
     printf "writing package list marked to be upgraded (0u)\n"
@@ -378,7 +378,7 @@ list_marked_upgrade()
 }
 
 
-upgrade_packages()
+upgrade_packages ()
 {
     # upgrade installed packages
     #printf "also upgrade developement packages? (y/N) "
@@ -408,7 +408,7 @@ upgrade_packages()
 }
 
 
-waybar_reload()
+waybar_reload ()
 {
     printf "update desktop environment"
     sway -v
@@ -419,7 +419,7 @@ waybar_reload()
 }
 
 
-clean_up()
+clean_up ()
 {
     # cleaning up
     #printf "cleanup (Rns Qtdq)\n"
@@ -449,7 +449,7 @@ clean_up()
 }
 
 
-show_missing()
+show_missing ()
 {
     # show missing package files
     ## i3blocks is filtered out from results
@@ -459,7 +459,7 @@ show_missing()
 }
 
 
-update_db()
+update_db ()
 {
     # updatedb
     ## in order to user locate (faster than find)
@@ -471,7 +471,7 @@ update_db()
 }
 
 
-boot_usr_ro()
+boot_usr_ro ()
 {
     # make partitions ro
     printf "revert mountpoint statuses\n"
@@ -483,7 +483,7 @@ boot_usr_ro()
 }
 
 
-package_lists_after()
+package_lists_after ()
 {
     # backup package lists after upgrade
     ## define variables
@@ -527,7 +527,7 @@ package_lists_after()
 }
 
 
-package_lists_diffs()
+package_lists_diffs ()
 {
     # package lists diffs after upgrade
     printf "writing package lists before-after upgrade diffs to log (dQ, de & dp)\n"
@@ -559,7 +559,7 @@ package_lists_diffs()
 }
 
 
-statistics()
+statistics ()
 {
     ## statistics
     dQ_lines=$(cat $llt1'_dQ' | wc -l)
@@ -584,7 +584,7 @@ statistics()
 }
 
 
-package_upgrade_details()
+package_upgrade_details ()
 {
     printf "package upgrade details\n"
     < ${$(get_newest_file $log_location)%?}Q
@@ -594,13 +594,13 @@ package_upgrade_details()
 }
 
 
-arch_audit()
+arch_audit ()
 {
     arch-audit --show-cve --format "%s %n %t %c"
 }
 
 
-arch_audit_q()
+arch_audit_q ()
 {
 #    printf "check for package vulnerabilities? (Y/n) "
 #    reply_read_single_hidden_timer
@@ -623,13 +623,13 @@ arch_audit_q()
 }
 
 
-call_dns_hosts_blocklist()
+call_dns_hosts_blocklist ()
 {
     sh $update_dns_hosts_blocklist
 }
 
 
-update_dns_hosts_blocklist()
+update_dns_hosts_blocklist ()
 {
 #    printf "update dns hosts blocklist? (Y/n) "
 #    reply_read_single_hidden_timer
@@ -658,7 +658,7 @@ update_dns_hosts_blocklist()
 }
 
 
-ua_upgrade()
+ua_upgrade ()
 {
     printf '%s\n' "$USER_AGENT"
     lnuac="$XDG_LOGS_HOME/network/user_agent/current"
@@ -669,12 +669,12 @@ ua_upgrade()
 }
 
 
-kernel_reboot_check()
+kernel_reboot_check ()
 {
     active_kernel=$(uname -r)
 
     ## kernel version
-    if [[ "$active_kernel" =~ '.*lts$' ]]; then
+    if [[ $active_kernel =~ lts$ ]]; then
 
 	## lts
 	disk_kernel=$(file /boot/vmlinuz-linux-lts | cut -d " " -f 9)
@@ -685,7 +685,6 @@ kernel_reboot_check()
 	disk_kernel=$(file /boot/vmlinuz-linux | cut -d " " -f 9)
 
     fi
-
 
     if [ "$active_kernel" != "$disk_kernel" ]; then
 
@@ -710,7 +709,7 @@ kernel_reboot_check()
 }
 
 
-systemd_reboot_check()
+systemd_reboot_check ()
 {
     alert_trigger="systemd"
     target_diff_file=""$llt1"_dp"
@@ -738,7 +737,7 @@ systemd_reboot_check()
 }
 
 
-show_part_sizes()
+show_part_sizes ()
 {
     echo
     printf "partition sizes\n"
@@ -746,7 +745,7 @@ show_part_sizes()
 }
 
 
-main()
+main ()
 {
     #splash_screen
     check_sum
