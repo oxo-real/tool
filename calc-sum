@@ -39,7 +39,7 @@ https://www.gnu.org/licenses/gpl-3.0.txt
 sha3-512sum
 
 # usage
-calc-sum file(s)|directory
+calc-sum file|directory [file2] [directory2]
 
 # examples
 ## add file hash to hash-list
@@ -50,7 +50,7 @@ calc-sum directory
 
 # '
 
-## get arg
+## get args
 args="$@"
 
 
@@ -65,7 +65,7 @@ function process_args ()
     if [ "$#" -eq 0 ]; then
 
 	## no args given
-	no_args
+	err_no_args
 
     fi
 
@@ -81,8 +81,12 @@ function process_args ()
 
 	    * )
 		## rest of args are files or directories
+		## put into space separated list (ssl)
 		files_ssl=$@
 		conv_ssl_to_arr "$files_ssl"
+
+		## variable number of args/files, we can't use shift
+		## therefore break to prevent infinite loop
 		break
 		;;
 
@@ -92,8 +96,11 @@ function process_args ()
 }
 
 
-function no_args ()
+function err_no_args ()
 {
+    ## calc-sum is not executing without arguments, this is a
+    ## security feature, because we only want to overwrite
+    ## the sha3-512sums file explicitly
     printf "missing ${fg_amber}%s${st_def} or ${fg_amber}%s${st_def}\n" 'file' 'directory'
     exit 40
 }
@@ -111,11 +118,9 @@ function replace_add_create ()
 {
     ## replace or add lines inside hash_list,
     ## or create hash_list for given files or directories
-    #TODO directories
 
     if [[ -f $file_name ]]; then
-
-	## argument is a file
+	## argument is a existing file
 
 	if [[ -f $hash_list ]]; then
 
@@ -123,7 +128,7 @@ function replace_add_create ()
 	    if [[ -n $(grep -riIn "$file_name" "$hash_list") ]]; then
 
 		## filename exists in hash_list
-		file_hash=$(sha3-512sum $file_name)
+		create_file_hash
 
 		## replace line containing filename
 		sed -i "s;.*$file_name.*;$file_hash;" $hash_list
@@ -134,7 +139,7 @@ function replace_add_create ()
 	    else
 
 		## filename does not exist in hash_list
-		file_hash=$(sha3-512sum $file_name)
+		create_file_hash
 
 		## add file_hash to hash_list
 		printf '\n%s\n' "$file_hash" >> $hash_list
@@ -144,28 +149,36 @@ function replace_add_create ()
 
 	    fi
 
-	else
+	fi
+
+	if [[ ! -f $hash_list ]]; then
 
 	    ## no hash-list exists
-	    file_hash=$(sha3-512sum $file_name)
+	    create_file_hash
 
 	    ## create hash_list with one file_hash
-	    printf '%s\n' "$file_hash" > "$hash_list" 2>/dev/null
+	    sha3-512sum $file_name > "$hash_list" 2>/dev/null
 
 	fi
 
-    elif [[ -d $file_name ]]; then
+    elif [[ -d $dir_name ]]; then
 
 	## argument is a directory
-
 	replace_hash_list
 
     fi
 }
 
 
+function create_file_hash ()
+{
+    file_hash=$(sha3-512sum $file_name)
+}
+
+
 function replace_hash_list ()
 {
+    ## remove any exsisting hashlist
     [[ -f $hash_list ]] && rm $hash_list
 
     ## calculate and write sha512sums of all items in dir_name
@@ -197,9 +210,6 @@ function set_file_name ()
 	printf "${fg_amber}%s${st_def} not a valid location\n" "$file"
 
     fi
-
-    ## set hash_list for file_name
-    hash_list="${dir_name}"/sha3-512sums
 }
 
 
@@ -230,21 +240,6 @@ function loop_through_files ()
 
 	set_file_name
 	define_hash_list
-
-	### expand symlinks and relative directories
-	#file_name=$(realpath "$file")
-
-	### set file_name directory
-	#if [[ -d $file_name ]]; then
-
-	#    dir_name=$file_name
-
-	#elif [[ -f $file_name ]]; then
-
-	#    dir_name=$(dirname $file_name)
-
-	#fi
-
 	replace_add_create
 
     done

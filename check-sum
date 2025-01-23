@@ -41,9 +41,11 @@ https://www.gnu.org/licenses/gpl-3.0.txt
 
 # usage
   check-sum [--fail-only] [$file1] [$file2] [...]
-  #TODO DEV option --fail-only
 
-  WARNING does not work (reliabely) when filenames contain spaces
+  WARNING does not work (reliabely) when filename contains spaces
+
+  NOTICE  ist_sum is a real-time calculated value
+          soll_sum is a pre-calculated value
 
 # examples
   n/a
@@ -234,12 +236,12 @@ function verify_hash_list ()
 	    printf 'sha3-512sum:\n'
 	    sha3-512sum $file_name
 
-	elif [[ ! -f $file_name ]]; then
+	#elif [[ ! -f $file_name ]]; then
 
-	    ## no extra comment needed; removing
-	    printf '\r'
-	    tput cuu1
-	    tput el
+	#    ## no extra comment needed; removing
+	#    printf '\r'
+	#    tput cuu1
+	#    tput el
 
 	fi
 
@@ -256,7 +258,8 @@ function file_on_hash_list ()
 	if [[ ! $(grep $file_name $hash_list) ]]; then
 
 	    ## file_name not on hash_list
-	    exit 232
+	    printf "${fg_amber}%s${st_def} no item on hash-list %s\n" "$file_name" "$hash_list"
+	    #exit 232
 	    #calc-sum $file_name
 
 	fi
@@ -302,7 +305,6 @@ function check_dups ()
 	    ## warning for duplicate sums in hash-list
 	    printf "${fg_red}${st_bold}%s${st_def} %s\n" "${sum_entries}" "${soll_sum}"
 	    grep $soll_sum $hash_list | awk '{print $2}'
-	    #echo 'aaa'
 
 	fi
 
@@ -314,7 +316,6 @@ function check_dups ()
 	    ## warning for duplicate sums in hash-list
 	    printf "${fg_red}${st_bold}%s${st_def} %s\n" "${file_entries}" "${file_name}"
 	    grep $file_name $hash_list | awk '{print $1}'
-	    #echo 'bbb'
 
 	fi
 
