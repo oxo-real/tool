@@ -59,14 +59,17 @@ set -o pipefail
 ## arg should be realpath to file
 args=$@
 
-## sleep
-sleep_on=''  ## if empty; no sleeps
-sleep_time=1
+## hardcoded variables
+source_dir="$XDG_DATA_HOME/c/git/code/source/function"
+
+### sleep
+#sleep_time=1
 
 
 function sourcing ()
 {
-    source $XDG_DATA_HOME/c/git/code/source/function/text_appearance > /dev/null 2>&1
+    source $source_dir/text_appearance
+    source $source_dir/reply_functions
 }
 
 
@@ -76,6 +79,7 @@ function process_args ()
 
 	## no args given
 	no_files
+	regular_check
 
     elif [ "$#" -gt 0 ]; then
 
@@ -101,6 +105,7 @@ function process_args ()
 
 		*)
 		    ## rest of args are no options, thus files
+		    ## space separated list (ssl)
 		    files_ssl=$@
 		    break
 		    ;;
@@ -115,20 +120,24 @@ function process_args ()
 
 function no_files ()
 {
+    dir_name=$PWD
+}
+
+
+function regular_check ()
+{
     if [[ "$mode" == 'fail-only' ]]; then
 
 	## grep colorizes 'Fail', print those only
-	sha3-512sum -c $PWD/sha3-512sums | grep -i --color -e 'fail'
+	sha3-512sum -c $dir_name/sha3-512sums | grep -i --color -e 'fail'
 
     else
 
 	## compute and check regularly on cwd
 	## grep colorizes 'Fail', print all lines
-	sha3-512sum -c $PWD/sha3-512sums | grep -i --color -e 'fail' -e '^'
+	sha3-512sum -c $dir_name/sha3-512sums | grep -i --color -e 'fail' -e '^'
 
     fi
-
-    #exit 0
 }
 
 
@@ -159,37 +168,9 @@ function set_file_name ()
 	## $file is directory
 	dir_name=$(realpath $file)
 
-	#TODO DEV when directory is entered
-	: '
-	## create array with files from dir
-	files_from_dir=$(fd --max-depth 1 --type file . $dir_name)
-	IFS=$'\n' \
-	read -r -a files_from_dir_arr <<< "$files_from_dir"
-#	declare -a files_from_dir_arr
-#	files_from_dir_arr=( $(fd --max-depth 1 --type file . $dir_name) )
-
-	## tempo dup arr
-	declare -a files_arr_dup
-	files_arr_dup="${files_arr[@]}"
-
-	files_arr="${files_from_dir_arr[@]}"
-
-	check_sums
-
-	## revert files_arr
-	files_arr="${files_arr_dup[@]}"
-
-	## remove arrs no longer needed
-	unset files_arr_dup
-	unset files_from_dir_arr
-
-	# '
-
     else
 
-	printf "${fg_amber}%s${st_def} not a valid location\n" "$file"
-
-	#continue
+	printf "not a valid location ${fg_amber}%s${st_def}\n" "$file"
 
     fi
 }
@@ -231,17 +212,49 @@ function verify_hash_list ()
 
 	fi
 
+
+	if [[ -d $dir_name ]]; then
+
+	    define_hash_list
+
+	    printf 'calc-sum %s ? [y/N] ' $dir_name
+
+	    reply_read_single
+
+	    case $reply in
+
+		y | Y )
+		    calc-sum $dir_name
+		    ;;
+
+		*)
+		    :
+		    ;;
+
+	    esac
+
+	fi
+
+
 	if [[ -f $file_name ]]; then
 
-	    printf 'sha3-512sum:\n'
-	    sha3-512sum $file_name
+	    define_hash_list
 
-	#elif [[ ! -f $file_name ]]; then
+	    printf 'calc-sum %s ? [y/N] ' $file_name
 
-	#    ## no extra comment needed; removing
-	#    printf '\r'
-	#    tput cuu1
-	#    tput el
+	    reply_read_single
+
+	    case $reply in
+
+		y | Y )
+		    calc-sum $file_name
+		    ;;
+
+		*)
+		    :
+		    ;;
+
+	    esac
 
 	fi
 
@@ -253,14 +266,28 @@ function file_on_hash_list ()
 {
     ## check if file_name is on hash_list
 
-    if [[ -f $file_name ]]; then
+    if [[ -f $file_name && -f $hash_list ]]; then
 
 	if [[ ! $(grep $file_name $hash_list) ]]; then
 
 	    ## file_name not on hash_list
 	    printf "${fg_amber}%s${st_def} no item on hash-list %s\n" "$file_name" "$hash_list"
-	    #exit 232
-	    #calc-sum $file_name
+
+	    printf 'calc-sum %s ? [y/N] ' $file_name
+
+	    reply_read_single
+
+	    case $reply in
+
+		y | Y )
+		    calc-sum $file_name
+		    ;;
+
+		*)
+		    :
+		    ;;
+
+	    esac
 
 	fi
 
@@ -330,7 +357,7 @@ function verify_checksum ()
 	# compare ist_sum with soll_sum
 
 	printf "$(BGx 222222)%s${st_def}\r" "$file_name"
-	[[ -n $sleep_on ]] && sleep $((1 * sleep_time))
+	[[ -n $sleep_time ]] && sleep $((1 * sleep_time))
 
 	if [[ -z "$soll_sum" ]]; then
 
@@ -360,7 +387,7 @@ function verify_checksum ()
 	elif [[ "$ist_sum" = "$soll_sum" ]]; then
 
 	    printf "$(BGx 222222)${fg_green}%s${st_def} checksum OK\r" "$file_name"
-	    [[ -n $sleep_on ]] && sleep $((2 * sleep_time))
+	    [[ -n $sleep_time ]] && sleep $((2 * sleep_time))
 	    tput el
 
 	fi

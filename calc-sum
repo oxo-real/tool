@@ -112,7 +112,7 @@ function no_args ()
 	    ;;
 
 	* )
-	    exit 117
+	    exit 115
 	    ;;
 
     esac
