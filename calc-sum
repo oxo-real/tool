@@ -15,7 +15,7 @@
 : '
 calc-sum
 calc checksum and update hash-list
-copyright (c) 2022 - 2024  |  oxo
+copyright (c) 2022 - 2025  |  oxo
 ----------------------------------------------------------------------
 GNU GPLv3 GENERAL PUBLIC LICENSE
 This program is free software: you can redistribute it and/or modify
@@ -39,13 +39,13 @@ https://www.gnu.org/licenses/gpl-3.0.txt
 sha3-512sum
 
 # usage
-calc-sum file|directory [file2] [directory2]
+calc-sum [file | directory] [file2] [directory2]
 
 # examples
-## add file hash to hash-list
-calc-sum file1 [file2]
+## add or update item in hashlist
+calc-sum file1
 
-## add all files to hash-list
+## recalculate all files in directory
 calc-sum directory
 
 # '
@@ -56,8 +56,9 @@ args="$@"
 
 function sourcing ()
 {
-    source $XDG_DATA_HOME/c/git/code/source/function/text_appearance
-    source $XDG_DATA_HOME/c/git/code/source/function/reply_functions
+    source_dir="$XDG_DATA_HOME/c/git/code/source/function"
+    source $source_dir/text_appearance
+    source $source_dir/reply_functions
 }
 
 
@@ -99,9 +100,6 @@ function process_args ()
 
 function no_args ()
 {
-    ## calc-sum is not executing without arguments, this is a
-    ## security feature, because we only want to overwrite
-    ## the sha3-512sums file explicitly
     printf "calc-sum ${fg_amber}%s${st_def} ? [y/N] " $PWD
     reply_read_single
 
@@ -135,7 +133,7 @@ function replace_add_create ()
     ## or create hash_list for given files or directories
 
     if [[ -f $file_name ]]; then
-	## argument is a existing file
+	## argument is an existing file
 
 	create_file_hash
 
@@ -144,25 +142,19 @@ function replace_add_create ()
 	    ## hash_list exists
 	    if [[ -n $(grep -riIn "$file_name" "$hash_list") ]]; then
 
-		## filename exists in hash_list
-		# create_file_hash
-
 		## replace line containing filename
 		sed -i "s;.*$file_name.*;$file_hash;" $hash_list
 
 		## human info
-		printf "${fg_amber}%s${st_def} hashlist item updated\n" "$file_name"
+		printf "hashlist item updated ${fg_amber}%s${st_def}\n" "$file_name"
 
 	    else
-
-		## filename does not exist in hash_list
-		# create_file_hash
 
 		## add file_hash to hash_list
 		printf '\n%s\n' "$file_hash" >> $hash_list
 
 		## human info
-		printf "${fg_green}%s${st_def} added to hashlist\n" "$file_name"
+		printf "hashlist item added ${fg_green}%s${st_def}\n" "$file_name"
 
 	    fi
 
@@ -170,11 +162,12 @@ function replace_add_create ()
 
 	if [[ ! -f $hash_list ]]; then
 
-	    ## no hash-list exists
-	    # create_file_hash
-
 	    ## create hash_list with one file_hash
 	    sha3-512sum $file_name > "$hash_list" 2>/dev/null
+
+	    ## human info
+	    printf "hashlist created ${fg_green}%s${st_def}\n" "$hash_list"
+	    printf "hashlist item added ${fg_green}%s${st_def}\n" "$file_name"
 
 	fi
 
@@ -220,9 +213,8 @@ function replace_hash_list ()
     ## remove any exsisting hashlist
     [[ -f $hash_list ]] && rm $hash_list
 
-    ## calculate and write sha512sums of all items in dir_name
-    hashes=$(fd --max-depth 1 --type file --exec sha3-512sum {} \; -- . $dir_name)
-    printf '%s\n' "$hashes" > $hash_list 2>/dev/null
+    ## calculate and write sha512sums of all files in dir_name
+    fd --max-depth 1 --type file --exec sha3-512sum {} \; -- . $dir_name > $hash_list 2>/dev/null
 
     ## user feedback
     wc -l $hash_list
@@ -246,7 +238,7 @@ function set_file_name ()
     else
 
 	## unvalid location
-	printf "${fg_amber}%s${st_def} not a valid location\n" "$file"
+	printf "not a valid location ${fg_amber}%s${st_def}\n" "$file"
 
     fi
 }
