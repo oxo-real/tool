@@ -57,6 +57,7 @@ args="$@"
 function sourcing ()
 {
     source $XDG_DATA_HOME/c/git/code/source/function/text_appearance
+    source $XDG_DATA_HOME/c/git/code/source/function/reply_functions
 }
 
 
@@ -65,7 +66,7 @@ function process_args ()
     if [ "$#" -eq 0 ]; then
 
 	## no args given
-	err_no_args
+	no_args
 
     fi
 
@@ -96,13 +97,27 @@ function process_args ()
 }
 
 
-function err_no_args ()
+function no_args ()
 {
     ## calc-sum is not executing without arguments, this is a
     ## security feature, because we only want to overwrite
     ## the sha3-512sums file explicitly
-    printf "missing ${fg_amber}%s${st_def} or ${fg_amber}%s${st_def}\n" 'file' 'directory'
-    exit 40
+    printf "calc-sum ${fg_amber}%s${st_def} ? [y/N] " $PWD
+    reply_read_single
+
+    case $reply in
+
+	y | Y )
+	    args="$PWD"
+	    main
+	    exit
+	    ;;
+
+	* )
+	    exit 117
+	    ;;
+
+    esac
 }
 
 
@@ -122,24 +137,26 @@ function replace_add_create ()
     if [[ -f $file_name ]]; then
 	## argument is a existing file
 
+	create_file_hash
+
 	if [[ -f $hash_list ]]; then
 
 	    ## hash_list exists
 	    if [[ -n $(grep -riIn "$file_name" "$hash_list") ]]; then
 
 		## filename exists in hash_list
-		create_file_hash
+		# create_file_hash
 
 		## replace line containing filename
 		sed -i "s;.*$file_name.*;$file_hash;" $hash_list
 
 		## human info
-		printf "${fg_amber}%s${st_def} hashlist updated\n" "$file_name"
+		printf "${fg_amber}%s${st_def} hashlist item updated\n" "$file_name"
 
 	    else
 
 		## filename does not exist in hash_list
-		create_file_hash
+		# create_file_hash
 
 		## add file_hash to hash_list
 		printf '\n%s\n' "$file_hash" >> $hash_list
@@ -154,7 +171,7 @@ function replace_add_create ()
 	if [[ ! -f $hash_list ]]; then
 
 	    ## no hash-list exists
-	    create_file_hash
+	    # create_file_hash
 
 	    ## create hash_list with one file_hash
 	    sha3-512sum $file_name > "$hash_list" 2>/dev/null
@@ -178,6 +195,28 @@ function create_file_hash ()
 
 function replace_hash_list ()
 {
+    if [[ -f $hash_list ]]; then
+
+	## hashlist already exists
+	tput cuu1
+	printf '\r'
+	printf "recalc ${fg_amber}%s${st_def} ? [y/N] " $hash_list
+	reply_read_single
+
+	case $reply in
+
+	    y | Y )
+		continue
+		;;
+
+	    * )
+		exit
+		;;
+
+	esac
+
+    fi
+
     ## remove any exsisting hashlist
     [[ -f $hash_list ]] && rm $hash_list
 
