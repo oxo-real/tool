@@ -91,6 +91,7 @@ function process_args ()
 		all | --all | -a )
 		    mode='all'
 		    shift
+		    #TODO add code for all mode
 		    ;;
 
 		fail-only | --fail-only | -f )
@@ -120,6 +121,7 @@ function process_args ()
 
 function no_files ()
 {
+    ## files_ssl is empty, set dir to cwd
     dir_name=$PWD
 }
 
