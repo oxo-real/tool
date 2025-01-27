@@ -677,12 +677,16 @@ kernel_reboot_check ()
     if [[ $active_kernel =~ lts$ ]]; then
 
 	## lts
-	disk_kernel=$(file /boot/vmlinuz-linux-lts | cut -d " " -f 9)
+	disk_kernel=$(file /boot/vmlinuz-linux-lts \
+			  | awk '{for(i=1; i<=NF; i++) if($i=="version") print $(i+1)}')
+	#disk_kernel=$(file /boot/vmlinuz-linux-lts | cut -d " " -f 9)
 
     else
 
 	## no lts
-	disk_kernel=$(file /boot/vmlinuz-linux | cut -d " " -f 9)
+	disk_kernel=$(file /boot/vmlinuz-linux \
+			  | awk '{for(i=1; i<=NF; i++) if($i=="version") print $(i+1)}')
+	#disk_kernel=$(file /boot/vmlinuz-linux | cut -d " " -f 9)
 
     fi
 
