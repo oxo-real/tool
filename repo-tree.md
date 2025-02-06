@@ -64,6 +64,7 @@
 ├── histdel
 ├── home-clear
 ├── kill-float
+├── kill-ps
 ├── make-offl-repo
 ├── make-recov
 ├── metar
@@ -74,7 +75,6 @@
 ├── otp95
 ├── passexp
 ├── passr
-├── proc-kill
 ├── pwgn
 ├── qrinv
 ├── rename-exif

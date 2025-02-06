@@ -1,0 +1,121 @@
+#! /usr/bin/env sh
+
+## C-u clears the entry in fzf
+
+# usage
+# kill-ps [root]
+
+#source_dir="$HOME/.local/share/c/git/code/sources/functions"
+source_dir="$XDG_DATA_HOME/c/git/code/source/function"
+#gives error when running sudo --root?!
+source $source_dir/reply_functions
+source $source_dir/text_appearance
+source $source_dir/get_sudo
+
+level=$1
+
+## number of lines to show on break
+ps_lines=15
+
+# are we running elevated?
+sudo -n printf "" > /dev/null 2>&1
+
+[[ $? == 0 ]] && elevated="yes"
+
+if [[ $level == "--root" ]] && [[ -z "$elevated" ]]; then
+
+    clear
+    # hide cursor
+    tput civis
+    printf "${fg_amber}killing root processes requires elevated privileges!${st_def}\n"
+    sleep 2
+    clear
+    # show cursor
+    tput cnorm
+
+fi
+
+
+cursor_up_one_line() {
+
+    tput cuu1
+
+}
+
+
+fzf_input() {
+
+    # ps_data=$(ps -eo user,%cpu,%mem,pid,state,start,args=COMMAND \
+	# --sort=command,-%cpu,-%mem)
+    ps_data=$(ps -eo user,%mem,%cpu,pid,state,start,args=COMMAND \
+		  | awk 'NR == 1; NR > 1 {print $0 \
+		  | "sort --key 1,1 --key 2,2nr --key 3,3nr --key 6,6nr --key 7"}')
+
+    fzf_input=$(echo "$ps_data" | grep -v ^root)
+
+    [[ $level == "--root" ]] \
+	&& fzf_input=$(echo "$ps_data")
+
+}
+
+
+kill_proc() {
+
+    local pid
+
+    ## fzf select pids (processes) to kill
+    pid2kill=$(echo -n "$fzf_input" | fzf -m --cycle --header-lines=1 | awk '{print $4}')
+
+    echo
+
+    if [[ -n $pid2kill ]]; then
+
+	## print header
+	echo -n "$fzf_input" | head -n 1
+
+	## loop trough lines in $pid2kill
+	while IFS= read -r line_in_pid2kill; do
+
+	    ## show selected processes
+	    ## ps h to not show headers
+	    ## highlight command with grep
+	    ## color=always to show color in subshell
+	    command=$(ps h -p $line_in_pid2kill -o comm)
+	    echo "$fzf_input" | grep $line_in_pid2kill | grep --color=always $command
+
+	done <<< "$pid2kill"
+
+	echo
+	printf "${fg_yellow}kill process(es)? (y/N):${st_def} "
+
+	reply_single
+
+	if printf "$reply" | grep -iq "^y"; then
+
+	    printf "\nkilling in progress... "
+	    echo $pid2kill | xargs kill -${1:-9}
+	    echo
+	    printf "${fg_green}complete${st_def}\n"
+
+	else
+
+	    printf "\naborted by user\n"
+	    printf "${fg_amber}no processes were killed${st_def}\n"
+	    exit
+
+	fi
+
+    else
+
+	## reset mode automatic margins
+	tput rmam
+	printf '%s\n' "$fzf_input" | head -n $ps_lines
+	## set mode automatic margins
+	tput smam
+
+    fi
+}
+
+
+fzf_input
+kill_proc
