@@ -41,12 +41,6 @@ aur_pkgs=( $(fd . --max-depth 1 --type directory $aur_src) )
 #aur_pkgs=( $(yay -Qqm) )
 
 
-get_pkg_latest_version ()
-{
-
-}
-
-
 rsync_all_packages ()
 {
     rsync -aAXv \
