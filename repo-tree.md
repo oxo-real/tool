@@ -13,6 +13,7 @@
 ├── dedup-files
 ├── dedup-lines
 ├── dev
+│   ├── copy-packages.sh
 │   ├── copy_packages.sh
 │   ├── cryptr2
 │   ├── cryptr_add
@@ -123,5 +124,5 @@
     ├── trashOLD
     └── wfa.py
 
-6 directories, 117 files
+6 directories, 118 files
 ```

@@ -424,6 +424,16 @@ get_latest_package ()
 }
 
 
+get_latest_dep ()
+{
+    # pkg_name_ver=$(pacman -Qo $pkg_hajime | cut -d ' ' -f 5-6 | tr ' ' '-')
+    pkg_dep_latest=$(cat "$pkgs_cache_ls" \
+			 | grep --extended-regexp ".*${pkg_dep}-[0-9].*\.pkg\.tar\.(xz|zst)$" \
+			 | sort --version-sort \
+			 | tail -n 1)
+}
+
+
 define_pkgs_2_repo ()
 {
     # define the packages that have to be copied to the repo
@@ -451,14 +461,14 @@ define_pkgs_2_repo ()
 
 loop_pkgs_cache_ls ()
 {
-    pkgs_to_copy=()
+    pkgs_to_copy="$XDG_CACHE_HOME/temp/pkgs-to-copy-$(id -u $USER)"
 
     ## remove existing pkgs_hajime_err file
     [[ -f $pkgs_hajime_err ]] && rm -rf $pkgs_hajime_err
+    [[ -f $pkgs_to_copy ]] && rm -rf $pkgs_to_copy
 
     ## get latest package cache file for every pkg_hajime in pkgs_cache_ls
     while read -r pkg_hajime; do
-
 
 	get_latest_package
 
@@ -471,49 +481,72 @@ loop_pkgs_cache_ls ()
 
 	elif [[ -n "$pkg_ver_latest" ]]; then
 
-	    pkgs_to_copy+=("$pkg_ver_latest")
-	    printf 'added %s %s\n' "$pkg_hajime" "$pkg_ver_latest"
+	    printf '%s\n' "$pkg_ver_latest" >> $pkgs_to_copy
+	    printf 'added main %s %s\n' "$pkg_hajime" "$pkg_ver_latest"
+
+	    pkg_get_deps $pkg_hajime
+	    get_dep_file
 
 	fi
 
-	#tput el
-
     done < "$pkgs_hajime"
+
+    optimize_pkgs_to_copy
 }
+
+
+optimize_pkgs_to_copy ()
+{
+    pkgs_to_repo="$XDG_CACHE_HOME/temp/pkgs-to-repo-$(id -u $USER)"
+
+    pkgs_2_repo=$(sort $pkgs_to_copy | uniq)
+    printf '%s' "$pkgs_2_repo" > $pkgs_to_repo
+}
+
 
 pkg_get_deps ()
 {
-    #pkg_main=$1
-    pkg_main_deps=$(pactree --linear --depth 1 $pkg_main)
+    pkg_main=$1
+    pkg_main_deps=$(pactree --linear --depth 1 $pkg_main | tail -n +2)
 }
+
 
 get_dep_file ()
 {
-    for dep in $pkg_main_deps; do
 
-	:
+    for pkg_dep in $pkg_main_deps; do
+
+	get_latest_dep
+
+	printf '%s\n' "$pkg_dep_latest" >> $pkgs_to_copy
+	printf 'added dep  %s %s\n' "$pkg_dep" "$pkg_dep_latest"
 
     done
 }
-}
+
+
 copy_2_repo ()
 {
     if [[ -d "$dst" ]]; then
 
-	for file in "${pkgs_to_copy[@]}"; do
+	for file in $(cat $pkgs_to_repo); do
 
 	    if [[ -f $file ]]; then
 
-	    printf 'copying %s\n'
+	    printf 'copying to %s %s\n' "$dst" "$file"
 	    cp "$file" "$dst"
-
-	    #tput el
 
 	    fi
 
 	done
 
     fi
+}
+
+
+repo_add ()
+{
+    :
 }
 
 
@@ -525,6 +558,7 @@ main ()
     create_hajime_pkgs
     define_pkgs_2_repo
     copy_2_repo
+    repo_add
 }
 
 main "$@"
