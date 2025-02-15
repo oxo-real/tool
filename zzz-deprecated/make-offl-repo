@@ -1,0 +1,171 @@
+#! /usr/bin/env sh
+#
+##
+###
+### make_offl_repo
+###
+### copies pacman package cache to destination
+###
+### copyright (c) 2021 - 2024  |  oxo
+###
+### usage:
+### make_offl_repo <destination> [rsync options]
+###
+##
+#
+
+
+## destination root
+## i.e. from make_recov
+## default: REPO (dock/2)
+dst=$1
+aur_dst="$dst/aur"
+
+## create destination location if not exist
+[[ -d $aur_dst ]] || mkdir -p $aur_dst
+
+## rsync options
+shift
+options=$@
+
+timestamp=$(date +%s)
+db_name='offline'
+
+## pacman file source
+pmn_src='/var/cache/pacman/pkg'
+
+## aur file source
+aur_src="$HOME/.cache/yay"
+aur_pkgs=( $(fd . --max-depth 1 --type directory $aur_src) )
+#aur_pkgs=( $(ls $aur_src) )
+#aur_pkgs=( $(yay -Qqm) )
+
+
+rsync_all_packages ()
+{
+    rsync -aAXv \
+	$options \
+	$pmn_src/ $dst
+	#--filter='protect aur' \
+	#--delete \
+	#
+	# DEV instead of rsync use pacman
+	#
+	# source is current package repo (v/c/p/p)
+	# cp /etc/pacman.conf $TESTDIR/pacman.conf.bu
+	#
+	# set vcpp as local mirror in /etc/pacman.conf
+	# [offline]
+	# Server = file:///var/cache/pacman/pkg
+	#
+	# pacman -Sw --cachedir $dst --dbpath $dst
+}
+
+
+build_custom_pkg_db ()
+{
+    # build custom pacman package database
+    ## .zst and older .xz packages
+    ## not .sig files
+    pmn_src_sort=$(ls $dst | grep --invert-match '.sig$' | sort --numeric-sort)
+    #pmn_src_sort=$(ls $pmn_src | grep --invert-match '.sig$' | sort --numeric-sort)
+    echo
+
+    while IFS= read -r p_curr; do
+
+	printf '==> adding %s\n' "$p_curr"
+
+	repo-add --new --remove --include-sigs $dst/$db_name.db.tar.zst $dst/$p_curr
+
+    done <<< "$pmn_src_sort"
+}
+
+
+copy_aur_packages ()
+{
+    ## sync aur_src to aur_dst
+    rsync -aAXv --delete --info=progress2,stats --progress \
+	  --exclude='.git' "$aur_src/$package" "$aur_dst"
+
+    ## remove all previously made symlinks in $dst
+    ## inv match to exclude link files offline.db and offline.files
+    old_ln_dst=( $(fd . --max-depth 1 --type symlink $dst | grep --invert-match "$db_name") )
+
+    echo
+    for link in "${old_ln_dst[@]}"; do
+
+	printf '==> unlinking %s\n' "$link"
+	unlink "$link"
+
+    done
+
+    echo
+    for package in "${aur_pkgs[@]}"; do
+
+	printf '==> copying %s\n' "$package"
+	## package i.e.: /home/oxo/.cache/yay/cava
+	#rsync -aAXv --delete --info=progress2,stats --progress \
+	#      --exclude='.git' "$aur_src/$package/" "$aur_dst"
+	#cp -r "$aur_src/$package" "$aur_dst"
+
+	## adding up-to-date links
+	ln_package_dst $package
+
+    done
+
+    ## with hajime/4apps.sh install_aur()
+    ## aur packages are installed with:
+    ## pacman -U $package_dir/$package.tar.zst
+}
+
+
+ln_package_dst ()
+{
+    # create links in $dst to aur packages that are in $
+    package_dir_raw=$1
+
+    ## sed removes trailing slash
+    package_dir=$(printf "$package_dir_raw" | sed 's/\/$//')
+    ## package example: /home/oxo/dock/2/aur/yay
+
+    ## find newest package file inside package dir
+    newest_pkg_name_ver=$(command ls -t $package_dir --time birth | sort --version-sort --reverse | grep -v PKGBUILD | grep -v debug | head -n 1)
+    newest_pkg_target_file="$package_dir/$newest_pkg_name_ver"
+
+    ## create symlink in dst (dock/2)
+    ## create symlink of the latest package in the aur directory
+    ## into $dst default: REPO (dock/2)
+    ## so that later installation is from a single directory
+    ln -s $newest_pkg_target_file $dst/$newest_pkg_name_ver
+}
+
+
+aur_packages_build ()
+{
+    # compile source code from aur packages
+    ## source for hajime/4apps.sh#aur_install
+
+    cd $aur_dst
+    yay -Gd $(yay -Qqm)
+    echo
+
+    for package in "${aur_pkgs[@]}"; do
+
+	printf '==> building %s\n' "$package"
+	cd "$aur_dst/$package"
+	makepkg --syncdeps --needed --clean
+	#makepkg -sc
+
+    done
+}
+
+
+main ()
+{
+    #rsync_all_packages
+    #aur_packages_build
+    #copy_aur_packages
+    build_custom_pkg_db
+}
+
+main
