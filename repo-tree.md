@@ -108,6 +108,7 @@
 └── zzz-deprecated
     ├── 20240922_174408_1727019848-histdel
     ├── backup_dot
+    ├── copy-packages.sh
     ├── cryptr_org
     ├── cryptr_v01
     ├── data_to
@@ -125,5 +126,5 @@
     ├── trashOLD
     └── wfa.py
 
-6 directories, 119 files
+6 directories, 120 files
 ```
