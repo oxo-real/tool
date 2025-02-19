@@ -51,7 +51,7 @@ https://www.gnu.org/licenses/gpl-3.0.txt
 
 
 #set -o errexit
-set -o nounset
+#set -o nounset
 set -o pipefail
 
 # initial definitions
@@ -75,10 +75,21 @@ pkgs_to_repo_res="$XDG_CACHE_HOME/temp/pkgs-to-repo-$(id -u $USER)-res"
 #--------------------------------
 
 
-get_args ()
+args="$@"
+getargs ()
 {
-    args="$@"
-    dst="$1"
+    while true; do
+
+	case $1 in
+
+	    *)
+		dst="$1"
+		return
+		;;
+
+	esac
+
+    done
 }
 
 
@@ -767,16 +778,15 @@ resolve_repo_errs ()
 
 main ()
 {
-    get_args "$@"
+    getargs $args
     create_hajime_pkgs
     define_pkgs_cache_ls
     create_pkgs_to_copy
     optimize_pkgs_to_repo_err
     resolve_repo_errs
     optimize_pkgs_to_repo
-    beep
     copy_pkgs_to_repo
     build_database
 }
 
-main "$@"
+main
