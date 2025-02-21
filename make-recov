@@ -302,7 +302,7 @@ make_recovery ()
 {
     repo
     code
-    #keys
+    keys
 }
 
 

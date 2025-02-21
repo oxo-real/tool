@@ -776,6 +776,12 @@ resolve_repo_errs ()
 }
 
 
+beep()
+{
+    pw-play $XDG_DATA_HOME/a/media/audio/sound/airbus/da.ogg
+}
+
+
 main ()
 {
     getargs $args
@@ -787,6 +793,7 @@ main ()
     optimize_pkgs_to_repo
     copy_pkgs_to_repo
     build_database
+    beep
 }
 
 main
