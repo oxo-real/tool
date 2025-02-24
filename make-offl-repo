@@ -71,6 +71,7 @@ pkgs_to_copy="$XDG_CACHE_HOME/temp/pkgs-to-copy-$(id -u $USER)"
 pkgs_to_repo="$XDG_CACHE_HOME/temp/pkgs-to-repo-$(id -u $USER)"
 pkgs_to_repo_err="$XDG_CACHE_HOME/temp/pkgs-to-repo-$(id -u $USER)-err"
 pkgs_to_repo_res="$XDG_CACHE_HOME/temp/pkgs-to-repo-$(id -u $USER)-res"
+file_packages="$HOME/c/git/code/hajime/install-packages.sh"
 
 #--------------------------------
 
@@ -90,6 +91,13 @@ getargs ()
 	esac
 
     done
+}
+
+
+sourcing ()
+{
+    ## custom packages
+    [[ -f $file_packages ]] && source $file_packages
 }
 
 
@@ -496,6 +504,7 @@ create_hajime_pkgs ()
     apps_pkgs+=("${manual_packages[@]}")
 
     ## write pkgs_hajime (pkgs-hajime-1000)
+    [[ -f $pkgs_hajime ]] && rm -rf $pkgs_hajime
     printf '%s\n' "${apps_pkgs[@]}" | sort > "$pkgs_hajime"
 }
 
@@ -698,6 +707,34 @@ copy_pkgs_to_repo ()
 
 		    printf 'copy sig to %s %s\n' "$dst" "$package"
 		    rsync -aAXv --delete "$package".sig "$dst"
+
+		elif [[ ! -f "$package".sig ]]; then
+
+		    pkg_dir=$(dirname $package)
+
+		    if [[ $pkg_dir =~ "$XDG_CACHE_DIR/yay/" ]]; then
+
+			package_debug=$package-debug
+
+			if [[ -f $package_debug ]]; then
+
+			    ## copy debug package file
+			    printf 'copy2repo %s %s\n' "$dst" "$package_debug"
+			    rsync -aAXv --delete "$package_debug" "$dst"
+
+			else
+
+			printf 'WARNING no debug file for %s\n' "$package" \
+			    | tee -a $pkgs_to_repo_err
+
+			fi
+
+		    else
+
+			printf 'WARNING no sig file for %s\n' "$package" \
+			    | tee -a $pkgs_to_repo_err
+
+		    fi
 
 		fi
 
