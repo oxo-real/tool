@@ -67,8 +67,6 @@
 ├── home-clear
 ├── kill-float
 ├── kill-ps
-├── make-offl-repo
-├── make-recov
 ├── metar
 ├── mic-switch
 ├── mountr
@@ -126,5 +124,5 @@
     ├── trashOLD
     └── wfa.py
 
-6 directories, 120 files
+6 directories, 118 files
 ```
