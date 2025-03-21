@@ -1,0 +1,128 @@
+#! /usr/bin/env sh
+
+# [Read values from a simple toml file in bash · GitHub](https://gist.github.com/kwmiebach/e42dc4a43d5a2a0f2c3fdc41620747ab)
+# to kwmiebach thanks
+
+# example:
+# % toml-read.sh -s section -k $key -f $toml_file
+
+# but even toml-read.sh $key $toml_file $section will work
+
+# NOTICE no quotation where data has to be received in multiple parts
+#        instead of a single (quoted) string
+
+
+args="$@"
+getargs ()
+{
+    while :; do
+
+	case "$1" in
+
+	    '' )
+		break
+		;;
+
+	    --section | -s )
+		shift
+		section="$1"
+		shift
+		;;
+
+	    --key | -k )
+		shift
+		key="$1"
+		shift
+		;;
+
+	    --file | -f )
+		shift
+		file="$1"
+		shift
+		;;
+
+	    * )
+		blob="$@"
+		parse_noflag_args $blob  ## no quotattion!
+		break
+		;;
+
+	esac
+
+    done
+}
+
+
+parse_noflag_args ()
+{
+    for item in $blob; do  ## no quotattion!
+	## first find file in blob
+
+	if [[ -f "$item" ]]; then
+
+	    file="$item"
+	    break
+
+	else
+
+	    continue
+
+	fi
+
+    done
+
+    for item in $blob; do  ## no quotattion!
+	## then find section and key in blob
+
+	if grep -q "\[$item\]" "$file"; then
+
+	    section="$item"
+	    continue
+
+	elif [[ "$item" != "$file" ]]; then
+
+	    key="$item"
+
+	fi
+
+    done
+}
+
+
+read_section ()
+{
+    sed -n "/^\[$section\]/,/^\[/p" "$file" | sed '$d'
+}
+
+
+read_key ()
+{
+    read_section "$file" "$section" | grep "^$key " | cut -d "=" -f2- | tr -d ' "'
+}
+
+
+print_data ()
+{
+    if [[ -n "$key" ]]; then
+
+	read_key
+
+    elif [[ -n "$section" ]]; then
+
+	read_section
+
+    else
+
+	cat "$file"
+
+    fi
+}
+
+
+main ()
+{
+    getargs $args  ## no quotattion!
+    print_data
+}
+
+main

@@ -94,6 +94,7 @@
 ├── slicer
 ├── syncr
 ├── timer
+├── toml-read
 ├── trash
 ├── tzoner
 ├── upgrader
@@ -124,5 +125,5 @@
     ├── trashOLD
     └── wfa.py
 
-6 directories, 118 files
+6 directories, 119 files
 ```
