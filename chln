@@ -1,50 +1,68 @@
 #! /usr/bin/env sh
 
-## usage:	chln [non-default target directory]
+## usage:	chln $target_directory
 
 : '
-change symlinks $HOME to current $USER
-old: /home/user01/dir/symlink
-new: /home/user02/dir/symlink
+change symlinks target to current $USER home
+i.e.
+old: readlink old symlink is /home/old-user/dir/symlink
+new: readlink new symlink is /home/new-user/dir/symlink
 
-default applies on $HOME/.config/shln
-when it is moved to another $USER
+script applies to targets inside $HOME
 # '
 
-## non-default target
-target="$1"
+## read target_directory
+target_dir="$1"
 
 
 # designate target
 
-if [[ -z "$target" ]]; then
+if [[ ! -d "$target_dir" ]]; then
 
     ## default target
-    target="$XDG_CONFIG_HOME/shln"
-
-else
-
-    ## non-default target
-    :
+    printf 'target directory not found\n'
+    exit 23
 
 fi
 
 
-# execute chln
+## create associative array with failed symlinks (target link_name)
+typeset -A failed_symlinks
 
-for symlink in $(find $target -type l); do
+for xlink in $(find "$target_dir" -xtype l -print); do
+    ## xlink is a failed symlink inside target_dir
 
-    ## only for links to other users $HOME
-    if [[ "$(readlink $symlink)" == /home/* ]]; then
+    target=$(readlink -f "$xlink")
+    link_name=$(realpath --strip "$xlink")
 
-	## -f canonicalize every symlink
-	new_target=$( \
-		      readlink $symlink | \
-			  cut -d / -f 4- | \
-			  awk -v new_home="$HOME/" '{print new_home $0}' \
+    if [[ -f "$target" && -f "$link_name" ]]; then
+
+	## add xlink its target and link_name to array
+	failed_symlinks["$target"]="$link_name"
+
+    fi
+
+done
+
+
+for target in "${failed_symlinks[@]}"; do
+#for target in "${(@k)failed_symlinks}"; do
+
+    link_name="${failed_symlinks[$target]}"
+
+    if [[ "$target" == /home/* && \
+	      "${failed_symlinks[$target]}" == /home/* ]]; then
+	## both key and value are directories under /home/
+
+	new_target=$(cut -d / -f 4- | <<< "$target" \
+			 | awk -v new_home="$HOME/" '{print new_home $0}' \
 		  )
 
-	ln -sf $new_target $symlink
+	new_link_name=$(cut -d / -f 4- | <<< "${failed_symlinks[$target]}" \
+			 | awk -v new_home="$HOME/" '{print new_home $0}' \
+		  )
+
+ 	ln --symbolic --force "$new_target" "$new_link_name"
 
     fi
 
