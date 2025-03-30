@@ -29,29 +29,25 @@ for xlink in $(find "$target_dir" -xtype l -print); do
     ## xlink is a broken symlink inside target_dir
 
     target=$(readlink "$xlink")
-    #target=$(readlink -f "$xlink")
     link_name=$(realpath --strip "$xlink")
+    old_user="$(cut -d / -f 3 <<< $target)"
 
     if [[ "$target" == /home/* && \
 	      "$link_name" == /home/* ]]; then
 	## both target and link_name start with /home/
 
 	## /home/old_user is replaced by /home/$USER in target filepath
-	new_target=$(cut -d / -f 4- | <<< "$target" \
-			 | awk -v new_home="$HOME/" '{print new_home $0}' \
-		  )
+	new_target=${target/\/home\/${old_user}/$HOME}
 
 	## /home/old_user is replaced by /home/$USER in link_name filepath
-	new_link_name=$(cut -d / -f 4- | <<< "$link_name" \
-			    | awk -v new_home="$HOME/" '{print new_home $0}' \
-		     )
+	new_link_name=${link_name/\/home\/${old_user}/$HOME}
 
 	if [[ -f "$new_target" ]]; then
 	    ## new_target exist
 
 	    ## overwrite symbolic link link_name
  	    ln --symbolic --force "$new_target" "$new_link_name"
-	    printf "DEV$LINENO %s %s\n" "$new_target" "$new_link_name"
+	    printf "%s -> %s\n" "$new_target" "$new_link_name"
 
 	fi
 
