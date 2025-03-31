@@ -1,0 +1,220 @@
+#! /usr/bin/env sh
+
+
+# usage: build-repo -p src/pkg.list -r dst/repo [-n offline] [-d dst/repo/db]
+# -p can be $(pacman -Qq)
+
+
+args="$@"
+getargs ()
+{
+    while :; do
+
+	case "$1" in
+
+	    --package-source|--pkg-src|--pkgs|-p )
+		shift
+
+		pkg_src="$1"
+		shift
+		;;
+
+	    --repo-destination|--repo-dest|--repo-dst|--repo|-r )
+		## offline repository location
+		shift
+
+		repo_dst="$1"
+		shift
+		;;
+
+	    --database-name|--db-name|--name|-n )
+		## offline repository database name
+		shift
+
+		db_name="$1"
+		shift
+		;;
+
+	    --database-destination|--db-dest|--db-dst|--db|-d )
+		## offline repository database destination location
+		shift
+
+		db_dst="$1"
+		shift
+		;;
+
+	    - )
+		shift
+
+		pkg_src="$1"
+		break
+		;;
+
+            * )
+		break
+		;;
+
+	esac
+
+    done
+}
+
+
+process_args ()
+{
+    [[ -f "$pkg_src" ]] || printf 'error: not found %s\n' "$pkg_src" && exit 65
+    [[ -d "$repo_dst" ]] || mkdir -p "$repo_dst"
+    [[ -z "$db_name" ]] && db_name=offline
+    [[ -z "$db_dst" ]] && db_dst="$repo_dst"/db
+
+}
+
+
+definitions ()
+{
+    ## arch linux official repositories (native packages)
+    repo_ofcl="$repo_dst"/ofcl
+    repo_ofcl_db="$repo_ofcl"/db
+
+    ## arch user repository (foreign packages)
+    src_yay="$XDG_CACHE_HOME/yay"
+    repo_yay="$repo_dst"/aur
+
+
+    ## all native packages installed on current system
+    # pkgs_qqn="$(pacman -Qqn)"
+    # or native packages (filter! Qm and Qn mixed!) from hajime package_list as source
+    #TODO
+
+    ## define temporary files
+    pkgs_dump_list="$XDG_CACHE_HOME/temp/pkgs_dump"
+    ## sorted and unificied dump_list
+    pkgs_2_copy="$XDG_CACHE_HOME/temp/pkgs_2_copy"
+}
+
+
+delete_old_stuff ()
+{
+    ## remove existing temporary files
+    rm -rf "$pkgs_dump_list" "$pkgs_2_copy"
+}
+
+
+build_dump_list ()
+{
+    ## create package dump list with names of
+    ## all main native packages and their dependencies
+    pacman -Qqn | while read -r pkg_name; do
+
+	## first line of pactree is queried (main) package
+	## other lines are main package dependencies
+	pactree --linear --unique "$pkg_name" >> "$pkgs_dump_list"
+
+    done
+
+    ## add to package dump list the names of
+    ## all aur packages and their dependencies
+    pacman -Qqm | while read -r pkg_name; do
+
+	pactree --linear --unique "$pkg_name" >> "$pkgs_dump_list"
+
+	## add dependencies to dump list
+	rg --no-line-number ^depends "$src_yay"/"$pkg_name"/PKGBUILD \
+	    | awk -F '[()]' '{print $2}' \
+	    | sed "s/'//g" \
+	    | sed 's/"//g' \
+	    | tr ' ' '\n' \
+		 >> "$pkgs_dump_list"
+
+	## add make dependencies to dump list
+	rg --no-line-number ^makedepends "$src_yay"/"$pkg_name"/PKGBUILD \
+	    | awk -F '[()]' '{print $2}' \
+	    | sed "s/'//g" \
+	    | sed 's/"//g' \
+	    | tr ' ' '\n' \
+		 >> "$pkgs_dump_list"
+
+	copy_yay_source
+
+    done
+}
+
+
+copy_yay_source ()
+{
+    ## copy source files including PKGBUILD
+    ## sudo because .git has often root owner
+    sudo cp -r "$src_yay"/"$pkg_name" "$repo_yay"
+}
+
+
+optimize_dump_list ()
+{
+    ## 3 sed operations separated by ;
+    ## remove greater than and equal to (>=) version from dump list
+    ## convert to all lower case
+    ## remove .so suffixes
+    sed -i 's/[>=].*//; s/.*/\L&/; s/\.so//' "$pkgs_dump_list"
+
+    ## create pkgs_2_copy; dump_list with duplicate lines removed
+    sort < "$pkgs_dump_list" | uniq > "$pkgs_2_copy"
+}
+
+
+copy_pkg_files ()
+{
+    for pkg_name in $(cat "$pkgs_2_copy"); do
+
+	if pacman -Qn "$pkg_name"; then
+
+	    ## native package latest zst (and sig) file to repo
+	    latest_pkg=$(fd --extension zst --base-directory /var/cache/pacman/pkg/ "$pkg_name" \
+			     | sort --version-sort \
+			     | tail -n 1 \
+		      )
+
+	    if [[ -n "$latest_pkg" ]]; then
+
+		latest_pkg_realpath="$(realpath $latest_pkg)"
+
+		if [[ -f "$latest_pkg_realpath" ]]; then
+
+		    ## copy latest zst
+		    cp "$latest_pkg_realpath" "$repo_dir"
+
+		    if [[ -f "$latest_pkg_realpath".sig ]]; then
+
+			## copy signature file
+			cp "$latest_pkg_realpath".sig "$repo_dir"
+
+		    fi
+
+		fi
+
+	    fi
+
+	fi
+
+    done
+}
+
+
+create_database ()
+{
+    repo-add --new --include-sigs "$repo_ofcl_db"/"$db_name".db.tar.zst "$repo_ofcl"/*[^.sig]
+}
+
+
+main ()
+{
+    getargs $args
+    process_args
+    definitions
+    delete_old_stuff
+    build_dump_list
+    copy_yay_source
+    optimize_dump_list
+    copy_pkg_files
+}
+
+main

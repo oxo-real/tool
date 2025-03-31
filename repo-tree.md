@@ -3,7 +3,7 @@
 ├── askpass
 ├── atis
 ├── base-conversion
-├── build_repo
+├── build-repo
 ├── c2b
 ├── calc-sum
 ├── check-sum
