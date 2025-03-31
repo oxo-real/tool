@@ -3,7 +3,11 @@
 
 # usage: build-repo -p src/pkg.list -r ofcl_dst [[--no-aur]|[--no-ofcl]] [-n alt_db_name] [-d alt_db_dst]
 
-# NOTICE generate full system native package list with: pacman -Qq > package.list
+# NOTICES
+# generate full system native package list with: pacman -Qq > pacmanqq
+# mount REPO (repo_dst) with write permissions
+
+# example: build-repo --package-list pacmanqq --repo-destination dock/2 --no-aur
 
 
 args="$@"
@@ -126,15 +130,15 @@ definitions ()
 
     ## sync database directory
     sync_db_src=/var/lib/pacman/sync
-    sync_db_dst="$repo_dst"/sync
 
     ## arch user repository (foreign packages)
-    src_aur="$XDG_CACHE_HOME/yay"
+    src_aur="$HOME/.cache/yay"
 
     ## define temporary files
-    pkgs_dump_list="$XDG_CACHE_HOME/test/pkgs_dump"
+    [[ -d "$HOME"/.cache/temp ]] || mkdir "$HOME"/.cache/temp
+    pkgs_dump_list="$HOME"/.cache/temp/"$(date +'%s')"-pkgs-dump.list
     ## sorted and unificied dump_list
-    pkgs_2_copy="$XDG_CACHE_HOME/test/pkgs_2_copy"
+    pkgs_2_copy="$HOME"/.cache/temp/"$(date +'%s')"-pkgs-w-deps.list
 }
 
 
@@ -202,7 +206,7 @@ build_dump_list ()
 }
 
 
-optimize_dump_list ()
+optimize_pkgs_dump_list ()
 {
     ## 3 sed operations separated by ;
     ## remove greater than and equal to (>=) version from dump list
@@ -225,14 +229,14 @@ copy_pkg_files ()
 
 	    ## native package latest zst (and sig) file to repo
 	    #latest_pkg=$(fd --extension zst --base-directory "$pkg_src" "$pkg_name" \
-	    latest_pkg=$(find "$pkg_src" "${pkg_name}*.zst" \
+	    latest_pkg=$(find "$pkg_src" -type f -name "${pkg_name}*.zst" \
 			     | sort --version-sort \
 			     | tail -n 1 \
 		      )
 
 	    if [[ -n "$latest_pkg" ]]; then
 
-		latest_pkg_realpath="$(realpath $pkg_src/$latest_pkg)"
+		latest_pkg_realpath="$(realpath $latest_pkg)"
 
 		if [[ -f "$latest_pkg_realpath" ]]; then
 
@@ -273,17 +277,16 @@ copy_yay_source ()
 }
 
 
-create_database ()
+create_repo_database ()
 {
     repo-add --new --include-sigs "$repo_ofcl_db"/"$repo_ofcl_db_name".db.tar.zst "$repo_ofcl_pkgs"/*[^.sig]
 }
 
 
-copy_sync_db ()
+copy_sync_database ()
 {
-    [[ -d "$sync_db_dst" ]] || mkdir -p "$sync_db_dst"
-    cp "$sync_db_src" "$sync_db_dst"
-    echo '/var/lib/pacman/sync' > "$sync_db_dst"/org_loc
+    cp -r "$sync_db_src" "$repo_dst"
+    printf '%s\n' "$sync_db_src" > "$repo_dst"/sync/sync-db.loc
 }
 
 
@@ -294,10 +297,10 @@ main ()
     definitions
     delete_old_stuff
     build_dump_list
-    optimize_dump_list
+    optimize_pkgs_dump_list
     copy_pkg_files
-    create_database
-    copy_sync_db
+    create_repo_database
+    copy_sync_database
 }
 
 main
