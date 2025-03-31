@@ -1,8 +1,7 @@
 #! /usr/bin/env sh
 
 
-# usage: build-repo -p src/pkg.list -r dst/repo [-n offline] [-d dst/repo/db]
-# -p can be $(pacman -Qq)
+# usage: build-repo -p src/pkg.list -r ofcl_dst [-n alt_db_name] [-d alt_db_dst]
 
 
 args="$@"
@@ -12,26 +11,19 @@ getargs ()
 
 	case "$1" in
 
-	    --package-source|--pkg-src|--pkgs|-p )
+	    --package-list|--pkg-lst|--pl|-p )
+		## package source file location
 		shift
 
-		pkg_src="$1"
+		arg_pkg_lst="$1"
 		shift
 		;;
 
 	    --repo-destination|--repo-dest|--repo-dst|--repo|-r )
-		## offline repository location
+		## offline repository destination location
 		shift
 
-		repo_dst="$1"
-		shift
-		;;
-
-	    --database-name|--db-name|--name|-n )
-		## offline repository database name
-		shift
-
-		db_name="$1"
+		arg_repo_dst="$1"
 		shift
 		;;
 
@@ -39,14 +31,30 @@ getargs ()
 		## offline repository database destination location
 		shift
 
-		db_dst="$1"
+		arg_repo_ofcl_db="$1"
+		shift
+		;;
+
+	    --database-name|--db-name|--name|-n )
+		## offline repository database name
+		shift
+
+		arg_repo_ofcl_db_name="$1"
+		shift
+		;;
+
+	    --aur-destination|--aur-dest|--aur-dst|--aur|-a )
+		## offline repository destination location
+		shift
+
+		arg_repo_aur="$1"
 		shift
 		;;
 
 	    - )
 		shift
 
-		pkg_src="$1"
+		arg_pkg_lst="$1"
 		break
 		;;
 
@@ -62,34 +70,51 @@ getargs ()
 
 process_args ()
 {
-    [[ -f "$pkg_src" ]] || printf 'error: not found %s\n' "$pkg_src" && exit 65
-    [[ -d "$repo_dst" ]] || mkdir -p "$repo_dst"
-    [[ -z "$db_name" ]] && db_name=offline
-    [[ -z "$db_dst" ]] && db_dst="$repo_dst"/db
+    ## create working realpath parameters
+    # [[ -n $arg_pkg_lst ]] && pkg_lst="$(realpath $arg_pkg_lst)"
+    # [[ -n $arg_repo_dst ]] && repo_dst="$(realpath $arg_repo_dst)"
+    # [[ -n $arg_db_name ]] && db_name="$(realpath $arg_db_name)"
+    # [[ -n $arg_db_dst ]] && db_dst="$(realpath $arg_db_dst)"
 
+    ## compulsory user arguments
+    pkg_lst="$arg_pkg_lst"
+    repo_dst="$arg_repo_dst"
+
+    [[ -f "$pkg_lst" ]] || ( printf 'error: package list %s not found\n' "$pkg_lst" && exit 76 )
+    [[ -n "$repo_dst" ]] || ( printf 'error: no destination\n' && exit 77 )
+    [[ -d "$repo_dst" ]] || mkdir -p "$repo_dst"
+
+    ## set default values
+    repo_ofcl="$repo_dst"/ofcl
+    repo_ofcl_pkgs="$repo_ofcl"/pkgs
+    repo_ofcl_db="$repo_ofcl"/db
+    repo_ofcl_db_name=offline
+    repo_aur="$repo_dst"/aur
+
+    ## specific user arguments
+    [[ -n "$arg_repo_ofcl_db" ]] && repo_ofcl_db="$arg_repo_ofcl_db"
+    [[ -n "$arg_repo_ofcl_db_name" ]] && repo_ofcl_db_name="$arg_repo_ofcl_db_name"
+    [[ -n "$arg_repo_aur" ]] && repo_aur="$arg_repo_aur"
+    [[ -n "$arg_repo_aur" ]] && [[ -d "$repo_aur" ]] || mkdir -p "$repo_aur"
 }
 
 
 definitions ()
 {
     ## arch linux official repositories (native packages)
-    repo_ofcl="$repo_dst"/ofcl
-    repo_ofcl_db="$repo_ofcl"/db
+    ### paths
+    pkg_src=/var/cache/pacman/pkg/
+    ### directories
+    [[ -d "$repo_ofcl_db" ]] || mkdir -p "$repo_ofcl_db"
+    [[ -d "$repo_ofcl_pkgs" ]] || mkdir -p "$repo_ofcl_pkgs"
 
     ## arch user repository (foreign packages)
-    src_yay="$XDG_CACHE_HOME/yay"
-    repo_yay="$repo_dst"/aur
-
-
-    ## all native packages installed on current system
-    # pkgs_qqn="$(pacman -Qqn)"
-    # or native packages (filter! Qm and Qn mixed!) from hajime package_list as source
-    #TODO
+    src_aur="$XDG_CACHE_HOME/yay"
 
     ## define temporary files
-    pkgs_dump_list="$XDG_CACHE_HOME/temp/pkgs_dump"
+    pkgs_dump_list="$XDG_CACHE_HOME/test/pkgs_dump"
     ## sorted and unificied dump_list
-    pkgs_2_copy="$XDG_CACHE_HOME/temp/pkgs_2_copy"
+    pkgs_2_copy="$XDG_CACHE_HOME/test/pkgs_2_copy"
 }
 
 
@@ -104,47 +129,40 @@ build_dump_list ()
 {
     ## create package dump list with names of
     ## all main native packages and their dependencies
-    pacman -Qqn | while read -r pkg_name; do
+    # pacman -Qqn | while read -r pkg_name; do
+    while read -r pkg_name; do
 
-	## first line of pactree is queried (main) package
-	## other lines are main package dependencies
-	pactree --linear --unique "$pkg_name" >> "$pkgs_dump_list"
+	if pacman -Qqn "$pkg_name"; then
 
-    done
+	    ## first line of pactree is queried (main) package
+	    ## other lines are main package dependencies
+	    pactree --linear --unique "$pkg_name" >> "$pkgs_dump_list"
 
-    ## add to package dump list the names of
-    ## all aur packages and their dependencies
-    pacman -Qqm | while read -r pkg_name; do
+	elif pacman -Qqm "$pkg_name"; then
 
-	pactree --linear --unique "$pkg_name" >> "$pkgs_dump_list"
+	    ## add to package dump list the names of
+	    ## all aur packages and their dependencies
+	    pactree --linear --unique "$pkg_name" >> "$pkgs_dump_list"
 
-	## add dependencies to dump list
-	rg --no-line-number ^depends "$src_yay"/"$pkg_name"/PKGBUILD \
-	    | awk -F '[()]' '{print $2}' \
-	    | sed "s/'//g" \
-	    | sed 's/"//g' \
-	    | tr ' ' '\n' \
-		 >> "$pkgs_dump_list"
+	    ## add dependencies to dump list
+	    rg --no-line-number ^depends "$src_aur"/"$pkg_name"/PKGBUILD \
+		| awk -F '[()]' '{print $2}' \
+		| sed "s/'//g" \
+		| sed 's/"//g' \
+		| tr ' ' '\n' \
+		     >> "$pkgs_dump_list"
 
-	## add make dependencies to dump list
-	rg --no-line-number ^makedepends "$src_yay"/"$pkg_name"/PKGBUILD \
-	    | awk -F '[()]' '{print $2}' \
-	    | sed "s/'//g" \
-	    | sed 's/"//g' \
-	    | tr ' ' '\n' \
-		 >> "$pkgs_dump_list"
+	    ## add make dependencies to dump list
+	    rg --no-line-number ^makedepends "$src_aur"/"$pkg_name"/PKGBUILD \
+		| awk -F '[()]' '{print $2}' \
+		| sed "s/'//g" \
+		| sed 's/"//g' \
+		| tr ' ' '\n' \
+		     >> "$pkgs_dump_list"
 
-	copy_yay_source
+	fi
 
-    done
-}
-
-
-copy_yay_source ()
-{
-    ## copy source files including PKGBUILD
-    ## sudo because .git has often root owner
-    sudo cp -r "$src_yay"/"$pkg_name" "$repo_yay"
+    done < "$pkg_lst"
 }
 
 
@@ -165,27 +183,27 @@ copy_pkg_files ()
 {
     for pkg_name in $(cat "$pkgs_2_copy"); do
 
-	if pacman -Qn "$pkg_name"; then
+	if pacman -Qqn "$pkg_name"; then
 
 	    ## native package latest zst (and sig) file to repo
-	    latest_pkg=$(fd --extension zst --base-directory /var/cache/pacman/pkg/ "$pkg_name" \
+	    latest_pkg=$(fd --extension zst --base-directory "$pkg_src" "$pkg_name" \
 			     | sort --version-sort \
 			     | tail -n 1 \
 		      )
 
 	    if [[ -n "$latest_pkg" ]]; then
 
-		latest_pkg_realpath="$(realpath $latest_pkg)"
+		latest_pkg_realpath="$(realpath $pkg_src/$latest_pkg)"
 
 		if [[ -f "$latest_pkg_realpath" ]]; then
 
 		    ## copy latest zst
-		    cp "$latest_pkg_realpath" "$repo_dir"
+		    cp "$latest_pkg_realpath" "$repo_ofcl_pkgs"
 
 		    if [[ -f "$latest_pkg_realpath".sig ]]; then
 
 			## copy signature file
-			cp "$latest_pkg_realpath".sig "$repo_dir"
+			cp "$latest_pkg_realpath".sig "$repo_ofcl_pkgs"
 
 		    fi
 
@@ -193,15 +211,30 @@ copy_pkg_files ()
 
 	    fi
 
+	elif pacman -Qqm "$pkg_name"; then
+
+	    ## aur package
+	    copy_yay_source "$pkg_name"
+
 	fi
 
     done
 }
 
 
+copy_yay_source ()
+{
+    pkg_name="$1"
+    ## copy source files including PKGBUILD
+    ## sudo because .git has often root owner
+    sudo cp -r "$src_aur"/"$pkg_name" "$repo_aur"
+    sudo chown -R $USER:$GROUP "$repo_aur"/"$pkg_name"
+}
+
+
 create_database ()
 {
-    repo-add --new --include-sigs "$repo_ofcl_db"/"$db_name".db.tar.zst "$repo_ofcl"/*[^.sig]
+    repo-add --new --include-sigs "$repo_ofcl_db"/"$repo_ofcl_db_name".db.tar.zst "$repo_ofcl_pkgs"/*[^.sig]
 }
 
 
@@ -212,9 +245,9 @@ main ()
     definitions
     delete_old_stuff
     build_dump_list
-    copy_yay_source
     optimize_dump_list
     copy_pkg_files
+    create_database
 }
 
 main
