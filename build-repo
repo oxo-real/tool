@@ -1,7 +1,9 @@
 #! /usr/bin/env sh
 
 
-# usage: build-repo -p src/pkg.list -r ofcl_dst [-n alt_db_name] [-d alt_db_dst]
+# usage: build-repo -p src/pkg.list -r ofcl_dst [[--no-aur]|[--no-ofcl]] [-n alt_db_name] [-d alt_db_dst]
+
+# NOTICE generate full system native package list with: pacman -Qq > package.list
 
 
 args="$@"
@@ -49,6 +51,20 @@ getargs ()
 
 		arg_repo_aur="$1"
 		shift
+		;;
+
+	    --no-ofcl|--aur-only )
+		## only search for aur packages no native
+		shift
+
+		no_ofcl_pkgs=1
+		;;
+
+	    --no-aur|--ofcl-only )
+		## only search for official packages no aur
+		shift
+
+		no_aur_pkgs=1
 		;;
 
 	    - )
@@ -103,10 +119,14 @@ definitions ()
 {
     ## arch linux official repositories (native packages)
     ### paths
-    pkg_src=/var/cache/pacman/pkg/
+    pkg_src=/var/cache/pacman/pkg
     ### directories
     [[ -d "$repo_ofcl_db" ]] || mkdir -p "$repo_ofcl_db"
     [[ -d "$repo_ofcl_pkgs" ]] || mkdir -p "$repo_ofcl_pkgs"
+
+    ## sync database directory
+    sync_db_src=/var/lib/pacman/sync
+    sync_db_dst="$repo_dst"/sync
 
     ## arch user repository (foreign packages)
     src_aur="$XDG_CACHE_HOME/yay"
@@ -132,33 +152,49 @@ build_dump_list ()
     # pacman -Qqn | while read -r pkg_name; do
     while read -r pkg_name; do
 
-	if pacman -Qqn "$pkg_name"; then
+	if [[ -z "$no_ofcl_pkgs" ]]; then
+	    ## do search official packages
 
-	    ## first line of pactree is queried (main) package
-	    ## other lines are main package dependencies
-	    pactree --linear --unique "$pkg_name" >> "$pkgs_dump_list"
+	    if pacman -Qqn "$pkg_name"; then
 
-	elif pacman -Qqm "$pkg_name"; then
+		#TODO DEV no_ofcl to skip official packages
 
-	    ## add to package dump list the names of
-	    ## all aur packages and their dependencies
-	    pactree --linear --unique "$pkg_name" >> "$pkgs_dump_list"
+		## first line of pactree is queried (main) package
+		## other lines are main package dependencies
+		pactree --linear --unique "$pkg_name" >> "$pkgs_dump_list"
 
-	    ## add dependencies to dump list
-	    rg --no-line-number ^depends "$src_aur"/"$pkg_name"/PKGBUILD \
-		| awk -F '[()]' '{print $2}' \
-		| sed "s/'//g" \
-		| sed 's/"//g' \
-		| tr ' ' '\n' \
-		     >> "$pkgs_dump_list"
+	    fi
 
-	    ## add make dependencies to dump list
-	    rg --no-line-number ^makedepends "$src_aur"/"$pkg_name"/PKGBUILD \
-		| awk -F '[()]' '{print $2}' \
-		| sed "s/'//g" \
-		| sed 's/"//g' \
-		| tr ' ' '\n' \
-		     >> "$pkgs_dump_list"
+	elif [[ -z "$no_aur_pkgs" ]]; then
+	    ## do search aur packages
+
+	    if pacman -Qqm "$pkg_name"; then
+
+		#TODO DEV no_aur to skip aur packages
+
+		## add to package dump list the names of
+		## all aur packages and their dependencies
+		pactree --linear --unique "$pkg_name" >> "$pkgs_dump_list"
+
+		## add dependencies to dump list
+		#rg --no-line-number ^depends "$src_aur"/"$pkg_name"/PKGBUILD \
+		    grep ^depends "$src_aur"/"$pkg_name"/PKGBUILD \
+			| awk -F '[()]' '{print $2}' \
+			| sed "s/'//g" \
+			| sed 's/"//g' \
+			| tr ' ' '\n' \
+			     >> "$pkgs_dump_list"
+
+		    ## add make dependencies to dump list
+		    #rg --no-line-number ^makedepends "$src_aur"/"$pkg_name"/PKGBUILD \
+			grep ^makedepends "$src_aur"/"$pkg_name"/PKGBUILD \
+			    | awk -F '[()]' '{print $2}' \
+			    | sed "s/'//g" \
+			    | sed 's/"//g' \
+			    | tr ' ' '\n' \
+				 >> "$pkgs_dump_list"
+
+	    fi
 
 	fi
 
@@ -185,8 +221,11 @@ copy_pkg_files ()
 
 	if pacman -Qqn "$pkg_name"; then
 
+	    #TODO DEV no_ofcl to skip official packages
+
 	    ## native package latest zst (and sig) file to repo
-	    latest_pkg=$(fd --extension zst --base-directory "$pkg_src" "$pkg_name" \
+	    #latest_pkg=$(fd --extension zst --base-directory "$pkg_src" "$pkg_name" \
+	    latest_pkg=$(find "$pkg_src" "${pkg_name}*.zst" \
 			     | sort --version-sort \
 			     | tail -n 1 \
 		      )
@@ -213,6 +252,8 @@ copy_pkg_files ()
 
 	elif pacman -Qqm "$pkg_name"; then
 
+	    #TODO DEV no_aur to skip aur packages
+
 	    ## aur package
 	    copy_yay_source "$pkg_name"
 
@@ -238,6 +279,14 @@ create_database ()
 }
 
 
+copy_sync_db ()
+{
+    [[ -d "$sync_db_dst" ]] || mkdir -p "$sync_db_dst"
+    cp "$sync_db_src" "$sync_db_dst"
+    echo '/var/lib/pacman/sync' > "$sync_db_dst"/org_loc
+}
+
+
 main ()
 {
     getargs $args
@@ -248,6 +297,7 @@ main ()
     optimize_dump_list
     copy_pkg_files
     create_database
+    copy_sync_db
 }
 
 main
