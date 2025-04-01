@@ -9,6 +9,7 @@
 
 # example: build-repo --package-list pacmanqq --repo-destination dock/2 --no-aur
 
+#TODO maintain-repo with pacman -Syu --needed --noconfirm --cachedir repopkgs --dbpath repodb
 
 args="$@"
 getargs ()
@@ -221,49 +222,88 @@ optimize_pkgs_dump_list ()
 
 copy_pkg_files ()
 {
-    for pkg_name in $(cat "$pkgs_2_copy"); do
+    while read -r pkg_name; do
 
-	if pacman -Qqn "$pkg_name"; then
+	if [[ -z "$no_ofcl_pkgs" ]]; then
+	    ## do search official packages
 
-	    #TODO DEV no_ofcl to skip official packages
+	    if pacman -Qqn "$pkg_name"; then
+		## native package
 
-	    ## native package latest zst (and sig) file to repo
-	    #latest_pkg=$(fd --extension zst --base-directory "$pkg_src" "$pkg_name" \
-	    latest_pkg=$(find "$pkg_src" -type f -name "${pkg_name}*.zst" \
-			     | sort --version-sort \
-			     | tail -n 1 \
-		      )
+		latest_pkg=$(pacman -S --print "$pkg_name")
+		## WARNING requires a correct and complete database, that
+		##         reflects the actual status of its local cache, i.e.
+		## correctness:
+		## no db entries of package(versions) that are not in cache
+		## completeness:
+		## no package(versions) in cache that are not in the database
 
-	    if [[ -n "$latest_pkg" ]]; then
+		if [[ $(wc -l <<< "$latest_pkg") -gt 1 ]]; then
+		    ## latest_pkg has more than one line
+		    ## database has probably double entries,
+		    ## filter for local files:
 
-		latest_pkg_realpath="$(realpath $latest_pkg)"
+		    latest_pkg=$(pacman -S --print "$pkg_name" | grep file://)
 
-		if [[ -f "$latest_pkg_realpath" ]]; then
+		    if [[ $(wc -l <<< "$latest_pkg") -gt 1 ]]; then
+			## latest_pkg has more than one line
 
-		    ## copy latest zst
-		    cp "$latest_pkg_realpath" "$repo_ofcl_pkgs"
+			pmn_Q=$(pacman -Q "$pkg")
+			pkg_name=${pmn_Q% *}
+			pkg_version=${pmn_Q##* }
 
-		    if [[ -f "$latest_pkg_realpath".sig ]]; then
-
-			## copy signature file
-			cp "$latest_pkg_realpath".sig "$repo_ofcl_pkgs"
+			## native package latest zst (and sig) file to repo
+			latest_pkg=$(find "$pkg_src" -type f -name '"${pkg_name}"-"${pkg_version}"*.zst' \
+					 | sort --version-sort \
+					 | tail -n 1 \
+				  )
 
 		    fi
 
 		fi
 
+		## remove file:// prefix if applicable
+		latest_pkg=$(sed 's#^file://##' <<< "$latest_pkg")
+
+		if [[ -n "$latest_pkg" ]]; then
+
+		    latest_pkg_realpath="$(realpath $latest_pkg)"
+
+		    if [[ -f "$latest_pkg_realpath" ]]; then
+
+			## copy latest zst
+			cp --archive "$latest_pkg_realpath" "$repo_ofcl_pkgs"
+
+			if [[ -f "$latest_pkg_realpath".sig ]]; then
+
+			    ## copy signature file
+			    cp --archive "$latest_pkg_realpath".sig "$repo_ofcl_pkgs"
+
+			fi
+
+		    fi
+
+		else
+
+		    printf 'ERROR no local zst file found for: %s\n' "$(pacman -Q $pkg_name)"
+
+		fi
+
 	    fi
 
-	elif pacman -Qqm "$pkg_name"; then
+	elif [[ -z "$no_aur_pkgs" ]]; then
+	    ## do search aur packages
 
-	    #TODO DEV no_aur to skip aur packages
+	    if pacman -Qqm "$pkg_name"; then
+		## aur package
 
-	    ## aur package
-	    copy_yay_source "$pkg_name"
+		copy_yay_source "$pkg_name"
+
+	    fi
 
 	fi
 
-    done
+    done < "$pkgs_2_copy"
 }
 
 
@@ -272,7 +312,7 @@ copy_yay_source ()
     pkg_name="$1"
     ## copy source files including PKGBUILD
     ## sudo because .git has often root owner
-    sudo cp -r "$src_aur"/"$pkg_name" "$repo_aur"
+    sudo cp --archive --recursive "$src_aur"/"$pkg_name" "$repo_aur"
     sudo chown -R $USER:$GROUP "$repo_aur"/"$pkg_name"
 }
 
@@ -285,7 +325,7 @@ create_repo_database ()
 
 copy_sync_database ()
 {
-    cp -r "$sync_db_src" "$repo_dst"
+    cp --archive --recursive "$sync_db_src" "$repo_dst"
     printf '%s\n' "$sync_db_src" > "$repo_dst"/sync/sync-db.loc
 }
 
