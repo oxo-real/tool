@@ -6,7 +6,7 @@
 # NOTICES
 # generate full system native package list with:
 # pacman -Qq > pacmanqq; or
-# find /var/cache/pacman/pkg -type f -name "*.xz" -o -name "*.zst" | cut -d '-' -f 1 | sed 's#.*/##'
+# find /var/cache/pacman/pkg -type f -name "*.xz" -o -name "*.zst" | sed 's#.*/##' | awk -F '-[0-9]+' '{print $1}' | sort | uniq
 # mount REPO (repo_dst) with write permissions
 
 # example: build-repo --package-list pacmanqq --repo-destination dock/2 --no-aur
@@ -151,7 +151,7 @@ check_mountpoint_rw ()
 {
     dst_mountpoint=$(df --portability "$repo_dst" | tail -n 1 | awk '{print $1}')
 
-    if mountpoint | grep "$dst_mountpoint" | grep ro; then
+    if mount | grep "$dst_mountpoint" | grep ro; then
 
 	printf 'mountpoint %s will be temporarily set writable\n' "$dst_mountpoint"
 	for (( i=5; i>=0; i-- )); do printf '%s\r' "$i"; sleep 1; done
@@ -339,7 +339,9 @@ copy_yay_source ()
 
 create_repo_database ()
 {
-    repo-add --new --include-sigs "$repo_ofcl_db"/"$repo_ofcl_db_name".db.tar.zst "$repo_ofcl_pkgs"/*[.zst]
+    # find "$repo_ofcl_pkgs" -type f -name "*.gz" -o -name "*.xz" -o -name "*.zst" -o -name "*.gz" \
+    "$repo_ofcl_pkgs"/*.{gz,xz,zst} \
+	| repo-add --new --include-sigs "$repo_ofcl_db"/"$repo_ofcl_db_name".db.tar.zst
     ## don't use exclusion patterns (like [^.sig]) because repo-add errors out on everything it can't read
     #repo-add --new --include-sigs "$repo_ofcl_db"/"$repo_ofcl_db_name".db.tar.zst "$repo_ofcl_pkgs"/*[^.sig]
 }
