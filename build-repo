@@ -12,6 +12,7 @@
 # example: build-repo --package-list pacmanqq --repo-destination dock/2 --no-aur
 
 #TODO maintain-repo with pacman -Syu --needed --noconfirm --cachedir repopkgs --dbpath repodb
+#TODO specific repo source (cachedb) and add only latest version
 
 args="$@"
 getargs ()

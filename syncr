@@ -99,9 +99,9 @@ source $source_dir/text_appearance
 ### under $dest .config is created
 dest=$1
 shift
-[[ ! -d $dest ]] && \
-    printf "${fg_magenta}destination not found${st_def}\n" && \
-    exit 3
+[[ ! -d $dest ]] \
+    && printf "${fg_magenta}destination not found${st_def}\n" \
+    && exit 3
 
 ## added rsync options
 options="$*"
@@ -271,8 +271,8 @@ password_store()
 
     printf "\n${fg_blue}%s${st_def}\n" "synching password_store"
 
-    if [[ -d $HOME/dock/vlt/pass ]] && \
-	   mountpoint -q $HOME/dock/vlt/pass; then
+    if [[ -d $HOME/dock/vlt/pass ]] \
+	   && mountpoint -q $HOME/dock/vlt/pass; then
 
 	local src="$HOME/dock/vlt"
 	local dst="$dest/"
@@ -407,7 +407,10 @@ report_log_file()
     log_file=$(get-newest-file $sync_dir)
     log_file_name=$(basename $log_file)
     ## TODO DEV get luksuuid more robustly (!dock/transfer)
-    luks_uuid=$(vault status $HOME/dock/transfer | grep 'luks_uuid' | awk '{print $2}')
+    luks_uuid=$(vault status $HOME/dock/transfer \
+		    | grep 'luks_uuid' \
+		    | awk '{print $2}'\
+	     )
     log_file_name_with_luks_uuid="${luks_uuid}_$log_file_name"
     mv $log_file $sync_dir/$log_file_name_with_luks_uuid
     printf '\nlogged to: %s\n' "$sync_dir/$log_file_name_with_luks_uuid"
