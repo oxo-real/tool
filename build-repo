@@ -192,9 +192,8 @@ build_dump_list ()
 
 	    abs_db_path=$(realpath $repo_ofcl_db)
 	    abs_cache_path=$(realpath $repo_ofcl_pkgs)
-	    if pacman -Qqn --dbpath "$abs_db_path" --cachedir "$abs_cache_path" "$pkg_name"; then
-
-		#TODO DEV no_ofcl to skip official packages
+	    # if pacman -Qqn --dbpath "$abs_db_path" --cachedir "$abs_cache_path" "$pkg_name"; then
+	    if pacman -Qqn "$pkg_name"; then
 
 		## first line of pactree is queried (main) package
 		## other lines are main package dependencies
@@ -208,9 +207,8 @@ build_dump_list ()
 	    ## pacman needs absolute paths
 	    abs_db_path=$(realpath $repo_ofcl_db)
 	    abs_cache_path=$(realpath $repo_ofcl_pkgs)
-	    if pacman -Qqm --dbpath "$abs_db_path" --cachedir "$abs_cache_path" "$pkg_name"; then
-
-		#TODO DEV no_aur to skip aur packages
+	    # if pacman -Qqm --dbpath "$abs_db_path" --cachedir "$abs_cache_path" "$pkg_name"; then
+	    if pacman -Qqm "$pkg_name"; then
 
 		## add to package dump list the names of
 		## all aur packages and their dependencies
@@ -264,7 +262,8 @@ copy_pkg_files ()
 
 	    abs_db_path=$(realpath $repo_ofcl_db)
 	    abs_cache_path=$(realpath $repo_ofcl_pkgs)
-	    if pacman -Qqn --dbpath "$abs_db_path" --cachedir "$abs_cache_path" "$pkg_name"; then
+	    # if pacman -Qqn --dbpath "$abs_db_path" --cachedir "$abs_cache_path" "$pkg_name"; then
+	    if pacman -Qqn "$pkg_name"; then
 		## native package
 
 		latest_pkg=$(pacman -S --print "$pkg_name")
@@ -359,7 +358,8 @@ copy_pkg_files ()
 
 	    abs_db_path=$(realpath $repo_ofcl_db)
 	    abs_cache_path=$(realpath $repo_ofcl_pkgs)
-	    if pacman -Qqm --dbpath "$abs_db_path" --cachedir "$abs_cache_path" "$pkg_name"; then
+	    # if pacman -Qqm --dbpath "$abs_db_path" --cachedir "$abs_cache_path" "$pkg_name"; then
+	    if pacman -Qqm "$pkg_name"; then
 		## aur package
 
 		copy_yay_source "$pkg_name"
@@ -424,8 +424,9 @@ create_repo_database ()
 	&& exit 88
 
     ## don't use exclusion patterns (like [^.sig]) because repo-add errors out on everything it can't read
-    "$repo_ofcl_pkgs"/*.pkg.tar.zst \
-	| repo-add --new --include-sigs "$repo_ofcl_db"/"$repo_ofcl_db_name".db.tar.zst
+    # "$repo_ofcl_pkgs"/*.pkg.tar.zst \
+	# | repo-add --new --include-sigs "$repo_ofcl_db"/"$repo_ofcl_db_name".db.tar.zst
+	repo-add --new --include-sigs "$repo_ofcl_db"/"$repo_ofcl_db_name".db.tar.zst $(find /var/cache/pacman/pkg"$repo_ofcl_pkgs"/*.pkg.tar.zst)
 }
 
 
