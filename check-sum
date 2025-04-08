@@ -42,7 +42,7 @@ https://www.gnu.org/licenses/gpl-3.0.txt
 # usage
   check-sum [--fail-only] [$file1] [$file2] [...]
 
-  WARNING does not work (reliabely) when filename contains spaces
+  WARNING does not work (reliably) when filename contains spaces
 
   NOTICE  ist_sum is a real-time calculated value
           soll_sum is a pre-calculated value
