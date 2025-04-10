@@ -124,8 +124,10 @@ set_clock ()
 get_ipex ()
 {
     ## retrieve external ip address
-    ipex=$(host myip.opendns.com resolver2.opendns.com \
-	       | tail -n 1 | rev | cut -d ' ' -f 1 | rev)
+    ipex=$(curl ifconfig.me 1>&2 2>/dev/null)
+    ## alternative2
+    # ipex=$(host myip.opendns.com resolver2.opendns.com \
+	       # | tail -n 1 | rev | cut -d ' ' -f 1 | rev)
     ## alternative
     #ipex=$(dig @resolver1.opendns.com myip.opendns.com +dnssec +short)
 }
@@ -671,20 +673,21 @@ ua_upgrade ()
 
 kernel_reboot_check ()
 {
+    ## active kernel
     active_kernel=$(uname -r)
 
-    ## kernel version
+    ## installed kernel version (can be upgraded)
     if [[ $active_kernel =~ lts$ ]]; then
 
 	## lts
-	disk_kernel=$(file /boot/vmlinuz-linux-lts \
+	disk_kernel=$(sudo file /boot/vmlinuz-linux-lts \
 			  | awk '{for(i=1; i<=NF; i++) if($i=="version") print $(i+1)}')
 	#disk_kernel=$(file /boot/vmlinuz-linux-lts | cut -d " " -f 9)
 
     else
 
 	## no lts
-	disk_kernel=$(file /boot/vmlinuz-linux \
+	disk_kernel=$(sudo file /boot/vmlinuz-linux \
 			  | awk '{for(i=1; i<=NF; i++) if($i=="version") print $(i+1)}')
 	#disk_kernel=$(file /boot/vmlinuz-linux | cut -d " " -f 9)
 
