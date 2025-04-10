@@ -428,17 +428,18 @@ modify()
 	    printf "complete\n"
 	    ;;
 
-	restore)
+	# restore)
 
 	    ## change $USER symlinks
 	    ### change config_shln (default)
-	    sh $XDG_DATA_HOME/c/git/code/tool/chln
+	    # sh $XDG_DATA_HOME/c/git/code/tool/chln
 	    ### change network_ua (non default)
-	    sh $XDG_DATA_HOME/c/git/code/tool/chln \
-		$XDG_CONFIG_HOME/network/ua $XDG_CONFIG_HOME/network/ua
+	    # sh $XDG_DATA_HOME/c/git/code/tool/chln \
+		# $XDG_CONFIG_HOME/network/ua $XDG_CONFIG_HOME/network/ua
 
 	    ## set_sway_hardware
-	    sh $XDG_CONFIG_HOME/sway/hw/select_current_machine
+	    # sh $XDG_CONFIG_HOME/sway/hw/select_current_machine
+	    # ;;
 
     esac
 }
@@ -767,71 +768,81 @@ crypt()
 		# make relative location in fpcl_file absolute to destination
 		# (re_dest), because files are already copied at this point
 		# and decryption has to be done in destination, not source!
-		crypt_loc="$re_dest/$(printf "$file_2_decrypt" | awk '{print $2}')"
+		## sed omit the leading 'c '
+		## awk omit the leading 'c '
+		crypt_loc="$re_dest"/$(sed 's/^c //' <<< "$file_2_decrypt")
+		# crypt_loc="$re_dest"/$(awk '{print $2}' <<< "$file_2_decrypt")
 
+		## save cursor position
 		tput sc
 
-		# crypt_loc is a tar.aes file
-
-		if [[ -f "$crypt_loc.tar.aes" ]]; then
+		if [[ -f "$crypt_loc".tar.aes ]]; then
+		    # crypt_loc is a tar.aes file
 
 		    # encrypted file has .tar.aes extention
 		    # therefore original is a directory (no file)
 
-		    printf "$crypt_loc.tar.aes"
+		    printf '%s' "$crypt_loc".tar.aes
 
 		    ## create a tar archive name
-		    tar_name="$crypt_loc.tar"
+		    tar_name="$crypt_loc".tar
 
 		    ## decrypt the aes file
-		    tar_crypt_name="$crypt_loc.tar.aes"
+		    tar_crypt_name="$crypt_loc".tar.aes
+
 		    openssl enc \
 			-d \
 			-aes-256-cbc \
 			-base64 \
 			-pbkdf2 \
 			-salt \
-			-pass pass:$pw \
-			-in $tar_crypt_name \
-			-out $tar_name
+			-pass pass:"$pw" \
+			-in "$tar_crypt_name" \
+			-out "$tar_name"
 
+		    ## replace cursor
 		    tput rc
+		    ## erase line
 		    tput ed
-		    printf "$crypt_loc.tar"
+		    printf '%s' "$crypt_loc".tar
 
 		    ## remove the aes file
-		    destroy $tar_crypt_name
+		    destroy "$tar_crypt_name"
 
 		    ## create directory if non-existent
-		    [[ -d $crypt_loc ]] || mkdir -p $crypt_loc
+		    [[ -d "$crypt_loc" ]] || mkdir -p "$crypt_loc"
 
 		    ## extract contents from tar archive
-		    tar -xzf $tar_name -C $re_dest/ $file_2_decrypt 1>&2 2>/dev/null
+		    tar -xzf "$tar_name" -C "$re_dest"/"$file_2_decrypt" 1>&2 2>/dev/null
 		    #tar -xzf $tar_name $crypt_loc 1>&2 2>/dev/null
 
+		    ## replace cursor
 		    tput rc
+		    ## erase line
 		    tput ed
-		    printf "$crypt_loc"
+		    printf '%s' "$crypt_loc".tar
 
 		    ## remove crypt_loc.tar
 		    destroy $crypt_loc.tar
 
+		    ## move cursor down 1 line
 		    tput cud1
 
-		    # crypt_loc is a file
-
 		elif [[ -f "$crypt_loc.aes" ]]; then
+		    # crypt_loc is a file
 
 		    # encrypted file has .aes extention
 		    # therefore original is a file (no dir)
 
 		    ## create encrypted file name
 		    file_name="$crypt_loc"
-		    file_crypt_name="$file_name.aes"
+		    file_crypt_name="$file_name".aes
 
+		    ## replace cursor
 		    tput rc
+		    ## erase line
 		    tput ed
-		    printf "$file_crypt_name"
+		    printf '%s' "$file_crypt_name".tar
 
 		    ## create directory if non-existent
 		    #file_name_dir=$(dirname $file_name)
@@ -844,28 +855,31 @@ crypt()
 			-pbkdf2 \
 			-salt \
 			-base64 \
-			-pass pass:$pw \
-			-in $file_crypt_name \
-			-out $file_name
+			-pass pass:"$pw" \
+			-in "$file_crypt_name" \
+			-out "$file_name"
 
 		    ## remove the encrypted file
-		    destroy $file_name.aes
+		    destroy "$file_name".aes
 
+		    ## replace cursor
 		    tput rc
+		    ## erase line
 		    tput ed
-		    printf "$file_name"
+		    printf '%s' "$file_name"
 
+		    ## move cursor down 1 line
 		    tput cud1
 
 		else
 
-		    printf "${fg_magenta}$crypt_loc${st_def} is not a file or directory\n"
+		    printf '${fg_magenta}%s${st_def} is not a file or directory\n' "$crypt_loc"
 
 		    continue
 
 		fi
 
-	    done < $fpcl_file
+	    done < "$fpcl_file"
 	    ;;
 
 	esac
