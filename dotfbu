@@ -84,13 +84,16 @@ dest=$3	# destination directory
 
 sourcing()
 {
-    # external code sources
+    ## external code sources
     source_dir="$XDG_DATA_HOME/c/git/code/source/function"
     source $source_dir/reply_functions
     source $source_dir/get_sudo
     source $source_dir/text_appearance
     pwgn="$XDG_DATA_HOME/c/git/code/tool/pwgn"
+
+    ## directories
     fpcl_file="$src/.fpcl"
+    excl_file="$src/.excl"
 }
 
 
@@ -354,7 +357,12 @@ create_lists()
     crypt_list		.crpl	with files to be encrypted
     plain_list		.plnl	with files that can stay as they are
 
-    NOTICE ${#all}=${#crypt}+${#plain}
+    and two persistent lists that the user can edit in $src:
+
+    file_porcess_list  	.fpcl	user edited list of files to be copied
+    exclude_list	.excl	user edited list of files to be excluded
+
+    NOTICE ${#all}=${#crypt}+${#plain}-${#excl}
     # '
 }
 
@@ -373,6 +381,7 @@ copy()
 		-f'P *.aes' \
 		-f'P *.hash' \
 		--files-from=$all_files_list \
+		--exclude-from=$excl_file \
 		--recursive \
 		--out-format="%t %B %l %U %M %f %o %b" \
 		--stats \
