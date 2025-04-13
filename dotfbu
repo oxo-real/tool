@@ -85,15 +85,15 @@ dest=$3	# destination directory
 sourcing()
 {
     ## external code sources
-    source_dir="$XDG_DATA_HOME/c/git/code/source/function"
-    source $source_dir/reply_functions
-    source $source_dir/get_sudo
-    source $source_dir/text_appearance
-    pwgn="$XDG_DATA_HOME/c/git/code/tool/pwgn"
+    source_dir="$XDG_DATA_HOME"/c/git/code/source/function
+    source "$source_dir"/reply_functions
+    source "$source_dir"/get_sudo
+    source "$source_dir"/text_appearance
+    pwgn="$XDG_DATA_HOME"/c/git/code/tool/pwgn
 
     ## directories
-    fpcl_file="$src/.fpcl"
-    excl_file="$src/.excl"
+    fpcl_file="$src"/.fpcl
+    excl_file="$src"/.excl
 }
 
 
@@ -456,7 +456,8 @@ modify()
 
 generate_pw()
 {
-    ## permanently run without pwgn set environment variable PWGN_OFF
+    ## permanently run without pwgn:
+    ## set environment variable PWGN_OFF (zshenv)
     if [[ -z "$PWGN_OFF" ]]; then
 
 	# run pwgn
