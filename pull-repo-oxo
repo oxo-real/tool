@@ -1,0 +1,48 @@
+#! /usr/bin/env sh
+
+## pull all public repos
+## if non existent, then clone public repo
+
+## usage: pull-repo-oxo $dst
+## example: pull-repo-oxo $HOME/c/git
+
+[[ -n "$1" ]] && dst="$1" || exit 9
+[[ -d "$dst" ]] || mkdir "$dst"
+
+publ_repo=https://codeberg.org/oxo
+repo_dirs=(\
+	   "$dst"/code/hajime \
+		  "$dst"/code/isolatest \
+		  "$dst"/code/network \
+		  "$dst"/code/source \
+		  "$dst"/code/tool \
+		  "$dst"/dotf \
+		  "$dst"/note \
+    )
+
+for dir in "${repo_dirs[@]}"; do
+
+    printf '%s\n' "$dir"
+
+    if [[ -d "$dir" ]]; then
+
+	git -C "$dir" pull
+	continue
+
+    fi
+
+    parent_dir="${dir%/*}"
+    if [[ ! -d "$parent_dir" ]]; then
+
+	mkdir -p "$parent_dir"
+
+    fi
+
+    if [[ ! -d "$dir" ]]; then
+
+	git -C "$parent_dir" clone "$publ_repo"/"${dir##*/}"
+
+    fi
+
+
+done
