@@ -82,7 +82,7 @@ src=$2	# source directory
 dest=$3	# destination directory
 
 
-sourcing()
+sourcing ()
 {
     ## external code sources
     source_dir="$XDG_DATA_HOME"/c/git/code/source/function
@@ -97,15 +97,23 @@ sourcing()
 }
 
 
-check_sum()
+check_sum ()
 {
     ## check file integrity
     check-sum $(realpath $script_dir/$script_name)
     [[ $? -ne 0 ]] && exit 88
+
+    ## check .excl integrity
+    check-sum "$excl_file"
+    [[ $? -ne 0 ]] && exit 77
+
+    ## check .fpcl integrity
+    check-sum "$fpcl_file"
+    [[ $? -ne 0 ]] && exit 66
 }
 
 
-initialize()
+initialize ()
 {
     # aquire privileges
     get_sudo
@@ -125,21 +133,21 @@ initialize()
 
     case $mode in
 
-	backup)
+	backup )
 	    # backup_definitions
 	    ## location_definitions
 	    bu_src=$src
 	    bu_dest=$dest
 	    ;;
 
-	restore)
+	restore )
 	    # restore_definitions
 	    ## location definitions
 	    re_src=$src
 	    re_dest=$dest
 	    ;;
 
-	*)
+	* )
 	    # no mode entry
 	    printf "enter mode as backup or restore\n"
 	    exit 4
@@ -151,7 +159,7 @@ initialize()
 }
 
 
-validate_source()
+validate_source ()
 {
     # directory validity check
     if [[ -z $src ]]; then
@@ -179,20 +187,20 @@ validate_source()
 }
 
 
-validate_destination()
+validate_destination ()
 {
     if [[ -z $dest ]]; then
 
 	# source is given, destination is empty
 	case $mode in
 
-	    backup)
+	    backup )
 
 		printf "${fg_magenta}empty destination argument${st_def}, exiting, bye!\n"
 		exit 11
 		;;
 
-	    restore)
+	    restore )
 
 		re_dest=$(head -n 1 $src/.sync_info)
 		printf "destination:	${fg_magenta}empty argument${st_def}\n"
@@ -271,14 +279,14 @@ validate_destination()
 
     case $mode in
 
-	backup)
+	backup )
 
 	    ## req: .fpcl_file in source
 	    [[ ! -f $src/.fpcl ]] && \
 		printf "no .fpcl file found in ${fg_amber}$bu_src${st_def}\n" && exit 21
 	    ;;
 
-	restore)
+	restore )
 
 	    ## req: .sync_info file in source
 	    [[ ! -f $src/.sync_info ]] && \
@@ -293,12 +301,12 @@ validate_destination()
 }
 
 
-create_lists()
+create_lists ()
 {
     case $mode in
 
 	# only backup
-	backup)
+	backup )
 
 	    # generate file, crypt and plain list from fpcl_file
 
@@ -367,11 +375,11 @@ create_lists()
 }
 
 
-copy()
+copy ()
 {
     case $mode in
 
-	backup)
+	backup )
 
 	    # copy all files (.alll) to destination ($bu_dest)
 	    ## filter rules (-f'P) prevent receiver side files from being deleted
@@ -401,7 +409,7 @@ copy()
 	    fi
 	    ;;
 
-	restore)
+	restore )
 
 	    rsync -aAXv $re_src/ $re_dest
 	    ;;
@@ -410,11 +418,11 @@ copy()
 }
 
 
-modify()
+modify ()
 {
     case $mode in
 
-	backup)
+	backup )
 
 	    # remove all nested git databases
 	    printf "removing nested .git directories ... \n"
@@ -454,7 +462,7 @@ modify()
 }
 
 
-generate_pw()
+generate_pw ()
 {
     ## permanently run without pwgn:
     ## set environment variable PWGN_OFF (zshenv)
@@ -493,11 +501,11 @@ generate_pw()
 }
 
 
-report_plain()
+report_plain ()
 {
     case $mode in
 
-	backup)
+	backup )
 
 	    ## all files (.alll) were copied, now
             ## list (report) plain files that will not be encrypted
@@ -537,12 +545,12 @@ steps:
 7. remove unencrypted (tar)file.
 # '
 
-crypt()
+crypt ()
 {
     case $mode in
 
 
-	backup)
+	backup )
 
 	    # looping through fpcl_file
 
@@ -742,7 +750,7 @@ crypt()
 	    ;;
 
 
-	restore)
+	restore )
 
 
 	    # decrypt locations (lines) in fpcl_file
@@ -899,7 +907,7 @@ crypt()
 }
 
 
-verify()
+verify ()
 {
     case $mode in
 
@@ -972,12 +980,12 @@ verify()
 
 	    case $location_git_status in
 
-		0)
+		0 )
 		    # git repo
 		    :
 		    ;;
 
-		*)
+		* )
 		    # no git repo
 		    echo
 		    echo
@@ -1015,11 +1023,11 @@ verify()
 }
 
 
-cleanup()
+cleanup ()
 {
     case $mode in
 
-	backup)
+	backup )
 	    destroy $plain_list
 	    destroy $crypt_list
 	    destroy $all_files_list
@@ -1031,14 +1039,14 @@ cleanup()
 
 # internal calls
 
-clear_password()
+clear_password ()
 {
     pw=$(< /dev/random tr -d -c "[:xdigit:]" | head -c 64)
     unset pw
 }
 
 
-destroy()
+destroy ()
 {
     chmod -R 777 $1
     sudo find $1 -depth -type f -exec shred -n 3 --remove=wipesync {} \;
@@ -1046,14 +1054,14 @@ destroy()
 }
 
 
-beep()
+beep ()
 {
     chime="$XDG_DATA_HOME"/a/media/audio/sound/airbus/da.ogg
     [[ -f "$chime" ]] && pw-play "$chime"
 }
 
 
-main()
+main ()
 {
     sourcing
     check_sum
