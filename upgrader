@@ -124,7 +124,7 @@ set_clock ()
 get_ipex ()
 {
     ## retrieve external ip address
-    ipex=$(curl ifconfig.me 1>&2 2>/dev/null)
+    ipex=$(curl ifconfig.me)
     ## alternative2
     # ipex=$(host myip.opendns.com resolver2.opendns.com \
 	       # | tail -n 1 | rev | cut -d ' ' -f 1 | rev)
@@ -140,13 +140,13 @@ internet_conn_check ()
     get_ipex
 
     ## if internet is not up; try 2 more times (in case dns issue)
-    if [ -z $ipex ]; then
+    if [[ -z $ipex ]]; then
 
 	for try in {1..2}; do
 
 	    if [ -z $ipex ]; then
 
-		printf "try $try\r"
+		printf 'try %s\r' "$try"
 		sleep $try
 		get_ipex
 		try+=1
@@ -161,7 +161,8 @@ internet_conn_check ()
 
     fi
 
-    if [ -z $ipex ]; then
+    if [[ -z $ipex ]]; then
+	## still no ipex
 
 	printf "${fg_amber}unable to retrieve external ip address (ipv4)${st_def}\n"
 
