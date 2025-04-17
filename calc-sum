@@ -39,7 +39,7 @@ https://www.gnu.org/licenses/gpl-3.0.txt
 sha3-512sum
 
 # usage
-calc-sum [file | directory] [file2] [directory2]
+calc-sum [-y|--yes|--noconfirm] [file | directory] [file2] [directory2]
 
 # examples
 ## add or update item in hashlist
@@ -81,6 +81,11 @@ function process_args ()
 	    	continue
 	    	;;
 
+	    -y|--yes|--noconfirm )
+		shift
+		no_confirm=1
+		;;
+
 	    * )
 		## rest of args are files or directories
 		## put into space separated list (ssl)
@@ -100,22 +105,34 @@ function process_args ()
 
 function no_args ()
 {
-    printf "calc-sum ${fg_amber}%s${st_def} ? [y/N] " $PWD
-    reply_read_single
+    if [[ -z "$no_confirm" ]]; then
+	## ask for confirmation
 
-    case $reply in
+	printf "calc-sum ${fg_amber}%s${st_def} ? [y/N] " $PWD
+	reply_read_single
 
-	y | Y )
-	    args="$PWD"
-	    main
-	    exit
-	    ;;
+	case $reply in
 
-	* )
-	    exit 115
-	    ;;
+	    y | Y )
+		args="$PWD"
+		main
+		exit
+		;;
 
-    esac
+	    * )
+		exit 115
+		;;
+
+	esac
+
+    elif [[ -n "$no_confirm" ]]; then
+	## run without confirmation
+
+	args="$PWD"
+	main
+	exit
+
+    fi
 }
 
 
@@ -188,25 +205,35 @@ function create_file_hash ()
 
 function replace_hash_list ()
 {
-    if [[ -f $hash_list ]]; then
+    if [[ -z "$no_confirm" ]]; then
+	## ask for confirmation
 
-	## hashlist already exists
-	tput cuu1
-	printf '\r'
-	printf "recalc ${fg_amber}%s${st_def} ? [y/N] " $hash_list
-	reply_read_single
+	if [[ -f $hash_list ]]; then
 
-	case $reply in
+	    ## hashlist already exists
+	    tput cuu1
+	    printf '\r'
+	    printf "recalc ${fg_amber}%s${st_def} ? [y/N] " $hash_list
+	    reply_read_single
 
-	    y | Y )
-		continue
-		;;
+	    case $reply in
 
-	    * )
-		exit
-		;;
+		y | Y )
+		    continue
+		    ;;
 
-	esac
+		* )
+		    exit
+		    ;;
+
+	    esac
+
+	fi
+
+    elif [[ -n "$no_confirm" ]]; then
+	## run without confirmation
+
+	continue
 
     fi
 
