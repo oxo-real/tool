@@ -454,7 +454,7 @@ archive_backup()
 main()
 {
     check_sum
-    # archive_backup
+    archive_backup
     default_backup
 }
 
