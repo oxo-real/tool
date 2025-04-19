@@ -1,171 +1,396 @@
 #! /usr/bin/env sh
-#
-##
+
+###                  _                     __  __ _
+###  _ __ ___   __ _| | _____        ___  / _|/ _| |      _ __ ___ _ __   ___
+### | '_ ` _ \ / _` | |/ / _ \_____ / _ \| |_| |_| |_____| '__/ _ \ '_ \ / _ \
+### | | | | | | (_| |   <  __/_____| (_) |  _|  _| |_____| | |  __/ |_) | (_) |
+### |_| |_| |_|\__,_|_|\_\___|      \___/|_| |_| |_|     |_|  \___| .__/ \___/
+###                                                               |_|
 ###
-### make_offl_repo
+###  # # # # # #
+###       #
+###  # # # # # #
 ###
-### copies pacman package cache to destination
-###
-### copyright (c) 2021 - 2024  |  oxo
-###
-### usage:
-### make_offl_repo <destination> [rsync options]
-###
-##
-#
+
+: '
+make-offl-repo
+make offline package repository for hajime packages
+copyright (c) 2021 - 2025  |  oxo
+
+GNU GPLv3 GENERAL PUBLIC LICENSE
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+https://www.gnu.org/licenses/gpl-3.0.txt
+
+@oxo@qoto.org
 
 
-## destination root
-## i.e. from make_recov
-## default: REPO (dock/2)
-dst=$1
-aur_dst="$dst/aur"
+# description
 
-## create destination location if not exist
-[[ -d $aur_dst ]] || mkdir -p $aur_dst
+hajime packages are in hajime/setup package.list
+outcommented packages are not copied to prevent bloat
+package dependencies are also copied to the offline repo
+pkgs_real_paths contains all zst files
 
-## rsync options
-shift
-options=$@
+# dependencies
+  archlinux installation
+  REPO
 
-timestamp=$(date +%s)
+# usage
+  make-offl-repo $dst
+
+# example
+  n/a
+
+# '
+
+
+#set -o errexit
+#set -o nounset
+set -o pipefail
+
+# initial definitions
+
+## script
+script_name='copy-packages.sh'
+developer='oxo'
+license='gplv3'
+initial_release='2021'
+
+## hardcoded variables
 db_name='offline'
+src_foreign="$XDG_CACHE_HOME/yay"
+src_native='/var/cache/pacman/pkg'
+hajime_dir="$HOME/c/git/code/hajime"
 
-## pacman file source
-pmn_src='/var/cache/pacman/pkg'
+file_package_list="${hajime_dir}/setup/package.list"
 
-## aur file source
-aur_src="$HOME/.cache/yay"
-aur_pkgs=( $(fd . --max-depth 1 --type directory $aur_src) )
-#aur_pkgs=( $(ls $aur_src) )
-#aur_pkgs=( $(yay -Qqm) )
+pkgs_copy="${hajime_dir}/logs/pkgs-copy-$(id -u $USER)"
+pkgs_copy_err="${hajime_dir}/logs/pkgs-copy-err-$(id -u $USER)"
+pkgs_deps="${hajime_dir}/logs/pkgs-deps-$(id -u $USER)"
+pkgs_hajime="${hajime_dir}/logs/pkgs-hajime-$(id -u $USER)"
+pkgs_real_paths="${hajime_dir}/logs/pkgs-real-paths-$(id -u $USER)"
+pkgs_sigs="${hajime_dir}/logs/pkgs-sigs-$(id -u $USER)"
+
+#--------------------------------
 
 
-rsync_all_packages ()
+sourcing ()
 {
-    rsync -aAXv \
-	$options \
-	$pmn_src/ $dst
-	#--filter='protect aur' \
-	#--delete \
-	#
-	# DEV instead of rsync use pacman
-	#
-	# source is current package repo (v/c/p/p)
-	# cp /etc/pacman.conf $TESTDIR/pacman.conf.bu
-	#
-	# set vcpp as local mirror in /etc/pacman.conf
-	# [offline]
-	# Server = file:///var/cache/pacman/pkg
-	#
-	# pacman -Sw --cachedir $dst --dbpath $dst
+    ## custom packages
+    [[ -f "$file_package_list" ]] && source "$file_package_list"
 }
 
 
-build_custom_pkg_db ()
+args="$@"
+getargs ()
 {
-    # build custom pacman package database
-    ## .zst and older .xz packages
-    ## not .sig files
-    pmn_src_sort=$(ls $dst | grep --invert-match '.sig$' | sort --numeric-sort)
-    #pmn_src_sort=$(ls $pmn_src | grep --invert-match '.sig$' | sort --numeric-sort)
-    echo
+    while true; do
 
-    while IFS= read -r p_curr; do
+	case $1 in
 
-	printf '==> adding %s\n' "$p_curr"
+	    '' )
+		printf 'error: dst\n'
+		exit 4
+		;;
 
-	repo-add --new --remove --include-sigs $dst/$db_name.db.tar.zst $dst/$p_curr
+	    * )
+		dst="$1"
+		return
+		;;
 
-    done <<< "$pmn_src_sort"
-}
-
-
-copy_aur_packages ()
-{
-    ## sync aur_src to aur_dst
-    rsync -aAXv --delete --info=progress2,stats --progress \
-	  --exclude='.git' "$aur_src/$package" "$aur_dst"
-
-    ## remove all previously made symlinks in $dst
-    ## inv match to exclude link files offline.db and offline.files
-    old_ln_dst=( $(fd . --max-depth 1 --type symlink $dst | grep --invert-match "$db_name") )
-
-    echo
-    for link in "${old_ln_dst[@]}"; do
-
-	printf '==> unlinking %s\n' "$link"
-	unlink "$link"
+	esac
 
     done
-
-    echo
-    for package in "${aur_pkgs[@]}"; do
-
-	printf '==> copying %s\n' "$package"
-	## package i.e.: /home/oxo/.cache/yay/cava
-	#rsync -aAXv --delete --info=progress2,stats --progress \
-	#      --exclude='.git' "$aur_src/$package/" "$aur_dst"
-	#cp -r "$aur_src/$package" "$aur_dst"
-
-	## adding up-to-date links
-	ln_package_dst $package
-
-    done
-
-    ## with hajime/4apps.sh install_aur()
-    ## aur packages are installed with:
-    ## pacman -U $package_dir/$package.tar.zst
 }
 
 
-ln_package_dst ()
+file_administration ()
 {
-    # create links in $dst to aur packages that are in $
-    package_dir_raw=$1
-
-    ## sed removes trailing slash
-    package_dir=$(printf "$package_dir_raw" | sed 's/\/$//')
-    ## package example: /home/oxo/dock/2/aur/yay
-
-    ## find newest package file inside package dir
-    newest_pkg_name_ver=$(command ls -t $package_dir --time birth | sort --version-sort --reverse | grep -v PKGBUILD | grep -v debug | head -n 1)
-    newest_pkg_target_file="$package_dir/$newest_pkg_name_ver"
-
-    ## create symlink in dst (dock/2)
-    ## create symlink of the latest package in the aur directory
-    ## into $dst default: REPO (dock/2)
-    ## so that later installation is from a single directory
-    ln -s $newest_pkg_target_file $dst/$newest_pkg_name_ver
+    [[ ! -d "$hajime_dir"/logs ]] && mkdir -p "$hajime_dir"/logs
+    [[ -f "$pkgs_copy" ]] && rm -rf "$pkgs_copy"
+    [[ -f "$pkgs_copy_err" ]] && rm -rf "$pkgs_copy_err"
+    [[ -f "$pkgs_deps" ]] && rm -rf "$pkgs_deps"
+    [[ -f "$pkgs_hajime" ]] && rm -rf "$pkgs_hajime"
+    [[ -f "$pkgs_real_paths" ]] && rm -rf "$pkgs_real_paths"
+    [[ -f "$pkgs_sigs" ]] && rm -rf "$pkgs_sigs"
 }
 
 
-aur_packages_build ()
+create_pkgs_hajime ()
 {
-    # compile source code from aur packages
-    ## source for hajime/4apps.sh#aur_install
+    ## sourced from file_package_list
+    pkgs_hajime_arr=(
+	"${base_pkgs[@]}"
+	"${conf_pkgs[@]}"
+	"${post_pkgs[@]}"
+	"${apps_pkgs[@]}"
+    )
 
-    cd $aur_dst
-    yay -Gd $(yay -Qqm)
-    echo
+    ## write pkgs_hajime (pkgs-hajime-1000)
+    printf '%s\n' "${pkgs_hajime_arr[@]}" \
+	| sed '/^\s*$/d' \
+	| sort \
+	| uniq \
+	      > "$pkgs_hajime"
+}
 
-    for package in "${aur_pkgs[@]}"; do
 
-	printf '==> building %s\n' "$package"
-	cd "$aur_dst/$package"
-	makepkg --syncdeps --needed --clean
-	#makepkg -sc
+create_pkgs_real_paths ()
+{
+    while read -r pkg; do
+	## loop through pkgs_hajime file
 
-    done
+	[[ -z "$pkg" ]] && continue
+
+	pkg_file_path "$pkg"
+
+	## add line to real_paths file (package file path)
+	write_pkg_real_path "$pkg_name" "$pkg_version"
+
+	## dump all dependencies for package in pkgs_deps file
+	get_pkg_deps "$pkg"
+
+	printf '%s\n' "$pkg_deps" >> "$pkgs_deps"
+
+    done < "$pkgs_hajime"
+
+    ## create unique dependencies list
+    optimize_pkgs_deps
+
+    while read -r dep; do
+	## loop through pkgs_deps file
+
+	[[ -z "$dep" ]] && continue
+
+	pkg_file_path "$dep"
+
+	## add line to real_paths file (dependency)
+	write_pkg_real_path "$pkg_name" "$pkg_version"
+
+    done < "$pkgs_deps"
+}
+
+
+pkg_file_path ()
+{
+    pkg="$1"
+
+    pmn_Q=$(pacman -Q "$pkg")
+    pkg_name=${pmn_Q% *}
+    pkg_version=${pmn_Q##* }
+
+    if pacman -Qn "$pkg_name"; then
+	# native package
+
+	## grep prevent multiple hits i.e. emacs libgccjit
+	pkg_real_path=$(pacman -S --print "$pkg_name" | grep "$pkg_name")
+
+    elif pacman -Qm "$pkg_name"; then
+	## foreign package
+
+	## fd no-ignore-vcs; some packages have * in their .gitignore
+	pkg_real_path=$(fd --type file --no-ignore-vcs "$pkg_name"-"$pkg_version" "$src_foreign"/"$pkg_name")
+
+    fi
+
+    if [[ ! -f "$pkg_real_path" ]]; then
+	## case pkg is a dependency, but not in pkg database?
+    	## get latest package directly from repo directory
+
+    	## try1 native package
+    	pkg_real_path=$(fd --type file --no-ignore-vcs "$pkg_name" "$src_native" \
+			    | grep -v .sig$ \
+			    | sort --numeric-sort --reverse \
+			    | head -n 1
+		     )
+
+    fi
+
+    if [[ ! -f "$pkg_real_path" ]]; then
+
+    	## try2 foreign package
+    	pkg_real_path=$(fd --type file --no-ignore-vcs --max-depth 1 --absolute-path "$src_foreign"/"$pkg_name" \
+			    | sed "s#${XDG_CACHE_HOME}/yay/${pkg_name}/##" \
+			    | grep -v debug \
+			    | grep --extended-regexp '\.pkg\.tar\.(xz|zst)' \
+			    | sort --numeric-sort --reverse \
+			    | head -n 1
+		     )
+
+    fi
+
+    pkg_dir="${pkg_real_path%/*}"
+    pkg_file_name="${pkg_real_path##*/}"
+}
+
+
+write_pkg_real_path ()
+{
+    pkg_name=$1
+    pkg_version=$2
+
+    if [[ -f "$pkg_real_path" ]]; then
+
+	printf '%s\n' "$pkg_real_path" >> "$pkgs_real_paths"
+
+    else
+
+	printf 'no pkg_real_path %s %s\n' "$pkg_name" "$pkg_version" >> "$pkgs_real_paths"-err
+
+    fi
+
+}
+
+
+get_pkg_deps ()
+{
+    pkg_deps=''
+    pkg="$1"
+
+    ## tail first line of pactree is queried package
+    pkg_deps=$(pactree --linear --unique "$pkg" | tail -n +2 | sort)
+
+    if pacman -Qm "$pkg"; then
+
+	fgn_pkg_dir="$XDG_CACHE_HOME/yay/$pkg"
+	pkgb_deps=$(rg --no-line-number ^depends "$fgn_pkg_dir"/PKGBUILD | awk -F '[()]' '{print $2}' | sed "s/'//g" | tr ' ' '\n')
+	pkgb_make_deps=$(rg --no-line-number ^makedepends "$fgn_pkg_dir"/PKGBUILD | awk -F '[()]' '{print $2}' | sed "s/'//g" | tr ' ' '\n')
+	pkg_deps=${pkgb_deps}\n${pkgb_make_deps}
+
+    fi
+}
+
+
+optimize_pkgs_deps ()
+{
+    ## create tempo file
+    cp "$pkgs_deps" "${pkgs_deps}"-tmp
+
+    ## sed remove >= which is sometimes returned from pactree
+    # printf '%s\n' "$pkgs_deps_tmp" \
+    ## sed remove empty lines
+    sed '/^\s*$/d' "${pkgs_deps}"-tmp \
+	| sort --numeric-sort \
+	| uniq \
+	      > "$pkgs_deps"
+
+    ## remove tempo file
+    rm -rf "${pkgs_deps}"-tmp
+}
+
+
+create_pkgs_copy ()
+{
+    ## sed remove empty lines
+    ## sed remove uri prefix from pacman -S --print (pkg_real_path)
+    ## sed remove pacman comments
+    sed '/^\s*$/d' "$pkgs_real_paths" \
+	| sort --numeric-sort \
+	| uniq \
+	| sed 's#^file://##' \
+	| sed '/^:: installing/d' \
+	       > "$pkgs_copy"
+}
+
+
+verify_pkgs_copy ()
+{
+    while read -r pkg_copy; do
+
+	if [[ ! -f "$pkg_copy" ]]; then
+
+	    ## remove non existing file from pkgs_copy
+	    sed -i "/^{$pkg_copy}/d" "$pkgs_copy"
+
+	    ## add path to error file
+	    printf '%s\n' "$pkg_copy" >> "$pkgs_copy_err"
+
+	fi
+
+    done < "$pkgs_copy"
+}
+
+
+create_pkgs_sigs ()
+{
+    ## sed remove empty lines
+    ## sed remove lines starting with $XDG_CACHE_HOME/yay (fgn)
+    ## sed adding .sig to pkgs_copy
+    sed '/^\s*$/d' "$pkgs_copy" \
+	| sed "#^${XDG_CACHE_HOME}/yay#d" \
+	| sed 's#$#.sig#' \
+	> "$pkgs_sigs"
+}
+
+#TODO copy fgn pkgs to separate src directory
+
+copy_to_repo ()
+{
+    mountpoint -q "$dst"
+
+    if [[ $? -eq 0 ]]; then
+
+	## copy package files
+	rsync -aAXv --delete --files-from="$pkgs_copy" / "$dst"
+
+	## copy signature files
+	rsync -aAXv --delete --files-from="$pkgs_sigs" / "$dst"
+
+    fi
+}
+
+
+build_database ()
+{
+    mountpoint -q "$dst"
+
+    if [[ $? -eq 0 ]]; then
+
+	# build custom pacman offline package database
+
+	while read -r pkg_copy; do
+
+	    pkgs_base_name+=( "$dst"/"$(basename "$pkg_copy")" )
+	    #printf '==> adding %s/%s\n' "$dst" "$p_basename"
+
+	done < "$pkgs_copy"
+
+	repo-add --new --remove --include-sigs "$dst"/"$db_name.db.tar.zst" "${pkgs_base_name[@]}"
+
+    fi
+}
+
+
+beep ()
+{
+    pw-play $XDG_DATA_HOME/a/media/audio/sound/airbus/da.ogg
 }
 
 
 main ()
 {
-    #rsync_all_packages
-    #aur_packages_build
-    #copy_aur_packages
-    build_custom_pkg_db
+    sourcing
+    getargs $args
+    file_administration
+    create_pkgs_hajime
+    create_pkgs_real_paths
+    create_pkgs_copy
+    verify_pkgs_copy
+    create_pkgs_sigs
+    copy_to_repo
+    build_database
+    beep
 }
 
 main
