@@ -115,7 +115,7 @@ key_dir="$XDG_DATA_HOME/c/keys/otp95"
 timestamp="$(date +'%Y%m%dT%H%M%SE%s')"
 
 
-check_sum()
+check_sum ()
 {
     ## check file integrity
     check-sum $(realpath $script_dir/$script_name)
@@ -123,7 +123,7 @@ check_sum()
 }
 
 
-getargs()
+getargs ()
 {
     while true; do
 
@@ -202,7 +202,7 @@ getargs()
 }
 
 
-process_args()
+process_args ()
 {
     ## action
     ## default action is encrypt to stdout
@@ -279,7 +279,7 @@ process_args()
 }
 
 
-run_options()
+run_options ()
 {
     ## keyfile modification options
     ## multiple option arguments in a comma separated list
@@ -322,7 +322,7 @@ run_options()
 }
 
 
-run_skl()
+run_skl ()
 {
     ## get session key line
     ## summize keyl and keyl_option
@@ -338,13 +338,13 @@ run_skl()
 }
 
 
-run_tac()
+run_tac ()
 {
     key_file_mem=$(tac <<< $key_file_mem)
 }
 
 
-run_rev()
+run_rev ()
 {
     ## get session key data
     session_key=$(sed -n ${session_key_line}p <<< $key_file_mem)
@@ -365,13 +365,13 @@ run_rev()
 }
 
 
-run_srt()
+run_srt ()
 {
     key_file_mem=$(sort $key_file_mem)
 }
 
 
-read_input()
+read_input ()
 {
     ## user can input multiple lines and ends with an end of transmission
     ## EOT (U+0004, ^D or C-d)
@@ -400,7 +400,7 @@ input()
 }
 
 
-transcode()
+transcode ()
 {
     case $action in
 
@@ -422,7 +422,7 @@ transcode()
 }
 
 
-run_action()
+run_action ()
 {
     case $action in
 
@@ -440,7 +440,7 @@ run_action()
 }
 
 
-encrypt()
+encrypt ()
 {
         ## > encrypt (encr): input = plain_text > code_text > cipher_text = output
         ## >                                      ^^^^^^^^^^^^^^^^^^^^^^^
@@ -491,7 +491,7 @@ encrypt()
 }
 
 
-decrypt()
+decrypt ()
 {
         ## > decrypt (decr): input = cipher_text > code_text > plain_text = output
         ## >                         ^^^^^^^^^^^^^^^^^^^^^^^
@@ -542,7 +542,7 @@ decrypt()
 }
 
 
-output()
+output ()
 {
         ## > output (encr): input = plain_text > code_text > cipher_text = output
         ## >                                                 ^^^^^^^^^^^^^^^^^^^^
@@ -588,7 +588,7 @@ output()
 }
 
 
-main()
+main ()
 {
     check_sum
     getargs $args
