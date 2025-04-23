@@ -1,0 +1,33 @@
+#! /usr/bin/env sh
+
+file="$HOME"/.cache/test/historytest
+
+delimiter=':0;'
+line_sel=$(awk -F "$delimiter" '{print $2}' $file | fzf)
+
+printf '%s\n' "$line_sel"
+input=$(printf 'qxct\nline\npart' | fzf --prompt 'delete ')
+#TODO DEV fzf -m
+
+case "$input" in
+
+    line )
+	## remove all whole lines
+	sed -i "/^.*${delimiter}${line_sel}$/d" $file
+	;;
+
+    part )
+	## remove all lines containing selected part
+
+	## split line into parts
+	line_parts_arr=($line_sel)
+	part_sel=$(printf '%s\n' "${line_parts_arr[@]}" | fzf)
+
+	sed -i "/${part_sel}/d" $file
+	;;
+
+    qxct | '' | * )
+	exit 0
+	;;
+
+esac

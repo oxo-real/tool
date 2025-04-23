@@ -64,6 +64,7 @@
 ├── get-newest-file
 ├── get-oldest-file
 ├── histdel
+├── histdl
 ├── home-clear
 ├── kill-float
 ├── kill-ps
@@ -126,5 +127,5 @@
     ├── trashOLD
     └── wfa.py
 
-6 directories, 120 files
+6 directories, 121 files
 ```

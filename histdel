@@ -60,7 +60,7 @@ source $source_dir/reply_functions
 source $source_dir/text_appearance
 
 
-## create working hist_file
+## create working hist_file (tempo)
 histfile_ts=$hist_dir/${timestamp}-histdel
 cat $HISTFILE > $histfile_ts
 cp $histfile_ts ${histfile_ts}_bu
