@@ -12,17 +12,16 @@ input=$(printf 'qxct\nline\npart' | fzf --prompt 'delete ')
 case "$input" in
 
     line )
-	## remove all whole lines
+	## remove all whole lines from file
 	sed -i "/^.*${delimiter}${line_sel}$/d" $file
 	;;
 
     part )
-	## remove all lines containing selected part
-
 	## split line into parts
 	line_parts_arr=($line_sel)
 	part_sel=$(printf '%s\n' "${line_parts_arr[@]}" | fzf)
 
+	## remove all lines containing selected space delimited part from file
 	sed -i "/${part_sel}/d" $file
 	;;
 
