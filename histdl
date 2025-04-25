@@ -1,9 +1,13 @@
 #! /usr/bin/env sh
 
-file="$HOME"/.cache/test/historytest
+## history file
+file="$HOME"/.logs/history/history
+
+##DEV
+#file="$HOME"/.cache/test/historytest
 
 delimiter=':0;'
-line_sel=$(awk -F "$delimiter" '{print $2}' $file | fzf)
+line_sel=$(awk -F "$delimiter" '{print $2}' $file | fzf --tac)
 
 printf '%s\n' "$line_sel"
 input=$(printf 'qxct\nline\npart' | fzf --prompt 'delete ')

@@ -99,6 +99,10 @@ sourcing ()
 
 check_sum ()
 {
+    ## if check-sum is not symlinked (i.e. in hajime 5dtcf)
+    which check-sum
+    [[ $? -ne 0 ]] && check-sum="$HOME"/c/git/code/tool/check-sum
+
     ## check file integrity
     check-sum $(realpath $script_dir/$script_name)
     [[ $? -ne 0 ]] && exit 88
