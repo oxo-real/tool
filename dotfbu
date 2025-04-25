@@ -100,19 +100,19 @@ sourcing ()
 check_sum ()
 {
     ## if check-sum is not symlinked (i.e. in hajime 5dtcf)
-    which check-sum
-    [[ $? -ne 0 ]] && check-sum="$HOME"/c/git/code/tool/check-sum
+    # which check-sum
+    # [[ $? -ne 0 ]] && check-sum="$HOME"/c/git/code/tool/check-sum
 
     ## check file integrity
-    check-sum $(realpath $script_dir/$script_name)
+    "$HOME"/c/git/code/tool/check-sum $(realpath $script_dir/$script_name)
     [[ $? -ne 0 ]] && exit 88
 
     ## check .excl integrity
-    check-sum "$excl_file"
+    "$HOME"/c/git/code/tool/check-sum "$excl_file"
     [[ $? -ne 0 ]] && exit 77
 
     ## check .fpcl integrity
-    check-sum "$fpcl_file"
+    "$HOME"/c/git/code/tool/check-sum "$fpcl_file"
     [[ $? -ne 0 ]] && exit 66
 }
 
