@@ -70,6 +70,7 @@ input=
 
 ## hardcoded variables
 source_dir="$XDG_DATA_HOME/c/git/code/source/function"
+hlscgct="$HOME"/.local/share/c/git/code/tool
 
 #TODO trap
 #trap "return 1" SIGINT
@@ -91,7 +92,7 @@ sourcing ()
 function check_sum ()
 {
     ## check file integrity
-    check-sum $(realpath $script_dir/$script_name)
+    sh "$hlscgct"/check-sum $(realpath $script_dir/$script_name)
     [[ $? -ne 0 ]] && exit 88
 }
 
@@ -105,13 +106,12 @@ optical_input ()
 keyboard_input ()
 {
     # read input
-    askpass_exist=$(command -v askpass >/dev/null 2>&1; echo $?)
+    command -v askpass > /dev/null 2>&1
 
-    printf "$(FGx 999999)pwgn${st_def} "
-
-    case $askpass_exist in
+    case "$?" in
 
 	0)
+	    printf "$(FGx 999999)pwgn${st_def} "
 	    input=$(askpass)
 	    #input=$(askpass -f)
 	    ;;
