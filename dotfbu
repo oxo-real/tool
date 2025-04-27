@@ -103,17 +103,21 @@ check_sum ()
     # which check-sum
     # [[ $? -ne 0 ]] && check-sum="$HOME"/c/git/code/tool/check-sum
 
-    ## check file integrity
-    "$HOME"/c/git/code/tool/check-sum $(realpath $script_dir/$script_name)
-    [[ $? -ne 0 ]] && exit 88
+    if [[ "$mode" == 'backup' ]]; then
 
-    ## check .excl integrity
-    "$HOME"/c/git/code/tool/check-sum "$excl_file"
-    [[ $? -ne 0 ]] && exit 77
+	## check file integrity
+	"$HOME"/c/git/code/tool/check-sum $(realpath $script_dir/$script_name)
+	[[ $? -ne 0 ]] && exit 88
 
-    ## check .fpcl integrity
-    "$HOME"/c/git/code/tool/check-sum "$fpcl_file"
-    [[ $? -ne 0 ]] && exit 66
+	## check .excl integrity
+	"$HOME"/c/git/code/tool/check-sum "$excl_file"
+	[[ $? -ne 0 ]] && exit 77
+
+	## check .fpcl integrity
+	"$HOME"/c/git/code/tool/check-sum "$fpcl_file"
+	[[ $? -ne 0 ]] && exit 66
+
+    fi
 }
 
 
