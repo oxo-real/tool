@@ -226,7 +226,8 @@ function verify_hash_list ()
 	    case $reply in
 
 		y | Y )
-		    calc-sum $dir_name
+		    # calc-sum $dir_name
+		    sh "$HOME"/c/git/code/tool/calc-sum "$dir_name"
 		    ;;
 
 		*)
@@ -249,7 +250,8 @@ function verify_hash_list ()
 	    case $reply in
 
 		y | Y )
-		    calc-sum $file_name
+		    # calc-sum $file_name
+		    sh "$HOME"/c/git/code/tool/calc-sum "$file_name"
 		    ;;
 
 		*)
@@ -282,7 +284,8 @@ function file_on_hash_list ()
 	    case $reply in
 
 		y | Y )
-		    calc-sum $file_name
+		    # calc-sum $file_name
+		    sh "$HOME"/c/git/code/tool/calc-sum "$file_name"
 		    ;;
 
 		*)
