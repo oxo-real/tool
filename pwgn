@@ -106,19 +106,19 @@ optical_input ()
 keyboard_input ()
 {
     # read input
-    command -v askpass > /dev/null 2>&1
+    command -v "$hlscgct"/askpass > /dev/null 2>&1
 
     case "$?" in
 
 	0)
 	    printf "$(FGx 999999)pwgn${st_def} "
-	    input=$(askpass)
+	    input=$("$hlscgct"/askpass)
 	    #input=$(askpass -f)
 	    ;;
 
 	*)
 	    : '
-	    ## DEV TODO
+	    #TODO DEV
 	    ## NOTICE wl-paste does NOT work with this
 	    printf '🔐 [echo_off]'
 	    read -e -r -s -n 1 char1
