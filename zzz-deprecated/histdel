@@ -1,0 +1,114 @@
+#! /usr/bin/env sh
+
+###  _     _     _      _      _
+### | |__ (_)___| |_ __| | ___| |
+### | '_ \| / __| __/ _` |/ _ \ |
+### | | | | \__ \ || (_| |  __/ |
+### |_| |_|_|___/\__\__,_|\___|_|
+###
+###
+###  # # # # # #
+###       #
+###  # # # # # #
+###
+
+: '
+histdel
+select history lines for removal
+copyright (c) 2020 - 2024  |  oxo
+
+GNU GPLv3 GENERAL PUBLIC LICENSE
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+https://www.gnu.org/licenses/gpl-3.0.txt
+
+@oxo@qoto.org
+
+
+# dependencies
+  n/a
+
+# usage
+  histdel
+
+# examples
+  histdel
+
+# '
+
+
+#set -o errexit
+#set -o nounset
+set -o pipefail
+
+source_dir="$XDG_DATA_HOME/c/git/code/source/function"
+hist_dir="$XDG_LOGS_HOME/history"
+timestamp=$(date +'%Y%m%d_%H%M%S_%s')
+
+## reply functions
+source $source_dir/reply_functions
+source $source_dir/text_appearance
+
+
+## create working hist_file (tempo)
+histfile_ts=$hist_dir/${timestamp}-histdel
+cat $HISTFILE > $histfile_ts
+cp $histfile_ts ${histfile_ts}_bu
+nl --number-separator ' ' $histfile_ts > ${histfile_ts}_nl
+
+## total lines before deletion
+## print wc lines for human
+wc -l $HISTFILE
+hist_lines_0=$(wc -l $histfile_ts | awk '{print $1}')
+hist_lines_0_num_places=$(printf '%s' "$hist_lines_0" | wc -c)
+
+## select lines from hist_file_nl
+hist_select=$(cat ${histfile_ts}_nl | fzf -m)
+
+## delete selected lines from $histfile_ts
+while read -u 5 line_selected; do
+
+    printf 'DEV112 %s\n' "$line_selected"
+    #exit 255
+
+    line_num_del=$(cat <<'EOF'
+			"$line_selected" | awk -F : '{print $1}'
+			EOF
+		)
+
+    #line_num_del=$(printf "$line_selected" | awk -F : '{print $1}')
+    printf 'DEV112 %s\n' "$line_num_del"
+
+    sed -i "${line_num_del}d" $histfile_ts
+
+    hist_lines_1=$(wc -l $histfile_ts | awk '{print $1}')
+    lines_deleted=$(( hist_lines_0 - hist_lines_1 ))
+
+    lines_deleted_num_places=$(printf '%s' "$lines_deleted" | wc -c)
+    lines_deleted_indent=$(( hist_lines_0_num_places - lines_deleted_num_places + 1 ))
+
+done 5<<< "$hist_select"
+
+printf "${st_bold}%${lines_deleted_indent}s${st_def} %s" "$lines_deleted"
+printf 'line(s) deleted\n'
+
+## rewrite HISTFILE
+rm ${histfile_ts}_nl
+cp $histfile_ts $HISTFILE
+rm $histfile_ts
+## human info
+wc -l $HISTFILE
+
+#DEVZONE
+	    #printf 'DEV 034 %s\n' "$command_selected"
+	    #exit 255

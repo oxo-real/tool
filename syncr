@@ -95,6 +95,9 @@ source $source_dir/text_appearance
 #get_sudo
 #set -e
 
+## logging
+[[ -d "$sync_dir" ]] || mkdir -p "$sync_dir"
+
 ## destination
 ### under $dest .config is created
 dest=$1
@@ -454,7 +457,7 @@ archive_backup()
 main()
 {
     check_sum
-    archive_backup
+    # archive_backup
     default_backup
 }
 

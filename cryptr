@@ -112,7 +112,7 @@ initialize()
     ## initialization of (static) variables
     timestamp="$(date +'%Y%m%d_%H%M%S')"
 
-    tmp_dir="$XDG_CACHE_HOME/temp/cryptr/$timestamp"
+    tmp_dir="$XDG_CACHE_HOME"/temp/cryptr/"$timestamp"
     [[ ! -d $tmp_dir ]] && mkdir -p $tmp_dir
 
     pw_dir="$PWD"
@@ -836,8 +836,7 @@ tarx_check()
 
     case $oper in
 
-	encr)
-
+	encr )
 	    if [[ "$tarx_exist" == "1" ]]; then
 		#DEV deprecated because of oper can be add?
 
@@ -882,8 +881,7 @@ tarx_check()
 	    fi
 	    ;;
 
-	decr)
-
+	decr )
 	    # src does exist (src_validate)
 	    if [[ -n "$(file -b $src | grep 'tar archive')" ]]; then
 

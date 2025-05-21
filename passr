@@ -153,6 +153,9 @@ store_l="$HOME/.password-store"
 ## the symlinks target
 store=$(readlink $store_l)
 
+gpg_pub='BA40 7600'
+gpg_uid='password-store (O--,)'
+
 ## source functions
 source_dir="$XDG_DATA_HOME/c/git/code/source/function"
 source $source_dir/text_appearance
@@ -492,12 +495,13 @@ function pass_new ()
     echo
 
     ## synthesize string
-    obj_content_1=$(printf '%s\nuserid: %s\nurl: %s\ncomments: %s\n%s\ncreated: %s\n' \
+    #obj_content_1=$(printf '%s\nuserid: %s\nurl: %s\ncomments: %s\n%s\ncreated: %s\n' \
+    obj_content_1=$(printf '%s\nuserid: %s\nurl: \t%s\n# \t-------------------------------------------\n%s\n%s\ncreated: %s\n' \
 	"$passstring" \
 	"$userid" \
 	"$url" \
 	"$comments" \
-	'#-------------------------------------------------' \
+	'#==================================================' \
 	"   $c_time")
 
     inject_content
@@ -509,7 +513,8 @@ function pass_new ()
 }
 
 
-function pass_edit () {
+function pass_edit ()
+{
     [[ -z $object ]] && object=$arg_element
 
     process_object
@@ -728,7 +733,9 @@ function gpg_decrypt ()
     get_sudo
 
     erase_line
-    printf "\n${fg_yellow}%s${st_def}" 'OpenPGP  O--,'
+    echo
+    # printf "\n${fg_yellow}%s${st_def}" 'OpenPGP  O--,'
+    printf "${fg_yellow}%s %s${st_def}" "$gpg_pub" "$gpg_uid"
 
     echo
     generate_pw
@@ -960,6 +967,7 @@ function process_object ()
         	    printf "not found ${fg_amber}$object${st_def}; "
 
 		    ## prompt create object
+		    echo
 		    printf "create [Y/n]? "
 		    reply_read_single
 		    echo

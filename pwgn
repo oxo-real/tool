@@ -40,7 +40,7 @@ https://www.gnu.org/licenses/gpl-3.0.txt
 
 # usage
 
-% pwgn [--optical]
+% pwgn [--optical] [$input]
 
 # '
 
@@ -59,18 +59,22 @@ license='gplv3'
 init_rel_y='2020'
 
 ## getargs
-args=$@
-arg_optical=$1
+# args=$@
+# arg_optical=$1
 
-unset input
-input=
+# unset input
+# input=
 
+#TODO DEV
 ## input from stdin
 #input="$(</dev/stdin)"
 
 ## hardcoded variables
 source_dir="$XDG_DATA_HOME/c/git/code/source/function"
-hlscgct="$HOME"/.local/share/c/git/code/tool
+hlscgct="$XDG_DATA_HOME"/c/git/code/tool
+#hlscgct="$HOME"/.local/share/c/git/code/tool
+chime="$XDG_DATA_HOME"/a/media/audio/sound/airbus/da.ogg
+
 
 #TODO trap
 #trap "return 1" SIGINT
@@ -86,6 +90,37 @@ sourcing ()
 
     ## progress bar
     source "$source_dir/progress-bar"
+}
+
+
+args="$@"
+getargs ()
+{
+    unset input
+    input=
+
+    while :; do
+
+	case "$1" in
+
+	    --optical )
+		if [[ -z "$input" ]]; then
+
+		    ## --optical must come before other args
+		    arg_optical=$1
+		    return
+
+		fi
+		;;
+
+	    * )
+		input=$@
+		return
+		;;
+
+	esac
+
+    done
 }
 
 
@@ -105,19 +140,28 @@ optical_input ()
 
 keyboard_input ()
 {
-    # read input
-    command -v "$hlscgct"/askpass > /dev/null 2>&1
+    if [[ -z "$input" ]]; then
 
-    case "$?" in
+	# read input
+	command -v "$hlscgct"/askpass > /dev/null 2>&1
 
-	0)
-	    printf "$(FGx 999999)pwgn${st_def} "
-	    input=$("$hlscgct"/askpass)
-	    #input=$(askpass -f)
-	    ;;
+	case "$?" in
 
-	*)
-	    : '
+	    0)
+		printf "$(FGx 999999)pwgn${st_def} "
+
+		## file test operator
+		## [ -t 0 ]; file descriptor 0 (stdin)
+		## is associated with a terminal device
+		## (if piped into pwgn then it is not)
+		[[ ! -t 0 ]] && printf '%s\n' 'stdin'
+
+		input=$("$hlscgct"/askpass)
+		#input=$(askpass -f)
+		;;
+
+	    *)
+		: '
 	    #TODO DEV
 	    ## NOTICE wl-paste does NOT work with this
 	    printf '🔐 [echo_off]'
@@ -125,21 +169,23 @@ keyboard_input ()
 	    #read -e -r -s -n 1 char1
 	    tput cuu1
 	    erase_line
-	    # '
+		# '
 
-	    : '
+		: '
 	    printf "$(FGx 999999)pwgn${st_def}  "
 	    printf '🔐 '
 	    read -e -r -s input2
 	    input="$char1$input2"
 	    ## remove eol
 	    input=$(echo $input | tr -d '\n')
-	    # '
-	    printf 'no askpass\n'
-	    exit 46
-	    ;;
+		# '
+		printf 'no askpass\n'
+		exit 46
+		;;
 
-    esac
+	esac
+
+    fi
 }
 
 
@@ -501,7 +547,6 @@ debugging ()
 audio_alert ()
 {
     #beep
-    chime="$XDG_DATA_HOME"/a/media/audio/sound/airbus/da.ogg
     [[ -f "$chime" ]] && pw-play "$chime"
 }
 
@@ -515,6 +560,7 @@ exit_main ()
 main ()
 {
     sourcing
+    getargs $args
     check_sum
     #get_sudo
     input_type

@@ -1,0 +1,79 @@
+#! /usr/bin/env sh
+
+# usage: gpg-bu-key $keyid $bu_dir
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+args="$@"
+keypbl=$1
+bu_dir=$2
+
+
+get_pass ()
+{
+    pass=$(askpass "$keypbl")
+}
+
+
+[[ -d "$bu_dir" ]] || mkdir -p "$bu_dir"
+
+
+key_backup ()
+{
+
+    ## crt.key
+    echo "$pass" \
+	| gpg \
+	      --yes \
+              --batch \
+              --passphrase-fd 0 \
+              --pinentry-mode loopback \
+              --armor \
+              --export-secret-keys \
+              --output "$bu_dir"/"$keypbl"-crt.key \
+              "$keypbl"
+
+    ## sub.key
+    echo "$pass" \
+	| gpg \
+	      --yes \
+              --batch \
+              --passphrase-fd 0 \
+              --pinentry-mode loopback \
+              --armor \
+              --export-secret-subkeys \
+              --output "$bu_dir"/"$keypbl"-sub.key \
+              "$keypbl"
+
+    ## pub.key
+    echo "$pass" \
+	| gpg \
+	      --yes \
+              --armor \
+              --export \
+              --output "$bu_dir"/"$keypbl"-pub.asc \
+              "$keypbl"
+
+    ### rev.crt
+    #echo "$pass" \
+    #	| gpg \
+    # 	      --yes \
+    #          --batch \
+    #          --passphrase-fd 0 \
+    #          --pinentry-mode loopback \
+    #          --armor \
+    #          --generate-revocation \
+    #          --output "$bu_dir"/"$keypbl"-rev.asc \
+    #          "$keypbl"
+}
+
+
+main ()
+{
+    get_pass
+    key_backup
+}
+
+main

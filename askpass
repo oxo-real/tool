@@ -57,7 +57,7 @@ password=
 
 # hardcoded variables
 
-sd_bin='/bin/systemd-ask-password'
+sd_bin='/usr/bin/systemd-ask-password'
 
 ## prompt icon
 p_icon='🔐'

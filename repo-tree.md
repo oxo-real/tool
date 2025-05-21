@@ -63,8 +63,10 @@
 ├── getlocs
 ├── get-newest-file
 ├── get-oldest-file
+├── gpg-bu-key
+├── gpg-gen-key
+├── gpg-pass-vfy
 ├── histdel
-├── histdl
 ├── home-clear
 ├── kill-float
 ├── kill-ps
@@ -119,6 +121,7 @@
     │   └── dstruct.py
     ├── emacs_start
     ├── hclsmvp
+    ├── histdel
     ├── make-offl-repo
     ├── metar
     ├── mountr_rofi
@@ -127,5 +130,5 @@
     ├── trashOLD
     └── wfa.py
 
-6 directories, 121 files
+6 directories, 124 files
 ```

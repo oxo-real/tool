@@ -1,0 +1,160 @@
+#! /usr/bin/env sh
+
+# usage: set_vars and run script
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+
+set_vars ()
+{
+    export name=oxo
+    export email=2oxo@protonmail.com
+    export comment="$(date +%N)"
+    export pass=pass
+    export expiry='20260101T000000'
+    export curve=ed25519
+
+    export bu_dir="$GNUPGHOME"/backup
+    export user_id="${name} (${comment}) <${email}>"
+}
+
+
+## generate certification key (no expiry)
+gen_cert ()
+{
+    echo "$pass" \
+	| gpg \
+	      --yes \
+	      --batch \
+	      --passphrase-fd 0 \
+	      --pinentry-mode loopback \
+	      --quick-generate-key \
+	      "$user_id" \
+	      "$curve" \
+	      cert \
+	      never
+}
+
+
+## get certification key ID
+get_key_data ()
+{
+    ## key_data
+    key_data=$(gpg -k \
+		   --with-colons \
+		   --with-keygrip \
+		   --with-fingerprint \
+		   "$user_id")
+
+    ## key long public ID
+    export keypbl=$(awk -F ':' '/^pub:/ {print $5}' <<< "$key_data")
+
+    ## key fingerprint
+    export keyfpr=$(awk -F ':' '/^fpr:/ {print $10}' <<< "$key_data")
+
+    ## key keygrip
+    export keygrp=$(awk -F ':' '/^grp:/ {print $10}' <<< "$key_data")
+}
+
+
+add_aes_subkeys ()
+{
+    for skey in auth encr sign; do
+
+	## ed25519 has no encr capability
+	scurve="$curve"
+	[[ "$skey" == "encr" ]] && scurve=cv25519
+
+	echo "$pass" \
+	    | gpg \
+		  --batch \
+		  --passphrase-fd 0 \
+		  --pinentry-mode loopback \
+		  --quick-add-key \
+		  "$keyfpr" \
+		  "$scurve" \
+		  "$skey" \
+		  "$expiry"
+
+    done
+}
+
+
+show_info ()
+{
+    gpg -k \
+	--with-fingerprint \
+	--with-keygrip \
+	"$keypbl"
+}
+
+
+key_backup ()
+{
+    gpg-bu-key "$keypbl" "$bu_dir"
+}
+
+
+main ()
+{
+    set_vars
+    gen_cert
+    get_key_data
+    add_aes_subkeys
+    show_info
+    key_backup
+}
+
+main
+
+
+add_aes_keys_ALT ()
+{
+    gpg --expert --edit-key "$keypbl" --command-fd 0 --pinentry-mode loopback << EOF
+addkey
+11
+s
+a
+q
+1
+echo "$expiry"
+y
+y
+echo "$pass"
+addkey
+12
+1
+echo "$expiry"
+y
+y
+echo "$pass"
+addkey
+10
+1
+echo "$expiry"
+y
+y
+echo "$pass"
+save
+EOF
+}
+
+
+gen_cert_ALT ()
+{
+    gpg --expert --full-generate-key --command-fd 0 --pinentry-mode loopback << EOF
+11
+s
+q
+1
+0
+$name
+$email
+$comment
+o
+echo $pass
+echo $pass
+EOF
+}

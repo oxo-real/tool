@@ -1,0 +1,58 @@
+#! /usr/bin/env sh
+
+# usage: gpg-pass-vfy $keyid
+
+#set -o errexit
+#set -o nounset
+set -o pipefail
+
+
+args="$@"
+get_args ()
+{
+    keyid="$1"
+}
+
+
+process_args ()
+{
+    if [[ -z "$keyid" ]]; then
+
+	keyid=$(gpg --list-keys --with-colons \
+		    | rg --no-line-number pub \
+		    | awk -F ':' '{print $5}' \
+		    | fzf)
+
+    fi
+}
+
+
+get_pass ()
+{
+    askpass "$keyid" \
+	| gpg \
+	      --yes \
+	      --batch \
+	      --passphrase-fd 0 \
+	      --pinentry-mode loopback \
+	      --armor \
+	      --sign \
+	      --local-user "$keyid" \
+	      > /dev/null 2>&1
+
+    gpg_exit="$?"
+
+    unset pass
+
+    exit "$gpg_exit"
+}
+
+
+main ()
+{
+    get_args $args
+    process_args
+    get_pass
+}
+
+main
