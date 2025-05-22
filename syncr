@@ -116,7 +116,7 @@ options="$*"
 #               this prevents rsync error: 'skipping non-regular file'
 
 
-check_sum()
+check_sum ()
 {
     ## check file integrity
     check-sum $(realpath $script_dir/$script_name)
@@ -124,7 +124,7 @@ check_sum()
 }
 
 
-config_fpcl()
+config_fpcl ()
 {
     # synchronize .config			(config_fpcl)
 
@@ -191,7 +191,7 @@ logs ()
 }
 
 
-local_share_archive()
+local_share_archive ()
 {
     # synchronize .local/share/a	(archive)
 
@@ -229,7 +229,7 @@ local_share_archive()
 }
 
 
-local_share_backup()
+local_share_backup ()
 {
     # synchronize .local/share/b	(backup)
 
@@ -247,7 +247,7 @@ local_share_backup()
 }
 
 
-local_share_current()
+local_share_current ()
 {
     # synchronize .local/share/c	(share_current)
 
@@ -268,7 +268,7 @@ local_share_current()
 }
 
 
-password_store()
+password_store ()
 {
     # synchronize password-store	(password_store)
 
@@ -289,20 +289,48 @@ password_store()
 
     else
 
-	printf "${fg_amber}no password_store found${st_def}\n"
+	printf "${fg_amber}no password-store found${st_def}\n"
 
     fi
 }
 
 
-recovery()
+gnupg_keys ()
+{
+    ## because config fpcl has not the entire gnupghome directory
+    printf "\n${fg_blue}%s${st_def}\n" "synching gpg keys"
+
+    if [[ -d $GNUPGHOME ]]; then
+
+	## remove existing gpg lock files
+	[ -e .#lk0x* ] && rm $GNUPGHOME/.#lk0x*
+
+	local src="$GNUPGHOME"
+	local dst="$dest/"
+
+	[[ -d $dst ]] || mkdir -p $dst
+
+	rsync -aAXv \
+	      --info=ALL \
+	      $options \
+	      $src $dst
+
+    else
+
+	printf "${fg_amber}no gnupg config directory found${st_def}\n"
+
+    fi
+}
+
+
+recovery ()
 {
     repo
     code
 }
 
 
-repo()
+repo ()
 {
     # synchronize offline repo		(repo)
 
@@ -338,7 +366,7 @@ repo()
 }
 
 
-code()
+code ()
 {
     # synchronize offline code		(code)
 
@@ -368,7 +396,7 @@ code()
 }
 
 
-config_all()
+config_all ()
 {
     # synchronize .config			(config_all)
 
@@ -386,7 +414,7 @@ config_all()
 }
 
 
-local_share_all()
+local_share_all ()
 {
     # synchronize .local/share		(share_all)
 
@@ -404,7 +432,7 @@ local_share_all()
 }
 
 
-report_log_file()
+report_log_file ()
 {
     ## adding luks_uuid to log filename
     log_file=$(get-newest-file $sync_dir)
@@ -420,7 +448,7 @@ report_log_file()
 }
 
 
-default_backup()
+default_backup ()
 {
     printf "${st_bold}%s${st_def} " 'default backup'
     reply_read_single_hidden_timer
@@ -435,6 +463,7 @@ default_backup()
     local_share_current
 
     password_store
+    gnupg_keys
     #recovery
 
     ## ## config_all
@@ -444,8 +473,7 @@ default_backup()
 }
 
 
-
-archive_backup()
+archive_backup ()
 {
     printf "${st_bold}%s${st_def} " 'archive backup'
     reply_read_single_hidden_timer
@@ -454,7 +482,8 @@ archive_backup()
     local_share_archive
 }
 
-main()
+
+main ()
 {
     check_sum
     # archive_backup
