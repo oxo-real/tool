@@ -212,11 +212,11 @@ validate_destination ()
 	    restore )
 
 		re_dest=$(head -n 1 $src/.sync_info)
-		printf "destination:	${fg_magenta}empty argument${st_def}\n"
+		#printf "destination:	${fg_magenta}empty argument${st_def}\n"
 
 		if [[ ! -z $re_dest ]]; then
 
-		    printf "		${st_bold}$re_dest${st_def}\n\n"
+		    printf "destination:	${st_bold}$re_dest${st_def}\n\n"
 		    printf "is this okay? [y/N] "
 		    reply_read_single
 		    #reply_single
