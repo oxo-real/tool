@@ -65,8 +65,9 @@ git_code="$XDG_DATA_HOME/c/git/code"
 source_dir="$git_code/source/function"
 netconn="$git_code/network/netconn"
 get_newest_file="$git_code/tool/get_newest_file"
-update_dns_hosts_blocklist="$XDG_CONFIG_HOME/blocklist/update_dns_hosts"
+update_blocklist="$XDG_DATA_HOME/c/git/code/network/blocklist/update_bl"
 log_location="$XDG_LOGS_HOME/upgrader/$node_name/package_lists"
+lnuac="$XDG_LOGS_HOME/network/user_agent/current"
 ip_check='9.9.9.9'
 country='Germany,Netherlands,Sweden'  ## ,Japan,Denmark,Iceland,United States
 protocol='https'
@@ -628,7 +629,7 @@ arch_audit_q ()
 
 call_dns_hosts_blocklist ()
 {
-    sh $update_dns_hosts_blocklist
+    sh $update_blocklist
 }
 
 
@@ -648,7 +649,7 @@ update_dns_hosts_blocklist ()
 	printf "updating dns hosts blocklist\n"
 	echo
 	call_dns_hosts_blocklist
-#	echo
+	echo
 #
 #    else
 #
@@ -664,7 +665,6 @@ update_dns_hosts_blocklist ()
 ua_upgrade ()
 {
     printf '%s\n' "$USER_AGENT"
-    lnuac="$XDG_LOGS_HOME/network/user_agent/current"
     # in log print timestamp and designate entry is from upgrader
     sed -i "1i $(date +%s) upgrader" $lnuac
     chua

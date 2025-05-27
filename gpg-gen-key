@@ -9,12 +9,13 @@ set -o pipefail
 
 set_vars ()
 {
-    export name=oxo
-    export email=2oxo@protonmail.com
+    export name=test_name
+    export email=e@ma.il
     export comment="$(date +%N)"
     export pass=pass
-    export expiry='20260101T000000'
+    export expiry="$(( $(date '+%Y') + 1 ))"0101T000000
     export curve=ed25519
+    #export curve=rsa4096
 
     export bu_dir="$GNUPGHOME"/backup
     export user_id="${name} (${comment}) <${email}>"
