@@ -15,8 +15,8 @@
 
 : '
 pwg2
-generate unique hex strings
-copyright (c) 2020 - 2025  |  oxo
+generate unique hex strings (argon2)
+copyright (c) 2025  |  oxo
 
 GNU GPLv3 GENERAL PUBLIC LICENSE
 This program is free software: you can redistribute it and/or modify
@@ -37,7 +37,7 @@ https://www.gnu.org/licenses/gpl-3.0.txt
 
 
 # dependencies
-  source_dir, qrencode, zbarcam
+  argon2
 
 # usage
 
@@ -48,9 +48,10 @@ OR
 # '
 
 
-#set -o errexit
-#set -o nounset
-#set -o pipefail
+# set -o errexit
+set -o nounset
+set -o pipefail
+
 
 # initial definitions
 
@@ -59,10 +60,9 @@ script_dir="$XDG_DATA_HOME/c/git/code/tool"
 script_name='pwg2'
 developer='oxo'
 license='gplv3'
-init_rel_y='2020'
+init_rel_y='2025'
 
 ## hardcoded variables
-source_dir="$XDG_DATA_HOME/c/git/code/source/function"
 hlscgct="$XDG_DATA_HOME"/c/git/code/tool
 
 argon2_t=3
