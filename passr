@@ -486,8 +486,8 @@ function pass_new ()
     read -r -e userid
 
     ## get comments
-    printf "%"$align"s %s" "comments: "
-    read -r -e comments
+    # printf "%"$align"s %s" "comments: "
+    # read -r -e comments
 
     ## generate passstring
     gen_passstring
@@ -496,11 +496,10 @@ function pass_new ()
 
     ## synthesize string
     #obj_content_1=$(printf '%s\nuserid: %s\nurl: %s\ncomments: %s\n%s\ncreated: %s\n' \
-    obj_content_1=$(printf '%s\nuserid: %s\nurl: \t%s\n# \t-------------------------------------------\n%s\n%s\ncreated: %s\n' \
+    obj_content_1=$(printf '%s\nuserid: %s\nurl: \t%s\n# \t-------------------------------------------\n\n%s\ncreated: %s\n' \
 	"$passstring" \
 	"$userid" \
 	"$url" \
-	"$comments" \
 	'#==================================================' \
 	"   $c_time")
 

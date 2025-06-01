@@ -79,6 +79,7 @@
 ├── passexp
 ├── passr
 ├── pull-repo-oxo
+├── pwg2
 ├── pwgn
 ├── qrinv
 ├── rename-exif
@@ -93,6 +94,7 @@
 │   ├── passr -> ../passr
 │   ├── pwgn -> ../pwgn
 │   └── vault -> ../vault
+├── set-font
 ├── sha3-512sums
 ├── shredr
 ├── slicer
@@ -130,5 +132,5 @@
     ├── trashOLD
     └── wfa.py
 
-6 directories, 124 files
+6 directories, 126 files
 ```

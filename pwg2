@@ -1,0 +1,196 @@
+#! /usr/bin/env sh
+
+###
+###                     ____
+###  _ ____      ____ _|___ \
+### | '_ \ \ /\ / / _` | __) |
+### | |_) \ V  V / (_| |/ __/
+### | .__/ \_/\_/ \__, |_____|
+### |_|           |___/
+###
+###  # # # # # #
+###       #
+###  # # # # # #
+###
+
+: '
+pwg2
+generate unique hex strings
+copyright (c) 2020 - 2025  |  oxo
+
+GNU GPLv3 GENERAL PUBLIC LICENSE
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+https://www.gnu.org/licenses/gpl-3.0.txt
+
+@oxo@qoto.org
+
+
+# dependencies
+  source_dir, qrencode, zbarcam
+
+# usage
+
+% pwg2 [$input]
+OR
+% echo input | pwg2
+
+# '
+
+
+#set -o errexit
+#set -o nounset
+#set -o pipefail
+
+# initial definitions
+
+## script_metadata
+script_dir="$XDG_DATA_HOME/c/git/code/tool"
+script_name='pwg2'
+developer='oxo'
+license='gplv3'
+init_rel_y='2020'
+
+## hardcoded variables
+source_dir="$XDG_DATA_HOME/c/git/code/source/function"
+hlscgct="$XDG_DATA_HOME"/c/git/code/tool
+
+argon2_t=3
+argon2_m=22
+argon2_p=4
+argon2_l=64
+
+
+args="$@"
+getargs ()
+{
+    while :; do
+
+	case "$1" in
+
+	    * )
+		input=$@
+		return
+		;;
+
+	esac
+
+    done
+}
+
+
+empty_input ()
+{
+    unset input
+    input=
+}
+
+
+check_sum ()
+{
+    ## check file integrity
+    sh "$hlscgct"/check-sum $(realpath $script_dir/$script_name)
+    [[ $? -ne 0 ]] && exit 88
+}
+
+
+keyboard_input ()
+{
+    ## input is not filled via arg or stdin
+    printf 'pwg2 '
+    [[ -z "$input" ]] && read -s input
+    erase_line
+}
+
+
+erase_line ()
+{
+    printf "\r"
+    tput el
+}
+
+
+input_validation ()
+{
+    [[ -z $input ]] && exit 10
+}
+
+
+sha3512_hash ()
+{
+    ## input
+
+    salt=$(sha3-512sum <<< "$input" | cut -d ' ' -f 1)
+}
+
+
+argon2_hash ()
+{
+    output=$(argon2 "$salt" -i -t "$argon2_t" -m "$argon2_m" -p "$argon2_p" -l "$argon2_l" -r <<< "$input")
+}
+
+
+print_blocks ()
+{
+    ## print four lines of eight; two space-separated, four-column,
+    ## zero-filled, two-byte quantities of hexadecimal inputdata
+
+    row1=$(cut -c 1-32 <<< $1 | sed 's/.\{4\}/&  /g')
+    row2=$(cut -c 33-64 <<< $1 | sed 's/.\{4\}/&  /g')
+    row3=$(cut -c 65-96 <<< $1 | sed 's/.\{4\}/&  /g')
+    row4=$(cut -c 97-128 <<< $1 | sed 's/.\{4\}/&  /g')
+
+    printf '\e[38;2;215;215;215m%s\e[m\n' "$row1"
+    printf '\e[38;2;155;155;155m%s\e[m\n' "$row2"
+    printf '\e[38;2;215;215;215m%s\e[m\n' "$row3"
+    printf '\e[38;2;155;155;155m%s\e[m\n' "$row4"
+}
+
+
+output_wlcopy ()
+{
+    printf $output | cut -c -64 | wl-copy -o -n
+
+    ## to file
+    ### for barebone tty usage
+    ### CAUTION! potentially unsafe
+    #printf "$output_64" | cut -c -64 > output.tmp
+
+    ## to variable
+    #clpbrd=$(printf "$output_64" | cut -c -64)
+}
+
+
+exit_main ()
+{
+    exit 0
+}
+
+
+main ()
+{
+    check_sum
+    empty_input
+    getargs $args
+    keyboard_input
+    input_validation
+    sha3512_hash
+    print_blocks "$salt"
+    argon2_hash
+    print_blocks "$output"
+    empty_input
+    output_wlcopy
+    exit_main
+}
+
+main

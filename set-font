@@ -1,0 +1,108 @@
+#! /usr/bin/env sh
+
+## this script changes font for some applications
+
+args="$@"
+getargs ()
+{
+    while :; do
+
+	case "$1" in
+
+	    '' )
+		return
+		;;
+
+	    * )
+		if [[ "$1" =~ ^[0-9]+$ ]]; then
+
+		    font_size="$1"
+		    return
+
+		else
+
+		    font+="$1 "
+		    shift
+
+		fi
+		;;
+
+	esac
+
+    done
+}
+
+if [[ -n "$args" ]]; then
+
+    getargs $args
+
+elif [[ -z "$args" ]]; then
+
+    ## default font and size
+    font='SauceCodePro Nerd Font'
+    font_size=11
+
+    # 0
+    # font='Hack Nerd Font'  ## too much h compression
+    # font='Agave Nerd Font'  ## seasick
+    # font='BlexMono Nerd Font'
+    # font='0xProto Nerd Font'  ## slashed zero, weird f
+    # font='Terminess Nerd Font' ## slashed zero
+
+fi
+
+## default fallback
+[[ -z "$font" ]] && font='SauceCodePro Nerd Font'
+[[ -z "$font_size" ]] && font_size=11
+
+
+# sway
+
+# size="$font_size"
+size="$(echo "$font_size + 0.5" | bc)"
+
+config_dir="$XDG_CONFIG_HOME"/sway
+config_file_name=config
+
+config_file="$config_dir"/"$config_file_name"
+
+cp "$config_file" "$XDG_CACHE_HOME"/temp/"$(date +%s)"-"$config_file_name".bu
+
+sed -i "/^set \$font/s/\"[^\"]*\"/\"${font} ${size}\"/" "$config_file"
+
+sway reload
+
+
+# alacritty
+
+size="$(echo "$font_size + 0.5" | bc)"
+
+config_dir="$XDG_CONFIG_HOME"/alacritty
+config_file_name=alacritty.toml
+
+config_file="$config_dir"/"$config_file_name"
+
+# cp "$config_file" "$config_dir"/"$(date +%s)"-"$config_file_name".bu
+cp "$config_file" "$XDG_CACHE_HOME"/temp/"$(date +%s)"-"$config_file_name".bu
+
+sed -i "/^family = /s/\"[^\"]*\"/\"${font}\"/" "$config_file"
+sed -i "/^size = /s/[0-9.]\+/${size}/" "$config_file"
+
+
+# emacs
+
+size="$(( font_size * 10 + 5 ))"
+
+config_dir="$XDG_CONFIG_HOME"/emacs
+config_file_name=config.org
+
+config_file="$config_dir"/"$config_file_name"
+
+# cp "$config_file" "$config_dir"/"$(date +%s)"-"$config_file_name".bu
+cp "$config_file" "$XDG_CACHE_HOME"/temp/"$(date +%s)"-"$config_file_name".bu
+
+sed -i "/[[:space:]]*:font /s/\"[^\"]*\"/\"${font}\"/" "$config_file"
+sed -i "/[[:space:]]*:height /s/[0-9]\+/${size}/" "$config_file"
+
+# emacs org-babel-tangle $config_file
+# emacsclient -e '(kill-emacs)'
