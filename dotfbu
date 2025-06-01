@@ -89,7 +89,8 @@ sourcing ()
     source "$source_dir"/reply_functions
     source "$source_dir"/get_sudo
     source "$source_dir"/text_appearance
-    pwgn="$XDG_DATA_HOME"/c/git/code/tool/pwgn
+    pwg2="$XDG_DATA_HOME"/c/git/code/tool/pwg2
+    # pwgn="$XDG_DATA_HOME"/c/git/code/tool/pwgn
 
     ## directories
     fpcl_file="$src"/.fpcl
@@ -477,10 +478,10 @@ generate_pw ()
     ## set environment variable PWGN_OFF (zshenv)
     if [[ -z "$PWGN_OFF" ]]; then
 
-	# run pwgn
+	# run pwg2
 	echo
 
-	printf "starting pwgn... ${fg_black}${bg_yellow}A${st_def}bort "
+	printf "starting pwg2... ${fg_black}${bg_yellow}A${st_def}bort "
 
 	reply_read_single_hidden_timer
 
@@ -500,7 +501,7 @@ generate_pw ()
 
 	else
 
-            sh "$hlscgct"/pwgn
+            sh "$hlscgct"/pwg2
 	    pw=$(wl-paste -n)
 	    echo
 
