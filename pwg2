@@ -15,7 +15,7 @@
 
 : '
 pwg2
-generate unique hex strings (argon2)
+generate unique hex string (argon2)
 copyright (c) 2025  |  oxo
 
 GNU GPLv3 GENERAL PUBLIC LICENSE
@@ -43,7 +43,12 @@ https://www.gnu.org/licenses/gpl-3.0.txt
 
 % pwg2 [$input]
 OR
-% echo input | pwg2
+% pwg2 <<< $input
+OR
+% echo $input | pwg2
+
+# this script
+outputs an unique 1024 bit hexadecimal codeblock based on input
 
 # '
 
@@ -65,11 +70,15 @@ init_rel_y='2025'
 ## hardcoded variables
 hlscgct="$XDG_DATA_HOME"/c/git/code/tool
 
-argon2_a=id
+argon2_v=id
 argon2_t=12
-argon2_m=20
+argon2_m=10
 argon2_p=4
 argon2_l=64
+
+openssl_dgst=keccak-512
+keccak=keccak-512sum
+copy_bytes=32
 
 
 args="$@"
@@ -127,18 +136,40 @@ input_validation ()
 }
 
 
-sha3512_hash ()
+keccak_hash ()
 {
-    ## input
+    ## choose one salting method
 
-    salt=$(keccak-512sum <<< "$input" | cut -d ' ' -f 1)
-    # salt=$(sha3-512sum <<< "$input" | cut -d ' ' -f 1)
+    ## static salt for DEV
+    # salt='saltsalt'
+
+    ## dynamic salt
+    salt=$(echo -n "$input" | $keccak | cut -d ' ' -f 1)
+
+    ## dynamic salt openssl
+    : '
+    salt=$(printf '%s' "$input" \
+	       | openssl dgst -"$openssl_dgst" \
+	       | cut -d ' ' -f 2
+	)
+    # '
+
+    printf "DEV$LINENO %s\n" "${salt}"
 }
 
 
 argon2_hash ()
 {
-    output=$(argon2 "$salt" -"$argon2_a" -t "$argon2_t" -m "$argon2_m" -p "$argon2_p" -l "$argon2_l" -r <<< "$input")
+    output=$(printf '%s' "$input" \
+		 | argon2 \
+		       "$salt" \
+		       -"$argon2_v" \
+		       -t "$argon2_t" \
+		       -m "$argon2_m" \
+		       -p "$argon2_p" \
+		       -l "$argon2_l"\
+		       -r
+	  )
 }
 
 
@@ -156,20 +187,30 @@ print_blocks ()
     printf '\e[38;2;155;155;155m%s\e[m\n' "$row2"
     printf '\e[38;2;215;215;215m%s\e[m\n' "$row3"
     printf '\e[38;2;155;155;155m%s\e[m\n' "$row4"
+
+    ## 1 byte ^= 8 bits ^= 2 chars hex
+
+    ## 1 line ^= 1 * 4 * 8 = 32 chars hex
+    ## 32 chars hex ^= 32 / 2 = 16 bytes
+    ## 16 bytes ^= 16 * 8 = 128 bits
+
+    ## 2 lines ^= 2 * 128 = 256 bits (32 bytes)
+    ## 4 lines ^= 4 * 128 = 512 bits (64 bytes)
+    ## 8 lines ^= 8 * 128 = 1024 bits (128 bytes)
 }
 
 
 output_wlcopy ()
 {
-    printf $output | cut -c -64 | wl-copy -o -n
+    printf $output | cut -c -"$(( copy_bytes * 2 ))" | wl-copy -o -n
 
     ## to file
     ### for barebone tty usage
-    ### CAUTION! potentially unsafe
-    #printf "$output_64" | cut -c -64 > output.tmp
+    ### CAUTION potentially unsafe
+    # printf "$output_64" | cut -c -"$(( copy_bytes * 2 ))"
 
     ## to variable
-    #clpbrd=$(printf "$output_64" | cut -c -64)
+    # clpbrd=$(printf "$output_64" | cut -c -"$(( copy_bytes * 2 ))"
 }
 
 
@@ -186,7 +227,7 @@ main ()
     getargs $args
     keyboard_input
     input_validation
-    sha3512_hash
+    keccak_hash
     print_blocks "$salt"
     argon2_hash
     print_blocks "$output"
