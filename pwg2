@@ -65,8 +65,9 @@ init_rel_y='2025'
 ## hardcoded variables
 hlscgct="$XDG_DATA_HOME"/c/git/code/tool
 
-argon2_t=3
-argon2_m=22
+argon2_a=id
+argon2_t=12
+argon2_m=20
 argon2_p=4
 argon2_l=64
 
@@ -130,13 +131,14 @@ sha3512_hash ()
 {
     ## input
 
-    salt=$(sha3-512sum <<< "$input" | cut -d ' ' -f 1)
+    salt=$(keccak-512sum <<< "$input" | cut -d ' ' -f 1)
+    # salt=$(sha3-512sum <<< "$input" | cut -d ' ' -f 1)
 }
 
 
 argon2_hash ()
 {
-    output=$(argon2 "$salt" -i -t "$argon2_t" -m "$argon2_m" -p "$argon2_p" -l "$argon2_l" -r <<< "$input")
+    output=$(argon2 "$salt" -"$argon2_a" -t "$argon2_t" -m "$argon2_m" -p "$argon2_p" -l "$argon2_l" -r <<< "$input")
 }
 
 
