@@ -71,13 +71,14 @@ init_rel_y='2025'
 hlscgct="$XDG_DATA_HOME"/c/git/code/tool
 
 argon2_v=id
-argon2_t=12
-argon2_m=10
+argon2_t=32
+argon2_m=20
 argon2_p=4
 argon2_l=64
 
 openssl_dgst=keccak-512
 keccak=keccak-512sum
+
 copy_bytes=32
 
 
@@ -153,8 +154,6 @@ keccak_hash ()
 	       | cut -d ' ' -f 2
 	)
     # '
-
-    printf "DEV$LINENO %s\n" "${salt}"
 }
 
 
@@ -175,8 +174,9 @@ argon2_hash ()
 
 print_blocks ()
 {
-    ## print four lines of eight; two space-separated, four-column,
-    ## zero-filled, two-byte quantities of hexadecimal inputdata
+    ## print four lines, eight columns,
+    ## two-byte quantities of hexadecimal inputdata
+    ## total: 512 bits, 128 hex chars, 64 bytes
 
     row1=$(cut -c 1-32 <<< $1 | sed 's/.\{4\}/&  /g')
     row2=$(cut -c 33-64 <<< $1 | sed 's/.\{4\}/&  /g')
