@@ -21,7 +21,8 @@ process_args ()
 	keyid=$(gpg --list-keys --with-colons \
 		    | rg --no-line-number pub \
 		    | awk -F ':' '{print $5}' \
-		    | fzf)
+		    | fzf
+	     )
 
     fi
 }
@@ -29,22 +30,18 @@ process_args ()
 
 get_pass ()
 {
-    askpass "$keyid" \
+    gpg-connect-agent reloadagent /bye
+
+    echo 'signme' \
 	| gpg \
 	      --yes \
 	      --batch \
-	      --passphrase-fd 0 \
-	      --pinentry-mode loopback \
+	      --passphrase-fd 1 \
+	      --local-user "$keyid" \
 	      --armor \
 	      --sign \
-	      --local-user "$keyid" \
+	      - \
 	      > /dev/null 2>&1
-
-    gpg_exit="$?"
-
-    unset pass
-
-    exit "$gpg_exit"
 }
 
 

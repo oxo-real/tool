@@ -1,0 +1,189 @@
+#! /usr/bin/env sh
+
+###           _
+### __      _| |_ __   ___
+### \ \ /\ / / | '_ \ / __|
+###  \ V  V /| | |_) | (__
+###   \_/\_/ |_| .__/ \___|
+###            |_|
+###
+###  # # # # # #
+###       #
+###  # # # # # #
+###
+
+: '
+wlpc
+wl-paste convert
+copyright (c) 2025  |  oxo
+
+GNU GPLv3 GENERAL PUBLIC LICENSE
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+https://www.gnu.org/licenses/gpl-3.0.txt
+
+@oxo@qoto.org
+
+
+# dependencies
+  wl-copy
+
+# usage
+
+% wlpc
+
+# this script
+converts strings from clipboard
+
+# '
+
+
+#set -o errexit
+#set -o nounset
+set -o pipefail
+
+
+# initial definitions
+
+## script_metadata
+script_dir="$XDG_DATA_HOME"/c/git/code/tool
+script_name='wlpc'
+developer='oxo'
+license='gplv3'
+init_rel_y='2025'
+
+## hardcoded variables
+hlscgct="$script_dir"
+
+
+args="$@"
+getargs ()
+{
+    while :; do
+
+	case "$1" in
+
+	    pass )
+		slicing_strings
+		output="$r56_adj""$yk2"
+		return
+		;;
+
+	    '' )
+		slicing_strings
+		output="$r56_adj""$yk2""$cb"
+		return
+		;;
+
+	    * )
+		return
+		;;
+
+	esac
+
+    done
+}
+
+
+check_sum ()
+{
+    ## check file integrity
+    sh "$hlscgct"/check-sum $(realpath "$script_dir"/"$script_name")
+    [[ $? -ne 0 ]] && exit 88
+}
+
+
+erase_line ()
+{
+    printf "\r"
+    tput el
+}
+
+
+slicing_strings ()
+{
+    input=$(wl-paste)
+    [[ -z "$input" ]] && exit 64
+
+    ## personal iterations multiplier
+    pim=$(tr --delete --complement '0-9' <<< "$input" \
+	      | head -c 4
+       )
+
+    cb=$(cut -c 79-82,111-114,143-146,175-178 <<< "$input")
+
+    r5r6=$(cut -c 129-192 <<< "$input")
+
+    ## adjust
+    adj=$(tail -c 5 <<< "$input" \
+	      | tr --delete --complement '0-9' \
+	      | tail -c 1
+       )
+
+    r56_adj=$(head -c $(( 64 - adj )) <<< "$r5r6")
+
+    ## yk2 (salt)
+    echo
+    printf 'yk2? '
+    read -s yk2
+    erase_line
+    erase_line
+}
+
+
+output_to_clipboard ()
+{
+    wl-copy -o -n <<< "$output"
+}
+
+
+reset_vars ()
+{
+    blob=$(tr --delete --complement "[:print:]" < /dev/random \
+	       | head -c 256
+	)
+
+    input="$blob"
+    pim="$blob"
+    r5r6="$blob"
+    adj="$blob"
+    r56_adj="$blob"
+    ppr="$blob"
+    cb="$blob"
+    output="$blob"
+}
+
+
+clean_up ()
+{
+    unset input
+    unset pim
+    unset r5r6
+    unset adj
+    unset r56_adj
+    unset ppr
+    unset cb
+    unset output
+}
+
+
+main ()
+{
+    check_sum
+    getargs $args
+    output_to_clipboard
+    reset_vars
+    clean_up
+}
+
+main

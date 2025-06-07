@@ -67,8 +67,8 @@ NOTICE on arg3 size
 % vault create secure_container 18M
 % vault open $XDG_DATA_HOME/c/keys/pass/vlt_pass $HOME/dock/vlt/pass
 % vault ca -y
-## to permanently run without pwgn set environment variable PWGN_OFF:
-% export PWGN_OFF=1: vault open $vault_file $mountpoint
+## to permanently run without pwg2 set environment variable PWG2_OFF:
+% export PWG2_OFF=1: vault open $vault_file $mountpoint
 
 # '
 
@@ -89,7 +89,7 @@ script_dir="$XDG_DATA_HOME/c/git/code/tool"
 ## static variables
 XDG_DATA_HOME="$HOME/.local/share"
 source_dir="$XDG_DATA_HOME/c/git/code/source/function"
-pwgn="$XDG_DATA_HOME/c/git/code/tool/pwgn"
+pwg2="$XDG_DATA_HOME/c/git/code/tool/pwg2"
 password_store_lnk="$HOME/.password-store"
 fzf_options='--height=20% '
 source "$source_dir/text_appearance"
@@ -621,12 +621,12 @@ keyboard_input()
 
 generate_pw()
 {
-    ## permanently run without pwgn set environment variable PWGN_OFF
-    if [[ -z "$PWGN_OFF" ]]; then
+    ## permanently run without pwg2 set environment variable PWG2_OFF
+    if [[ -z "$PWG2_OFF" ]]; then
 
 	echo
 
-	printf "starting pwgn... ${fg_black}${bg_yellow}A${st_def}bort "
+	printf "starting pwg2... ${fg_black}${bg_yellow}A${st_def}bort "
 
 	reply_read_single_hidden_timer
 
@@ -635,16 +635,16 @@ generate_pw()
 
 	if printf "$reply" | grep -iq "^a"; then
 
-	    # enter password w/o pwgn
+	    # enter password w/o pwg2
 
 	    tput cuu1
 	    erase_line
 
 	else
 
-	    # run pwgn
-            pwgn
-            #sh "$pwgn"
+	    # run pwg2
+            pwg2 && wlpc
+            #sh "$pwg2"
 
 	fi
 

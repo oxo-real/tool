@@ -39,14 +39,14 @@ https://www.gnu.org/licenses/gpl-3.0.txt
 
 # dependencies
   pass, gpg, cryptsetup, fzf
-  pwgn, vault, source functions
+  pwg2, vault, source functions
 
 # usage
   passr [action|object] [element|object|arguments]
 
 # examples
 
-NOTICE to run without pwgn set: export PWGN_OFF=1
+NOTICE to run without pwg2 set: export PWG2_OFF=1
 
 ## status management
 
@@ -128,7 +128,8 @@ args=$@
 arg_object=$1
 arg_element=$2
 tool_dir="$script_dir"
-pwgn="$tool_dir/pwgn"
+pwg2="$tool_dir/pwg2"
+wlpw="$tool_dir/wlpw"
 passstring_size=64
 ### dynamic variables
 object="$arg_object"
@@ -738,8 +739,9 @@ function gpg_decrypt ()
 
     echo
     generate_pw
+    wlpc pass
     echo
-    ## pwgn has at this point generated its hex string
+    ## pwg2 has at this point generated its hex string
 }
 
 
@@ -763,7 +765,7 @@ function process_reply ()
 
 	*)
 	    generate_pw
-	    #sh $pwgn
+	    #sh $pwg2
 	    ;;
 
     esac
@@ -772,12 +774,12 @@ function process_reply ()
 
 function generate_pw ()
 {
-    ## permanently run without pwgn; set environment variable PWGN_OFF
-    if [[ -z "$PWGN_OFF" ]]; then
+    ## permanently run without pwg2; set environment variable PWG2_OFF
+    if [[ -z "$PWG2_OFF" ]]; then
 
 	echo
 
-	printf "starting pwgn... ${fg_black}${bg_yellow}A${st_def}bort "
+	printf "starting pwg2... ${fg_black}${bg_yellow}A${st_def}bort "
 
 	reply_read_single_hidden_timer
 
@@ -786,14 +788,16 @@ function generate_pw ()
 
 	if printf "$reply" | grep -iq "^a"; then
 
-	    # enter password w/o pwgn
+	    # enter password w/o pwg2
 	    tput cuu1
 	    erase_line
 
 	else
 
-	    # run pwgn
-            sh "$pwgn"
+	    # run pwg2
+            # sh "$pwg2"
+	    # sh "$wlpw"
+	    pwg2
 
 	fi
 

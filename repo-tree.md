@@ -80,7 +80,6 @@
 ├── passr
 ├── pull-repo-oxo
 ├── pwg2
-├── pwgn
 ├── qrinv
 ├── rename-exif
 ├── repo-tree.md
@@ -107,6 +106,7 @@
 ├── vault
 ├── verbose
 ├── vtxt
+├── wlpc
 ├── wtime
 ├── yank-buffer
 ├── zsh-root-like-user
@@ -129,8 +129,9 @@
     ├── mountr_rofi
     ├── nmconn_old
     ├── passr_old
+    ├── pwgn
     ├── trashOLD
     └── wfa.py
 
-6 directories, 126 files
+6 directories, 127 files
 ```

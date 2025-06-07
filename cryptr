@@ -410,7 +410,7 @@ src_info()
     #declare -p src_arr
     printf "${st_bold}source"
     [[ "${#src_arr[@]}" -gt 1 ]] && printf 's'
-    printf ":${st_def}\n"
+    printf ":${st_def}"
     printf "\t\t%s\n" "${src_arr[@]}"
 }
 
@@ -531,19 +531,19 @@ select_cipher()
 
 	    ## gnupg cipher select array
 	    cipher_pool=$(\
-			  gpg --version | \
-			      grep -i -A 1 cipher | \
-			      cut -d " " -f 2- | \
-			      xargs | \
-			      sed 's/ //'g | \
-			      tr ',' '\n'\
+			  gpg --version \
+			      | grep -i -A 1 cipher \
+			      | cut -d " " -f 2- \
+			      | xargs \
+			      | sed 's/ //'g \
+			      | tr ',' '\n'
 		       )
 
 	    cipher_select=( $(\
-			      printf "$cipher_pool" | \
-				  fzf -m \
-				      --prompt='select gnupg cipher algorithm ' \
-				      --height=12\
+			      printf "$cipher_pool" \
+				  | fzf -m \
+					--prompt='select gnupg cipher algorithm ' \
+					--height=12
 			    ) )
 
 	    cipher_select_amount=${#cipher_select[@]}
@@ -981,7 +981,7 @@ round_pass()
 get_pass()
 {
     ## enter passphrase
-    echo
+    # echo
     read -s -p "passphrase:	" ro_pass
     echo
 
