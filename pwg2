@@ -203,7 +203,8 @@ print_blocks ()
 output_wlcopy ()
 {
     # printf $output | cut -c -"$(( copy_bytes * 2 ))" | wl-copy -o -n
-    printf $salt$output | wl-copy -o -n
+    # printf "%s%s" "$salt""$output" | wl-copy -o -n
+    printf "%s%s" "$salt" "$output" | wl-copy -n
 
     ## to file
     ### for barebone tty usage

@@ -562,7 +562,7 @@ main ()
 {
     sourcing
     getargs $args
-    check_sum
+    # check_sum
     #get_sudo
     input_type
     input_validation

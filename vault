@@ -117,15 +117,19 @@ arg_target="$2"
 arg_3="$3"
 
 
-check_sum()
+check_sum ()
 {
     ## check file integrity
+    # [[ "$0" == "$BASH_SOURCE" ]] && exre=exit || exre=return
+    [[ $ZSH_EVAL_CONTEXT =~ :file$ ]] && exre=return || exre=exit
     check-sum $(realpath $script_dir/$script_name)
-    [[ $? -ne 0 ]] && exit 88
+
+    ## if script is being sourced; use return instead of exit
+    [[ $? -ne 0 ]] && $exre 88
 }
 
 
-check_target_validity()
+check_target_validity ()
 {
     [[ $action != 'close' ]] && target=$arg_target
 
@@ -177,14 +181,14 @@ check_target_validity()
 }
 
 
-create_new_vault_file()
+create_new_vault_file ()
 {
     truncate -s $size $target
     target_just_created=1
 }
 
 
-check_target_status()
+check_target_status ()
 {
     if [[ $action == "create" ]]; then
 
@@ -355,7 +359,7 @@ check_target_status()
 }
 
 
-check_container_size()
+check_container_size ()
 {
     ## minimum size 18M
     if [[ $target_c_type == "file" ]] && [ $size -lt 18 ]; then
@@ -370,7 +374,7 @@ check_container_size()
 }
 
 
-create_vlt_mapper_id_name()
+create_vlt_mapper_id_name ()
 {
     # create pretty unique and traceable /dev/mapper/vlt_* name
 
@@ -382,7 +386,7 @@ create_vlt_mapper_id_name()
 }
 
 
-write_random_data()
+write_random_data ()
 {
     printf "$target writing zero data\n"
 
@@ -442,7 +446,7 @@ write_random_data()
 }
 
 
-create_vault()
+create_vault ()
 {
     write_random_data
 
@@ -494,10 +498,11 @@ create_vault()
 }
 
 
-open_luks()
+open_luks ()
 {
     #echo
-    printf "\n${fg_yellow}%s${st_def}\n" 'vault open'
+    # printf "\n${fg_yellow}%s${st_def}\n" 'vault open'
+    printf "${fg_yellow}%s${st_def}\n" 'vault open'
     sudo cryptsetup open --type luks2 $target $mapping_name
     # DEBUG
     #sudo cryptsetup open --type luks2 $target $mapping_name --debug
@@ -507,7 +512,7 @@ open_luks()
     sleep 1
     printf "%20s %s\n" "mapping to" $vlt_mapper_id
     sleep 1
-    echo
+    # echo
 }
 
 
@@ -521,14 +526,14 @@ make_fs ()
 }
 
 
-permissions()
+permissions ()
 {
     group="wheel"
     sudo chown -R $USER:$group $mountpoint
 }
 
 
-close_luks()
+close_luks ()
 {
     sudo cryptsetup close $vlt_mapper_id
 
@@ -538,7 +543,7 @@ close_luks()
 }
 
 
-clean_up()
+clean_up ()
 {
     if [[ $action == "create" ]] && [[ -d $mountpoint ]]; then
 
@@ -548,7 +553,7 @@ clean_up()
 }
 
 
-check_mp_dir()
+check_mp_dir ()
 {
     # existence & emptyness (for mounting)
 
@@ -583,14 +588,14 @@ check_mp_dir()
 }
 
 
-erase_line()
+erase_line ()
 {
     printf "\r"
     tput el
 }
 
 
-keyboard_input()
+keyboard_input ()
 {
     #read input
     askpass_exist=$(command -v askpass >/dev/null 2>&1; echo $?)
@@ -619,7 +624,7 @@ keyboard_input()
 }
 
 
-generate_pw()
+generate_pw ()
 {
     ## permanently run without pwg2 set environment variable PWG2_OFF
     if [[ -z "$PWG2_OFF" ]]; then
@@ -652,13 +657,13 @@ generate_pw()
 }
 
 
-mounting()
+mounting ()
 {
     sudo mount $vlt_mapper_id $mountpoint
 }
 
 
-get_vault_data()
+get_vault_data ()
 {
     # single target (vault close 'target')
     ## target is a luks container, mountpoint or vlt_mapper_id
@@ -873,7 +878,7 @@ get_vault_data()
 }
 
 
-show_spec_info()
+show_spec_info ()
 {
     if [[ -z $target_type ]]; then
 
@@ -909,7 +914,19 @@ show_spec_info()
 
 	if [ $mountpoint != "n/a" ]; then
 
-	    printf '%20s %s\n' 'mountpoint:' $mountpoint
+	    printf '%20s %s' 'mountpoint:' $mountpoint
+
+	    if [[ "$action" == 'open' ]]; then
+
+		## mountpoint to clipboard
+		printf '%s' "$mountpoint" | wl-copy
+		printf " ${st_ital}(copied)${st_def}\n"
+
+	    else
+
+		echo
+
+	    fi
 
 	else
 
@@ -923,14 +940,14 @@ show_spec_info()
 }
 
 
-check_target_exists()
+check_target_exists ()
 {
     # for close
     b=1
 }
 
 
-check_no_confirm()
+check_no_confirm ()
 {
     if [[ -z $no_confirm ]]; then
 
@@ -958,7 +975,7 @@ check_no_confirm()
 }
 
 
-fzf_select_target()
+fzf_select_target ()
 {
     case $action in
 
@@ -989,7 +1006,7 @@ fzf_select_target()
 }
 
 
-close_target()
+close_target ()
 {
     # all (vault close all)
 
@@ -1073,7 +1090,7 @@ close_target()
 }
 
 
-unmount()
+unmount ()
 {
     # if pwd is inside mountpoint on close
     if [[ $action == "close" ]] && \
@@ -1107,14 +1124,14 @@ unmount()
 }
 
 
-clear_cache()
+clear_cache ()
 {
     sudo sysctl --write vm/drop_caches=3
     printf "vault closed\n"
 }
 
 
-get_all_vlt_mapper_ids()
+get_all_vlt_mapper_ids ()
 {
     vlt_mapper_ids=$(\lsblk -rp | grep 'vlt_' | sort -k 7 | awk '{print $1}')
 
@@ -1127,7 +1144,7 @@ get_all_vlt_mapper_ids()
 }
 
 
-vault_list()
+vault_list ()
 {
     # show list of all vlt mapped devices with their mountpoints
 
@@ -1147,7 +1164,7 @@ vault_list()
 }
 
 
-vault_spec_info()
+vault_spec_info ()
 {
     # show info about specific target / target_list
 
@@ -1174,7 +1191,7 @@ vault_spec_info()
 }
 
 
-close_luks_all()
+close_luks_all ()
 {
     get_all_vlt_mapper_ids
     vault_list
@@ -1222,7 +1239,7 @@ close_luks_all()
 }
 
 
-check_no_confirm_flag()
+check_no_confirm_flag ()
 {
     ## set no_confirm to '' or 1
     case $action in
@@ -1260,7 +1277,7 @@ check_no_confirm_flag()
 }
 
 
-fzf_target_mountpoint()
+fzf_target_mountpoint ()
 {
     if [[ -z $target ]]; then
 
@@ -1272,7 +1289,7 @@ fzf_target_mountpoint()
 }
 
 
-get_target_luks_uuid()
+get_target_luks_uuid ()
 {
     luks_uuid=$(sudo cryptsetup luksUUID $target)
 
@@ -1291,7 +1308,7 @@ get_target_luks_uuid()
 }
 
 
-set_close_args()
+set_close_args ()
 {
     # getting the right arguments for all scenarios
 
@@ -1323,7 +1340,7 @@ set_close_args()
 }
 
 
-main()
+main ()
 {
     check_sum
 

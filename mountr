@@ -430,7 +430,11 @@ fzf_choose()
 
 mount_info()
 {
-    printf "$source_dev $dev_type $size $label mounted to ${fg_blue}$mount_to${st_def}\n"
+    printf "$source_dev $dev_type $size $label mounted to ${fg_blue}$mount_to${st_def}"
+
+    ## mountpoint to clipboard
+    printf '%s' "$mount_to" | wl-copy
+    printf " ${st_ital}(copied)${st_def}\n"
 }
 
 

@@ -11,7 +11,7 @@ set_vars ()
 {
     export name=test_name
     export email=e@ma.il
-    export comment="$(date +%N)"
+    export comment="$(printf '%X\n' $(date +'%s'))"
     export pass=pass
     export expiry="$(( $(date '+%Y') + 1 ))"0101T000000
     export curve=ed25519
@@ -50,7 +50,7 @@ get_key_data ()
 		   "$user_id")
 
     ## key long public ID
-    export keypbl=$(awk -F ':' '/^pub:/ {print $5}' <<< "$key_data")
+    export keylong=$(awk -F ':' '/^pub:/ {print $5}' <<< "$key_data")
 
     ## key fingerprint
     export keyfpr=$(awk -F ':' '/^fpr:/ {print $10}' <<< "$key_data")
@@ -88,13 +88,13 @@ show_info ()
     gpg -k \
 	--with-fingerprint \
 	--with-keygrip \
-	"$keypbl"
+	"$keylong"
 }
 
 
 key_backup ()
 {
-    gpg-bu-key "$keypbl" "$bu_dir"
+    gpg-bu-key "$keylong" "$bu_dir"
 }
 
 
@@ -113,49 +113,49 @@ main
 
 add_aes_keys_ALT ()
 {
-    gpg --expert --edit-key "$keypbl" --command-fd 0 --pinentry-mode loopback << EOF
-addkey
-11
-s
-a
-q
-1
-echo "$expiry"
-y
-y
-echo "$pass"
-addkey
-12
-1
-echo "$expiry"
-y
-y
-echo "$pass"
-addkey
-10
-1
-echo "$expiry"
-y
-y
-echo "$pass"
-save
-EOF
+    gpg --expert --edit-key "$keylong" --command-fd 0 --pinentry-mode loopback <<EOF
+    addkey
+    11
+    s
+    a
+    q
+    1
+    echo "$expiry"
+    y
+    y
+    echo "$pass"
+    addkey
+    12
+    1
+    echo "$expiry"
+    y
+    y
+    echo "$pass"
+    addkey
+    10
+    1
+    echo "$expiry"
+    y
+    y
+    echo "$pass"
+    save
+    EOF
 }
 
 
 gen_cert_ALT ()
 {
-    gpg --expert --full-generate-key --command-fd 0 --pinentry-mode loopback << EOF
-11
-s
-q
-1
-0
-$name
-$email
-$comment
-o
-echo $pass
-echo $pass
-EOF
+    gpg --expert --full-generate-key --command-fd 0 --pinentry-mode loopback <<EOF
+    11
+    s
+    q
+    1
+    0
+    $name
+    $email
+    $comment
+    o
+    echo $pass
+    echo $pass
+    EOF
 }

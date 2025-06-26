@@ -108,7 +108,7 @@ or
 # '
 
 
-#set -o errexit
+# set -o errexit
 #set -o nounset
 set -o pipefail
 
@@ -237,10 +237,9 @@ function check_sum ()
 
     	checked=1
     	check-sum $(realpath $script_dir/$script_name)
-	[[ $? -ne 0 ]] && exit 88
+	[[ $? -eq 0 ]] || exit 88
 
     fi
-
 }
 
 

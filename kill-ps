@@ -2,72 +2,66 @@
 
 ## C-u clears the entry in fzf
 
-# usage
-# kill-ps [root]
+## usage:
+## kill-ps [--all-procs]
+## default is only user procs
 
 #source_dir="$HOME/.local/share/c/git/code/sources/functions"
 source_dir="$XDG_DATA_HOME/c/git/code/source/function"
 #gives error when running sudo --root?!
 source $source_dir/reply_functions
 source $source_dir/text_appearance
-source $source_dir/get_sudo
-
-level=$1
+# source $source_dir/get_sudo
 
 ## number of lines to show on break
 ps_lines=15
 
-# are we running elevated?
-sudo -n printf "" > /dev/null 2>&1
-
-[[ $? == 0 ]] && elevated="yes"
-
-if [[ $level == "--root" ]] && [[ -z "$elevated" ]]; then
-
-    clear
-    # hide cursor
-    tput civis
-    printf "${fg_amber}killing root processes requires elevated privileges!${st_def}\n"
-    sleep 2
-    clear
-    # show cursor
-    tput cnorm
-
-fi
+arg="$1"
 
 
-cursor_up_one_line() {
-
+cursor_up_one_line ()
+{
     tput cuu1
-
 }
 
 
-fzf_input() {
-
+fzf_input ()
+{
     # ps_data=$(ps -eo user,%cpu,%mem,pid,state,start,args=COMMAND \
 	# --sort=command,-%cpu,-%mem)
     ps_data=$(ps -eo user,%mem,%cpu,pid,state,start,args=COMMAND \
 		  | awk 'NR == 1; NR > 1 {print $0 \
-		  | "sort --key 1,1 --key 2,2nr --key 3,3nr --key 6,6nr --key 7"}')
+		  | "sort --key 1,1 --key 3,3nr --key 2,2nr --key 6,6nr --key 7"}')
 
-    fzf_input=$(echo "$ps_data" | grep -v ^root)
+    ps_header_line=$(head -n 1 <<< "$ps_data")
 
-    [[ $level == "--root" ]] \
-	&& fzf_input=$(echo "$ps_data")
+    fzf_user_slice=$(grep ^"$USER" <<< "$ps_data")
+    # fzf_user_slice=$(printf '%s\n' "$ps_data" | grep ^"$USER" <<< "$ps_data")
 
+    fzf_input=$(printf '%s\n%s\n' "$ps_header_line" "$fzf_user_slice")
+    # fzf_input=$(echo "$ps_data" | grep -v ^root | grep ^"$USER" | grep -v ^"$USER" | sort)
+
+    if [[ $arg == "--all-procs" || "$arg" == "--all" || "$arg" == '-a' ]]; then
+
+	## sort order: user, root, rest
+	## USER filters out ps header line
+	fzf_root_slice=$(echo "$ps_data" | grep ^root)
+	fzf_rest_slice=$(echo "$ps_data" | grep -v ^root | grep -v ^"$USER" | grep -v ^USER)
+	fzf_input=$(printf '%s\n%s\n%s\n%s\n' "$header_line" "$fzf_user_slice" "$fzf_root_slice" "$fzf_rest_slice")
+
+    fi
 }
 
 
-kill_proc() {
-
-    local pid
-
+get_proc ()
+{
     ## fzf select pids (processes) to kill
-    pid2kill=$(echo -n "$fzf_input" | fzf -m --cycle --header-lines=1 | awk '{print $4}')
+    pid2kill=$(echo -n "$fzf_input" | fzf --multi --header-lines=1 | awk '{print $4}')
+}
 
-    echo
 
+kill_proc ()
+{
     if [[ -n $pid2kill ]]; then
 
 	## print header
@@ -91,6 +85,8 @@ kill_proc() {
 	reply_single
 
 	if printf "$reply" | grep -iq "^y"; then
+
+	    sudo --validate
 
 	    printf "\nkilling in progress... "
 	    echo $pid2kill | xargs kill -${1:-9}
@@ -117,5 +113,11 @@ kill_proc() {
 }
 
 
-fzf_input
-kill_proc
+main ()
+{
+    fzf_input
+    get_proc
+    kill_proc
+}
+
+main
