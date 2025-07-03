@@ -56,6 +56,15 @@ set -o errexit
 #set -o nounset
 set -o pipefail
 
+# initial definitions
+
+## script
+script_name=check-sum
+developer=oxo
+license=gplv3
+initial_release=2022
+script_dir="$XDG_DATA_HOME/c/git/code/tool"
+
 ## arg should be realpath to file
 args=$@
 
@@ -96,6 +105,12 @@ function process_args ()
 
 		fail-only | --fail-only | -f )
 		    mode='fail-only'
+		    shift
+		    ;;
+
+		--script-pid )
+		    shift
+		    script_pid="$1"
 		    shift
 		    ;;
 
@@ -388,13 +403,11 @@ function verify_checksum ()
 	    printf "$(BGx 222222)${fg_amber}%s${st_def} ${fg_red}${st_bold}Fail${st_def}\n" "$file_name"
 	    printf "calc-sum ${st_ital}(copied)${st_def}\n"
 
-	    ## if script is being sourced; use return instead of exit
-	    # [[ "$0" == "$BASH_SOURCE" ]] && exre=exit || exre=return
-
-	    # [[ $ZSH_EVAL_CONTEXT =~ :file$ ]] && exre=return || exre=exit
-	    # [[ $ZSH_SUBSHELL -eq 0 ]] && exre=exit || exre=return
-	    # [[ $ZSH_EVAL_CONTEXT =~ :file$ ]] && exre=exit || exre=return
-	    # $exre 88
+	    ## terminate the parent process of the current shell
+printf "DEV$LINENO %s\n" "${PPID}"
+printf "DEV$LINENO %s\n" "${script_pid}"
+	    # kill -KILL $PPID > /dev/null 2>&1
+	    kill -KILL "$script_pid" > /dev/null 2>&1
 
 	elif [[ "$ist_sum" = "$soll_sum" ]]; then
 

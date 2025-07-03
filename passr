@@ -120,6 +120,7 @@ developer='oxo'
 license='gplv3'
 initial_release='2020'
 script_dir="$XDG_DATA_HOME/c/git/code/tool"
+script_pid="$$"
 
 ## arguments
 ### static variables
@@ -236,8 +237,7 @@ function check_sum ()
     if [[ -z $checked ]]; then
 
     	checked=1
-    	check-sum $(realpath $script_dir/$script_name)
-	[[ $? -eq 0 ]] || exit 88
+    	check-sum --script-pid "$script_pid" $(realpath $script_dir/$script_name)
 
     fi
 }
@@ -705,6 +705,7 @@ function pass_mount ()
     if [[ -z "$mountpoint" ]]; then
 
 	vault open $crypto_source $pass_mount_pt
+	[[ $? -eq 33 ]] && exit 33
 
     elif [[ -n "$mountpoint" ]]; then
 

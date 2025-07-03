@@ -80,11 +80,12 @@ set -o pipefail
 # initial definitions
 
 ## script
-script_name='vault'
-developer='oxo'
-license='gplv3'
-initial_release='2019'
+script_name=vault
+developer=oxo
+license=gplv3
+initial_release=2019
 script_dir="$XDG_DATA_HOME/c/git/code/tool"
+script_pid="$$"
 
 ## static variables
 XDG_DATA_HOME="$HOME/.local/share"
@@ -120,12 +121,7 @@ arg_3="$3"
 check_sum ()
 {
     ## check file integrity
-    # [[ "$0" == "$BASH_SOURCE" ]] && exre=exit || exre=return
-    [[ $ZSH_EVAL_CONTEXT =~ :file$ ]] && exre=return || exre=exit
-    check-sum $(realpath $script_dir/$script_name)
-
-    ## if script is being sourced; use return instead of exit
-    [[ $? -ne 0 ]] && $exre 88
+    check-sum --script-pid "$script_pid" $(realpath $script_dir/$script_name)
 }
 
 
@@ -503,16 +499,30 @@ open_luks ()
     #echo
     # printf "\n${fg_yellow}%s${st_def}\n" 'vault open'
     printf "${fg_yellow}%s${st_def}\n" 'vault open'
-    sudo cryptsetup open --type luks2 $target $mapping_name
+    sudo cryptsetup open --type luks2 --tries 1 $target $mapping_name
     # DEBUG
     #sudo cryptsetup open --type luks2 $target $mapping_name --debug
 
-    echo
-    printf "%20s %s\n" "decrypting" $target
-    sleep 1
-    printf "%20s %s\n" "mapping to" $vlt_mapper_id
-    sleep 1
-    # echo
+    if [[ $? -eq 0 ]]; then
+
+	## good decrypt
+	echo
+	printf "%20s %s\n" "decrypting" $target
+	sleep 1
+	printf "%20s %s\n" "mapping to" $vlt_mapper_id
+	sleep 1
+	# echo
+
+    else
+
+	## bad decrypt
+	echo
+	printf "%20s ${fg_amber}%s${st_def}\n" "decrypting error" $target
+
+	## exit code for passr
+	exit 33
+
+    fi
 }
 
 
@@ -1346,12 +1356,12 @@ main ()
 
     case $arg_action in
 
-	list | l)
+	list | l )
 	    action='list'
 	    vault_list
 	    ;;
 
-	status | s)
+	status | s )
 	    action='status'
 	    check_target_validity
 	    check_target_status
@@ -1361,7 +1371,7 @@ main ()
 	    vault_spec_info
 	    ;;
 
-	create | new | n)
+	create | new | n )
 	    action='create'
 	    size=$arg_3
 
@@ -1379,7 +1389,7 @@ main ()
 	    clean_up
 	    ;;
 
-	open | o)
+	open | o )
 	    action='open'
 	    mountpoint=$arg_3
 
@@ -1403,7 +1413,7 @@ main ()
 	    show_spec_info
 	    ;;
 
-	close | ca | c)
+	close | ca | c )
 	    action='close'
 	    set_close_args
 
@@ -1416,7 +1426,12 @@ main ()
 	    close_target
 	    ;;
 
-	*)
+	'' )
+	    printf "${fg_amber}no action specified${st_def}\n"
+	    exit 40
+	    ;;
+
+	* )
 	    printf "no valid action: ${fg_magenta}%s${st_def}\n" $arg_action
 	    exit 40
 	    ;;
