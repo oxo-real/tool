@@ -77,9 +77,9 @@ initial_release='2020'
 
 # arguments
 
-mode=$1	# 'backup' or 'restore'
-src=$2	# source directory
-dest=$3	# destination directory
+mode=$1	   ## 'backup' or 'restore'
+src=$2	   ## source directory
+dest=$3	   ## destination directory
 
 
 sourcing ()
