@@ -404,8 +404,6 @@ function verify_checksum ()
 	    printf "calc-sum ${st_ital}(copied)${st_def}\n"
 
 	    ## terminate the parent process of the current shell
-printf "DEV$LINENO %s\n" "${PPID}"
-printf "DEV$LINENO %s\n" "${script_pid}"
 	    # kill -KILL $PPID > /dev/null 2>&1
 	    kill -KILL "$script_pid" > /dev/null 2>&1
 
