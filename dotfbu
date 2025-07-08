@@ -408,7 +408,7 @@ copy ()
 
 	    ## write .sync_info file to destination
 	    ## only if there are changes (to be committed)
-	    git_status=$(git -C $bu_dest -sb)
+	    git_status=$(git -C $bu_dest status -sb)
 	    gs_nof_lines=$(printf '%s\n' "$git_status" | wc -l)
 
 	    if [[ $gs_nof_lines -gt 1 ]]; then

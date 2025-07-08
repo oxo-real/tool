@@ -241,7 +241,7 @@ function replace_hash_list ()
     [[ -f $hash_list ]] && rm $hash_list
 
     ## calculate and write sha512sums of all files in dir_name
-    fd --max-depth 1 --type file --exec sha3-512sum {} \; -- . $dir_name > $hash_list 2>/dev/null
+    fd --max-depth 1 --type file --hidden --exec sha3-512sum {} \; -- . $dir_name > $hash_list 2>/dev/null
 
     ## user feedback
     wc -l $hash_list

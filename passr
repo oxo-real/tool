@@ -376,7 +376,7 @@ function get_object ()
 				    ## we have an $object
 				    case $hold_status in
 
-					1)
+					1 )
 					    ## holding object
 					    object="$object_to_hold"
 					    ;;
@@ -446,7 +446,7 @@ function pass_new ()
     ## prevent 'passr non_existent_object' from being emptied out
     case $object in
 
-	create | new | n)
+	create | new | n )
 	    ## coming from 'passr new'
 	    object=$arg_element
 
@@ -462,12 +462,12 @@ function pass_new ()
 
     ## get object
     case $object in
-	'')
+	'' )
 	    printf "%"$align"s %s" "object: "
 	    read -r -e object
 	    ;;
 
-	*)
+	* )
 	    printf "%"$align"s %s" "object: "
 	    printf "$object\n"
 	    ;;
@@ -602,14 +602,14 @@ function log_in ()
 
     case $mp_status in
 
-   	$store)
+   	$store )
 	    from_log_in=1
 	    element='login'
 	    gpg_decrypt
 	    pass_element
 	    ;;
 
-   	*)
+   	* )
 	    vault_open
 	    log_in
 	    ;;
@@ -715,7 +715,7 @@ function pass_mount ()
 
     case $object in
 
-	open)
+	open )
 	    ## only mount vault, no login
 	    exit 0
 	    ;;
@@ -739,8 +739,6 @@ function gpg_decrypt ()
 
     echo
     generate_pw
-    wlpc pass
-    echo
     ## pwg2 has at this point generated its hex string
 }
 
@@ -759,13 +757,12 @@ function process_reply ()
 
     case $reply in
 
-	$1)
+	"$1" )
 	    continue
 	    ;;
 
-	*)
+	* )
 	    generate_pw
-	    #sh $pwg2
 	    ;;
 
     esac
@@ -791,13 +788,15 @@ function generate_pw ()
 	    # enter password w/o pwg2
 	    tput cuu1
 	    erase_line
+	    echo
 
 	else
 
-	    # run pwg2
-            # sh "$pwg2"
-	    # sh "$wlpw"
+	    # enter password with pwg2
 	    pwg2
+
+	    wlpc pass
+	    echo
 
 	fi
 
@@ -834,7 +833,7 @@ function object_is_quit ()
 {
     case $object in
 
-	quit)
+	quit )
 	    element='quit'
 	    human_info
 	    pass_quit
@@ -854,12 +853,12 @@ function process_object ()
 	## object does exist
 	case $object in
 
-	    new | n)
+	    new | n )
 		## prevent duplicate object names
 		printf "object ${fg_amber}$object${st_def} exists\n"; exit 47
 		;;
 
-	    *)
+	    * )
 		continue
 		;;
 
@@ -872,15 +871,16 @@ function process_object ()
 
 	    case $hold_status in
 
-		1)
+		1 )
 		    ## hold same object
 		    object=$object_to_hold
 		    #get_object
 		    ;;
 
-		*)
+		* )
 		    ## get next object
 		    get_object
+		    ;;
 
 	    esac
 
@@ -900,7 +900,8 @@ function object_is_quit ()
 {
     case $object in
 
-	quit)
+	quit | '' )
+
 	    element='quit'
 	    human_info
 	    pass_quit
@@ -912,7 +913,7 @@ function object_is_quit ()
 
 function process_object ()
 {
-    object_is_quit
+    # object_is_quit
     check_obj_exist
 
     if [[ $obj_exist -eq 1 ]]; then
@@ -920,12 +921,12 @@ function process_object ()
 	## object does exist
 	case $object in
 
-	    new | n)
+	    new | n )
 		## prevent duplicate object names
 		printf "object ${fg_amber}$object${st_def} exists\n"; exit 47
 		;;
 
-	    *)
+	    * )
 		continue
 		;;
 
@@ -938,13 +939,13 @@ function process_object ()
 
 	    case $hold_status in
 
-		1)
+		1 )
 		    ## hold same object
 		    object=$object_to_hold
 		    #get_object
 		    ;;
 
-		*)
+		* )
 		    ## get next object
 		    get_object
 		    object_is_quit
@@ -956,16 +957,16 @@ function process_object ()
 
 	    case $object in
 
-		new | n)
+		new | n )
 		    check_new_obj_names
 		    continue
 		    ;;
 
-		'')
+		'' )
 		    exit 0
 		    ;;
 
-		*)
+		* )
 		    ## non-existent object
         	    printf "not found ${fg_amber}$object${st_def}; "
 
@@ -977,7 +978,7 @@ function process_object ()
 
 		    case $reply in
 
-			n | N)
+			n | N )
 			    exit 0
 			    ;;
 
@@ -1004,7 +1005,7 @@ function process_object ()
     get_cache_status
     case $cache_status in
 
-    	0)
+    	0 )
 	    log_in
 	    ;;
 
@@ -1014,9 +1015,10 @@ function process_object ()
 
 function get_element_value ()
 {
-    ## awk print all after 'field:' (needed for aeseq)
-    ## sed remove leading whitespace
-    element_value=$(pass show $object | grep ^$element: | awk -F ': ' '{print $2}' | sed 's/^[ \t]*//')
+    ## sed remove excess whitespace
+    ## awk print all after 'field: ' (needed for aeseq)
+    element_value=$(pass show $object | grep ^$element: | sed -e 's/[[:space:]]\+/ /g' | awk -F ': ' '{print $2}')
+    # element_value=$(pass show $object | grep ^$element: | awk -F ': ' '{print $2}' | sed 's/^[ \t]*//')
 
     ## print only single word after ':'
     # element_value=$(pass show $object | grep ^$element: | awk '{print $2}')
@@ -1173,7 +1175,6 @@ function human_info ()
     elif [[ -n $ae ]]; then
 
 	## in autoentry modus
-    	# notify-send "$element"
 	for secs_left in $(seq "$t" -1 1); do
 
 	    notify-send --expire-time 1000 "$ns_string $secs_left"
