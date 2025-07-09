@@ -82,8 +82,8 @@ developer='oxo'
 license='gplv3'
 initial_release='2023'
 ## select cipher suite
-cipher_suite="gnupg"
-#cipher_suite="openssl"
+#cipher_suite="gnupg"
+cipher_suite="openssl"
 
 cgc_dir="$XDG_DATA_HOME/c/git/code"
 source_dir="$cgc_dir/source/function"
@@ -139,17 +139,17 @@ evaluate_args()
     ## number of arguments
     case $args_arr_length in
 
-	0|'')
+	0 | '' )
 	    ## no args
 	    exit 14
 	    ;;
 
-	1)
+	1 )
 	    ## single arg
 	    evaluate_single_arg
 	    ;;
 
-	*)
+	* )
 	    ## multiple args
 	    ### first get operation, because that determines which
 	    ### arguments are sources and which is destination
@@ -203,7 +203,7 @@ evaluate_multiple_args()
 
 	case $j in
 
-	    0)
+	    0 )
 		# first argument -from multiple- (j = 0)
 
 		check_if_option "$arg"
@@ -220,18 +220,18 @@ evaluate_multiple_args()
 		fi
 		;;
 
-	    $last_element_index)
+	    $last_element_index )
 		# last argument -from multiple- (j = n)
 
 		case $oper in
 
-		    decr)
+		    decr )
 			arg=$(realpath "$arg")
 			dst="$arg"
 			#[[ -d "$dst" ]] || dir_to_make="$dst"
 			;;
 
-		    encr)
+		    encr )
 			arg=$(realpath "$arg")
 			if [[ -f "$arg" || -d "$arg" ]]; then
 
@@ -250,7 +250,7 @@ evaluate_multiple_args()
 		[[ -z "$dst" ]] && dst="$PWD"
 		;;
 
-	    *)
+	    * )
 		# argument(s) between first and last (0 < j <= n)
 
 		## these are always sources
@@ -323,11 +323,11 @@ set_oper_decr()
 
     case $cipher_suite in
 
-	gnupg)
+	gnupg )
 	    opr='d'
 	    ;;
 
-	openssl)
+	openssl )
 	    opr='b'
 	    ;;
 
@@ -351,11 +351,11 @@ set_oper_encr()
 
     case $cipher_suite in
 
-	gnupg)
+	gnupg )
 	    opr='e'
 	    ;;
 
-	openssl)
+	openssl )
 	    opr='c'
 	    ;;
 
@@ -385,7 +385,7 @@ check_if_option()
 
     case "$arg" in
 
-	-d|--decr|decr)
+	-d | --decr | decr )
 	    ## explicit decrypt
 	    set_oper_decr
 
@@ -393,7 +393,7 @@ check_if_option()
 	    unset args_arr[0]
 	    ;;
 
-	-e|--encr|encr)
+	-e | --encr | encr )
 	    ## explicit encrypt
 	    set_oper_encr
 
@@ -527,7 +527,7 @@ select_cipher()
 
     case $cipher_suite in
 
-	gnupg)
+	gnupg )
 
 	    ## gnupg cipher select array
 	    cipher_pool=$(\
@@ -549,7 +549,7 @@ select_cipher()
 	    cipher_select_amount=${#cipher_select[@]}
 	    ;;
 
-	openssl)
+	openssl )
 
 	    ## openssl cipher select array
 	    cipher_pool=$(\
@@ -597,27 +597,27 @@ running_rounds()
 	printf '%s' "$cipher "
 	case $round in
 
-	    1)
+	    1 )
 
 		case $rounds in
 
-		    1)
+		    1 )
 			crypt_once
 			;;
 
-		    *)
+		    * )
 			crypt_first
 			;;
 
 		esac
 		;;
 
-	    $rounds)
+	    $rounds )
 
 		crypt_last
 		;;
 
-	    *)
+	    * )
 
 		crypt_next
 		;;
@@ -637,7 +637,7 @@ crypt_first()
     ## first round of en- or decryption
     case $oper in
 
-	encr)
+	encr )
 
 	    ## define file_in
 	    file_in="$tar_src"
@@ -646,7 +646,7 @@ crypt_first()
 	    file_out=$tmp_dir/$(basename $file_in).$round
 	    ;;
 
-	decr)
+	decr )
 
 	    ## define file_in
 	    file_in=$crypt_file
@@ -666,7 +666,7 @@ crypt_next()
     ## next round of en- or decryption
     case $oper in
 
-	encr)
+	encr )
 
 	    ## define file_in
 	    file_in=$file_out
@@ -678,7 +678,7 @@ crypt_next()
 	    file_out=$tmp_dir/$(basename $(printf $file_in | sed "s/$round_pr$/$round/"))
 	    ;;
 
-	decr)
+	decr )
 
 	    ## define file_in
 	    file_in=$file_out
@@ -701,7 +701,7 @@ crypt_last()
     ## last round of en- or decryption
     case $oper in
 
-	encr)
+	encr )
 
 	    file_in=$file_out
 
@@ -712,7 +712,7 @@ crypt_last()
 	    file_out=$tmp_dir/$(basename $(printf $file_in | sed "s/$round_pr$/crypt/"))
 	    ;;
 
-	decr)
+	decr )
 
 	    ## define file_in
 	    file_in=$file_out
@@ -733,13 +733,13 @@ crypt_once()
     ## using one algorithm and no cipher cascade
     case $oper in
 
-	encr)
+	encr )
 
 	    file_in="$tar_src"
 	    file_out="$tmp_dir/$(basename $dst).crypt"
 	    ;;
 
-	decr|add)
+	decr | add )
 
 	    file_in=$crypt_file
 
@@ -759,13 +759,14 @@ crypt_exec()
 {
     case $cipher_suite in
 
-	gnupg)
+	gnupg )
 
 	    [[ $opr == 'e' ]] && gnupg_oper='symmetric'
 	    [[ $opr == 'd' ]] && gnupg_oper='decrypt'
 
-		#pass $pass_object | \
-	        printf "$ropa" | \
+	    #pass $pass_object | \
+
+	    printf "$ropa" | \
 	    	gpg \
 		    --quiet \
 	    	    --$gnupg_oper \
@@ -778,7 +779,10 @@ crypt_exec()
 	    	    $file_in
 	    ;;
 
-	openssl)
+	openssl )
+
+	    [[ $opr == 'c' ]] && oper=e
+	    [[ $opr == 'b' ]] && oper=d
 
 	    openssl enc \
 		    -$oper \
@@ -846,18 +850,18 @@ tarx_check()
 
 		case $reply in
 
-		    y)
+		    y )
 			echo
 			printf '\t\tplease confirm? [y/N] '
 			reply_single
 
 			case $reply in
 
-			    y)
+			    y )
 				echo
 				;;
 
-			    *)
+			    * )
 				echo
 				printf "\t\t${fg_magenta}encryption aborted${st_def}\n"
 				exit 34
@@ -868,7 +872,7 @@ tarx_check()
 			erase_line 2
 			;;
 
-		    *)
+		    * )
 			echo
 			echo
 			printf "\t\t${fg_magenta}encryption aborted${st_def}\n"
@@ -940,12 +944,12 @@ round_pass()
     ## every round has an unique round password (ropa)
     case $oper in
 
-	encr)
+	encr )
 
 	    ropa_round=$round
 	    ;;
 
-	decr)
+	decr )
 
 	    ## invert round counter to match encr
 	    ropa_round=$(( $rounds + 1 - $round ))
@@ -957,7 +961,7 @@ round_pass()
 
     case $cipher_suite in
 
-	gnupg)
+	gnupg )
 	    ropa=$(\
 		   printf '%s' "$ropa_string" | \
 		       gpg --print-md sha3-512 | \
@@ -966,7 +970,7 @@ round_pass()
 		)
 	    ;;
 
-	openssl)
+	openssl )
 	    ropa=$(\
 		   printf '%s' "$ropa_string" | \
 		       openssl dgst -sha3-512 | \
@@ -987,7 +991,7 @@ get_pass()
 
     case $oper in
 
-	encr)
+	encr )
 	    # verifiy pass
 	    ro_pass_sha3512=$(printf '%s' "$ro_pass" | gpg --print-md sha3-512)
 	    read -s -p 'verify:		' ro_pass
@@ -1028,14 +1032,12 @@ check_args()
 {
     case $oper in
 
-	add)
+	add )
 
 	    show_info
-	    :
 	    ;;
 
     esac
-    :
 }
 
 
@@ -1077,21 +1079,21 @@ main()
 
     case $oper in
 
-	encr)
+	encr )
 
 	    tar_append
 	    encrypt
 	    cleanup
 	    ;;
 
-	decr)
+	decr )
 
 	    decrypt
 	    tar_extract
 	    cleanup
 	    ;;
 
-	add)
+	add )
 	    :
 	    ;;
 
