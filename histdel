@@ -1,5 +1,7 @@
 #! /usr/bin/env sh
 
+## remove lines from history containing selected content
+
 ## history file
 histfile="$HOME"/.logs/history/history
 
@@ -17,7 +19,9 @@ show_lines ()
 	      )
 
     line_sel=$(fzf --multi --tac <<< "$uniq_lines")
-    # line_sel=$(awk -F "$delimiter" '{print $2}' "$file" | fzf --multi --tac)
+
+    ## exit if line_sel is empty
+    [[ -z "$line_sel" ]] && exit 0
 }
 
 
@@ -36,23 +40,17 @@ select_action ()
 	    ## remove all selected lines from file
 	    while read line; do
 
-		## escaped line lhs of sed (searched part)
-		# line_esc_lhs=$(printf '%s\n' "$line" | sed 's:[][\\/.^$*]:\\&:g')
-		# line_esc_lhs=$(printf '%s\n' "$line" | sed 's:[][\\/.^$*+?(){}|]:\\&:g')
+		# escaped line lhs (search part) of sed
+		## characters that have to be escaped in regular expression
+		## use bre or ere
+
+		## basic regular expression (bre)
 		line_esc_lhs_bre="${line//[][\\\/.^\$*]/\\&}"
-		line_esc_lhs_ere="${line//[][\\\/.^\$\*\+\?\(\)\{\}\|]/\\&}"
-		# line_esc_lhs_ere="${line//[][\\\/.^\$*+?(){}|]/\\&}"
+		sed -i "/^.*${delimiter}${line_esc_lhs_bre}$/d" "$histfile"
 
-
-# printf "DEV$LINENO %s\n" "${line_esc_lhs_ere}"
-		# sed -i -n -e "/^.*${delimiter}${line}$/d" "$histfile"
-		# sed -i -n -e "/^.*${delimiter}${line}$/d" "$histfile" | head -n 20
-
-		# sed -i -n -e "/^.*${delimiter}${line_esc_lhs}$/d" "$histfile"
-		sed -i -n "/^.*${delimiter}${line_esc_lhs_ere}$/d" "$histfile"
-		# sed -i -n -e "/^.*${delimiter}${line_esc_lhs_ere}$/d" "$histfile"
-
-		# TODO remove based on linenumber
+		## extended regular expression (ere)
+		# line_esc_lhs_ere="${line//[][\\\/.^\$\*\+\?\(\)\{\}\|]/\\&}"
+		# sed -i -E "/^.*${delimiter}${line_esc_lhs_ere}$/d" "$histfile"
 
 	    done <<< "$line_sel"
 	    ;;
