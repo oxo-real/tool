@@ -18,6 +18,7 @@ show_lines ()
 		     | sed 's/^[ \t]*//'
 	      )
 
+    ## select lines in fzf (latest on top)
     line_sel=$(fzf --multi --tac <<< "$uniq_lines")
 
     ## exit if line_sel is empty
@@ -66,6 +67,10 @@ select_action ()
 		    printf '%s ' 'delimiter:'
 		    read -r -n 1 delimiter
 
+		    ## add space to delimiter
+		    ## (this way space is always a delimiter)
+		    delimiter="$delimiter "
+
 		    ## set delimiter
 		    [[ -n "$delimiter" ]] && IFS="$delimiter"
 
@@ -89,12 +94,15 @@ select_action ()
 
 split_line ()
 {
+    # build line_parts_arr
+
     ## split line into parts
     line_parts_arr=($line_sel)
 
-    ## put parts into array
+    ## add alt_delim option
     line_parts_arr+=(alt_delim)
 
+    ## reset internal field separator
     IFS=
 }
 

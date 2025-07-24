@@ -13,6 +13,9 @@
 ├── dedup-files
 ├── dedup-lines
 ├── dev
+│   ├── aes
+│   │   ├── multiply.sh
+│   │   └── state.sh
 │   ├── copy-packages.sh
 │   ├── copy_packages.sh
 │   ├── cryptr2
@@ -76,6 +79,7 @@
 ├── notmuch-search
 ├── novies
 ├── otp95
+├── oxonere
 ├── passexp
 ├── passr
 ├── pull-repo-oxo
@@ -133,5 +137,5 @@
     ├── trashOLD
     └── wfa.py
 
-6 directories, 127 files
+7 directories, 130 files
 ```

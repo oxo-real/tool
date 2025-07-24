@@ -75,18 +75,20 @@ args="$@"
 
 
 # initial definitions
-## script
-script_name='cryptr'
-script_dir="$XDG_DATA_HOME/c/git/code/tool"
-developer='oxo'
-license='gplv3'
-initial_release='2023'
-## select cipher suite
-#cipher_suite="gnupg"
-cipher_suite="openssl"
 
-cgc_dir="$XDG_DATA_HOME/c/git/code"
-source_dir="$cgc_dir/source/function"
+## script
+script_name=cryptr
+script_dir="$XDG_DATA_HOME"/c/git/code/tool
+developer=oxo
+license=gplv3
+initial_release=2023
+
+## select cipher suite
+#cipher_suite=gnupg
+cipher_suite=openssl
+
+cgc_dir="$XDG_DATA_HOME"/c/git/code
+source_dir="$cgc_dir"/source/function
 
 
 sourcing()
