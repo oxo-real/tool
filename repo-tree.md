@@ -14,8 +14,20 @@
 ├── dedup-lines
 ├── dev
 │   ├── aes
+│   │   ├── c-b64-bin.sh
+│   │   ├── c-b64-hex.sh
+│   │   ├── c-b64-str.sh
+│   │   ├── c-bin-asc.sh
+│   │   ├── c-bin-hex.sh
+│   │   ├── c-hex-b64.sh
+│   │   ├── c-hex-bin.sh
+│   │   ├── c-str-b64.sh
+│   │   ├── key.bin
+│   │   ├── lorem-ipsum
 │   │   ├── multiply.sh
-│   │   └── state.sh
+│   │   ├── states.sh
+│   │   ├── xor.sh
+│   │   └── zzz_xor
 │   ├── copy-packages.sh
 │   ├── copy_packages.sh
 │   ├── cryptr2
@@ -137,5 +149,5 @@
     ├── trashOLD
     └── wfa.py
 
-7 directories, 130 files
+7 directories, 142 files
 ```

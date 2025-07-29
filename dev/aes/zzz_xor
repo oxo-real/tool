@@ -1,0 +1,92 @@
+#!/bin/bash
+
+# Function to perform XOR operation between two strings
+xor_strings() {
+    local str1=$1
+    local str2=$2
+    local len1=${#str1}
+    local len2=${#str2}
+    local result=""
+
+    # Ensure both strings are of equal length by padding shorter string with null bytes
+    if [ $len1 -lt $len2 ]; then
+        str1=$(printf "%s%s" "$str1" $(printf "\x00%.0s" $(seq 1 $((len2 - len1)))))
+    elif [ $len2 -lt $len1 ]; then
+        str2=$(printf "%s%s" "$str2" $(printf "\x00%.0s" $(seq 1 $((len1 - len2)))))
+    fi
+
+    # Perform XOR operation
+    for ((i=0; i<${#str1}; i++)); do
+        local byte1=$(printf "%d" "'${str1:$i:1}")
+        local byte2=$(printf "%d" "'${str2:$i:1}")
+        local xor_byte=$((byte1 ^ byte2))
+        result+=$(printf "\\$(printf "%02x" "$xor_byte")")
+    done
+
+    echo "$result"
+}
+
+# Function to initialize the round key
+initialize_round_key() {
+    local key=$1
+    # Convert key to binary and ensure it's 16 bytes long
+    local key_binary=$(echo -n "$key" | base64 --decode)
+    local key_length=${#key_binary}
+    if [ $key_length -lt 16 ]; then
+        key_binary=$(printf "%s%s" "$key_binary" $(printf "\x00%.0s" $(seq 1 $((16 - key_length)))))
+    elif [ $key_length -gt 16 ]; then
+        key_binary=${key_binary:0:16}
+    fi
+    echo "$key_binary"
+}
+
+# Check if the correct number of arguments is provided
+if [ "$#" -ne 2 ]; then
+    echo "Usage: $0 <plaintext> <key>"
+    exit 1
+fi
+
+# Read input arguments
+plaintext=$1
+key=$2
+
+# Convert key to base64 if it's not already
+if [[ "$key" != *"$base64_pattern"* ]]; then
+    key=$(echo -n "$key" | base64)
+fi
+
+# Initialize the round key
+round_key=$(initialize_round_key "$key")
+
+# Process plaintext in 16-byte blocks
+plaintext_length=${#plaintext}
+block_size=16
+ciphertext=""
+
+for ((i=0; i<$plaintext_length; i+=$block_size)); do
+    # Get the current block from plaintext
+    local block_start=$i
+    local block_end=$((i + block_size))
+    if [ $block_end -gt $plaintext_length ]; then
+        block_end=$plaintext_length
+    fi
+    local block=${plaintext:$block_start:$((block_end - block_start))}
+
+    # Convert block to binary
+    local block_binary=$(echo -n "$block" | base64 --decode)
+
+    # Perform XOR operation on the current block
+    local xor_block=$(xor_strings "$block_binary" "$round_key")
+    ciphertext+="$xor_block"
+
+    # Update the round key using the XOR result
+    round_key=$(xor_strings "$round_key" "$xor_block")
+done
+
+# Convert ciphertext to base64
+ciphertext_base64=$(echo -n "$ciphertext" | base64)
+
+# Output the result
+echo "Plaintext: $plaintext"
+echo "Key: $key"
+echo "Ciphertext (base64): $ciphertext_base64"

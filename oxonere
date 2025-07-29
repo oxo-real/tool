@@ -1,0 +1,198 @@
+#! /usr/bin/env sh
+
+###
+###   _____  _____  _ __   _\_ _ __ ___
+###  / _ \ \/ / _ \| '_ \ / _ \ '__/ _ \
+### | (_) >  < (_) | | | |  __/ | |  __/
+###  \___/_/\_\___/|_| |_|\___|_|  \___|
+###
+###
+###  # # # # # #
+###       #
+###  # # # # # #
+###
+
+: '
+oxonere
+viginère cipher with an extended (custom or ASCII) character set
+copyright (c) 2025  |  oxo
+
+GNU GPLv3 GENERAL PUBLIC LICENSE
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+https://www.gnu.org/licenses/gpl-3.0.txt
+
+@oxo@qoto.org
+
+
+# dependencies
+n/a
+
+# usage
+
+oxonere --key key[file] [d] text
+
+## example
+oxonere --key test --chars "$ASCII" plain
+
+# '
+
+
+set -o errexit
+#set -o nounset
+set -o pipefail
+
+args="$@"
+
+
+# initial definitions
+
+## script
+script_name=oxonere
+script_dir="$XDG_DATA_HOME"/c/git/code/tool
+developer=oxo
+license=gplv3
+initial_release=2025
+
+
+check_sum ()
+{
+    ## check file integrity
+    check-sum $(realpath $script_dir/$script_name)
+    [[ $? -eq 0 ]] || exit 88
+}
+
+
+getargs ()
+{
+    while [[ "$#" -gt 0 ]]; do
+    # while :; do
+
+	case "$1" in
+
+            --decr | -d | d )
+		mode=decrypt
+		shift
+		;;
+
+            --encr | -e | e )
+		mode=encrypt
+		shift
+		;;
+
+            --key | -k )
+		shift
+		key="$1"
+		shift
+		;;
+
+	    --charset | -c )
+		## first line of conversion table
+		shift
+		charset="$1"
+		shift
+		;;
+
+	    '' )
+		echo no_args
+		return
+		;;
+
+            * )
+		text="$@"
+		return
+		;;
+
+	esac
+
+    done
+}
+
+
+process_args ()
+{
+    ## default mode: encrypt
+    [[ -z "$mode" ]] && mode=encrypt
+
+    ## verify custom charset
+    if [[ -n "$charset" ]]; then
+
+	repeated_chars=$(fold --width 1 <<< "$charset" | sort | uniq --repeated)
+
+	if [[ -n "$repeated_chars" ]]; then
+
+	    printf '%s repeated characters\n' "$repeated_chars"
+	    exit 134
+
+	fi
+
+    fi
+}
+
+
+create_square_arr ()
+{
+    ## define encryption table
+
+    if [[ -z "$charset" ]]; then
+
+	## default encryption table
+	## can also be used manually
+	charset="$ASCII"
+
+	## encryption table (square)
+	square=
+	l=$(wc -c <<< "$charset")
+
+	## create square
+	for (( r=0; r<$l-1; r++ )); do
+
+	    square=$(echo ${charset:$r:$l}${charset::$r})
+
+# key=$ASCII; l=$(wc -c <<< "$key"); for (( r=0; r<$l-1; r++ )); do echo ${key:$r:$l}${key::$r}; done
+printf "DEV$LINENO %s\n" "${r}"
+printf "DEV$LINENO %s\n" "${square}"
+printf "DEV$LINENO %s\n" "${charset}"
+[[ $r == 2 ]] && exit 255
+
+	done
+
+    elif [[ -n "$charset" ]]; then
+
+	## encryption table (square)
+	square=
+	l=$(wc -c <<< "$charset")
+
+	## custom encryption table
+	for (( r=0; r<$l-1; r++ )); do
+
+	    square=$(echo ${charset:$r:$l}${charset::$r})
+
+	done
+
+printf "DEV$LINENO %s\n" "${r}"
+printf "DEV$LINENO %s\n" "${square}"
+printf "DEV$LINENO %s\n" "${charset}"
+    fi
+}
+
+
+main ()
+{
+    check_sum
+    getargs $args
+    process_args
+    create_square_arr
+}
+
+main
