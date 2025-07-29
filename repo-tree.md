@@ -14,7 +14,7 @@
 ├── dedup-lines
 ├── dev
 │   ├── aes
-│   │   ├── c-b64-bin.sh
+│   │   ├── c-asc-bin.sh
 │   │   ├── c-b64-hex.sh
 │   │   ├── c-b64-str.sh
 │   │   ├── c-bin-asc.sh

@@ -36,6 +36,8 @@ getargs ()
 		## script handles only one arg (which can be a file)
 		shift
 
+		#TODO create key bin from 129 bit hash of paswword
+
 		if [[ -f "$1" ]]; then
 
 		    ## file content is read
@@ -53,6 +55,7 @@ getargs ()
 
 	    --length | -l )
 		## key length in bits (default 128)
+		## NOTICE must be equal to state length
 		shift
 		key_l="${1:=128}"
 		shift

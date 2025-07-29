@@ -82,8 +82,10 @@ bin_decode ()
 	    		}
 
     	    print ""
-    	}'
+    	}' | \
+	tr -d '\0'
     )"
+    ## tr prevents warning: command substitution: ignored null byte in input
 }
 
 

@@ -29,7 +29,7 @@ getargs ()
 		line_l_arg="${1:=128}"
 		shift
 
-		## line_l in bytes (for xxd)
+		## line_l in bytes (for xxd) (default is 16 bytes)
 		line_l=$(( line_l_arg / 8 ))
 		;;
 
@@ -79,7 +79,7 @@ bin_encode ()
     # hex_cap=$(printf '%s' "${input_hex^^}")  ## bash
     ## NOTICE byte-wise conversion (input_hex must contain whole bytes)
     output_bin="$(printf '%s' "$input_b64" | \
-    xxd --bits --cols "$line_l" --group "$line_l" | \
+    xxd --bits --cols "$line_l" --groupsize "$line_l" | \
     awk '{for(i=2;i<=NF-1;i++) printf "%s", $i; print ""}' | \
     tr ' ' '\n' \
     )"
