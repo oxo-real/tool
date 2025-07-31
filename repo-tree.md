@@ -14,14 +14,15 @@
 ├── dedup-lines
 ├── dev
 │   ├── aes
+│   │   ├── c-asc-b64.sh
 │   │   ├── c-asc-bin.sh
+│   │   ├── c-b64-asc.sh
 │   │   ├── c-b64-hex.sh
-│   │   ├── c-b64-str.sh
 │   │   ├── c-bin-asc.sh
 │   │   ├── c-bin-hex.sh
 │   │   ├── c-hex-b64.sh
 │   │   ├── c-hex-bin.sh
-│   │   ├── c-str-b64.sh
+│   │   ├── command
 │   │   ├── key.bin
 │   │   ├── lorem-ipsum
 │   │   ├── lorem.txt
@@ -152,5 +153,5 @@
     ├── trashOLD
     └── wfa.py
 
-7 directories, 145 files
+7 directories, 146 files
 ```

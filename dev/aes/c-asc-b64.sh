@@ -1,12 +1,11 @@
 #! /usr/bin/env sh
 
-## input: string
-## output: base64 of string
+## input: ascii
+## output: base64
 
-## usage: str2b64 test
-## or: sh str2b64.sh filename
-## or: echo -n test | sh str2b64.sh
-## or even: echo -n test | sh str2b64.sh filename
+
+## usage: sh c-asc-b64.sh test.file
+## or: echo hello | sh c-asc-b64.sh
 
 
 ## check if an input string is provided
@@ -26,13 +25,12 @@ getargs ()
 		if [[ -f "$1" ]]; then
 
 		    ## file content is read
-		    input_str_arg=$(cat "$1")
+		    input_asc_arg=$(cat "$1")
 		    shift
 
 		else
 
-		    # input_b64_args+="$1"
-		    input_str_arg="$1"
+		    input_asc_arg="$1"
 		    shift
 
 		fi
@@ -48,7 +46,7 @@ getstdin ()
 {
     if [[ -p /dev/stdin ]]; then
 
-	input_str_stdin=$(cat)
+	input_asc_stdin=$(cat)
 
     fi
 }
@@ -57,14 +55,13 @@ getstdin ()
 synth_input ()
 {
     ## stdin and arg are synthesized
-    input_str="${input_str_stdin}${input_str_arg}"
+    input_asc="${input_asc_stdin}${input_asc_arg}"
 }
 
 
-# combine all arguments into a single base64 input string
 base64_encode ()
 {
-    output_b64="$(printf '%s' "$input_str" | base64 --wrap 0)"
+    output_b64="$(printf '%s' "$input_asc" | base64 --wrap 0)"
 }
 
 

@@ -1,23 +1,10 @@
 #! /usr/bin/env sh
 
-## input: state, key
-## output: xor-ed state
+## input: input (bin), key (bin)
+## output: key xor-ed input (bin)
 
-## where a state is a binary string folded to 128 bit long lines
-## like the output of states.sh
-
-## usage: sh xor.sh --key $key_128_bit_bin $state
-
-
-## conversion order (up or down):
-## str; i.e. '1A-☯'
-## b64; i.e. 'MUEt4piv'
-## hex; i.e. '4d55457434706976'
-## bin; i.e. '0100110101010101010001010111010000110100011100000110100101110110'
-
-## default values
-## key length in bits
-key_l=128
+## usage: sh xor.sh --key $key.bin $input
+## example: sh xor.sh -k 1111 1000
 
 
 ## check if an input string is provided
@@ -53,26 +40,18 @@ getargs ()
 		fi
 		;;
 
-	    --length | -l )
-		## key length in bits (default 128)
-		## NOTICE must be equal to state length
-		shift
-		key_l="${1:=128}"
-		shift
-		;;
-
 	    * )
 		## script handles only one arg (which can be a file)
 		if [[ -f "$1" ]]; then
 
 		    ## file content is read
-		    input_states_arg=$(cat "$1")
+		    input_arg=$(cat "$1")
 		    shift
 
 		else
 
 		    ## argument is read
-		    input_states_arg="$1"
+		    input_arg="$1"
 		    shift
 
 		fi
@@ -88,7 +67,7 @@ getstdin ()
 {
     if [[ -p /dev/stdin ]]; then
 
-	input_states_stdin=$(cat)
+	input_stdin=$(cat)
 
     fi
 }
@@ -98,7 +77,7 @@ synth_input ()
 {
     ## stdin and arg are synthesized
     # input_states_bin="${input_states_stdin}${input_states_arg}"
-    input_states_bin=$(tr -d '\n' <<< "${input_states_stdin}${input_states_arg}")
+    input_bin=$(tr -d '\n' <<< "${input_stdin}${input_arg}")
 }
 
 
@@ -109,43 +88,39 @@ xor_chars ()
     xor_bin=''
 
     ## number of characters in states_bin
-    local states_l=${#input_states_bin}
-    # local input_states_bin_lines=$(wc -l <<< $input_states_bin)
+    local input_l=${#input_bin}
     local key_l=${#key_bin}
 
-    ## for every character in states
-    for (( i=0; i<states_l; i+=key_l )); do
+    ## for every key_l characters in input_bin, ...
+    for (( i=0; i<input_l; i+=key_l )); do
 
-	## current chunk of binary
-	local chunk=${input_states_bin:i:key_l}
-	chunk_l=${#chunk}
-    # 	## number of characters in current line
-    # 	local input_states_bin_curr_line_l=${#input_states_bin_curr_line}
+	## take a key_l chunk of input_bin
+	local chunk=${input_bin:i:key_l}
+	local chunk_l=${#chunk}
 
-    # 	## all chunks must be key_l bits long (for xor to work)
-    # 	## last chunk can be shorter; then we add padding
-
+	## all chunks must be key_l bits long (for xor to work)
+	## if last chunk is shorter than key_l;
+	## delete least significant bits from key_bin
 	if (( chunk_l < key_l )); then
 
-	    ## state is shorter than key length
-	    ## printf pads with spaces until key length is met
-	    local chunk=$(printf "%-${key_l}s" "$chunk")
-	    ## replace added spaces with 0's
-	    local chunk="${chunk// /0}"
+	    ## number of redundant bits in (last) key_bin
+	    key_bin_red_l=$(( key_l - chunk_l ))
+	    ## correct (last) key_bin
+	    key_bin="${key_bin:0:${#key_bin}-${key_bin_red_l}}"
+	    ## correct (last) key length
+	    key_l=${#key_bin}
 
 	fi
 
-    # 	fi
-
-	# perform bit by bit xor operation
+	## ... perform bit by bit xor operation on chunk
 	for (( b=0; b<key_l; b++ )); do
 
             # get individual bits
-            local state_bit="${chunk:$b:1}"
+            local input_bit="${chunk:$b:1}"
             local key_bit="${key_bin:$b:1}"
 
             # xor the bits
-            local xor_bit=$((state_bit ^ key_bit))
+            local xor_bit=$((input_bit ^ key_bit))
 
             # append to result
             xor_bin+="$xor_bit"

@@ -1,0 +1,1 @@
+sh c-asc-b64.sh lorem-ipsum | sh c-asc-bin.sh | sh xor.sh -k 11110000 | sh xor.sh -k 11110000 | sh c-bin-asc.sh | sh c-b64-asc.sh

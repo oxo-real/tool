@@ -1,14 +1,14 @@
 #! /usr/bin/env sh
 
-## input: base64 encoded string
-## output: binary string with 128 bits default line length
+## input: ascii
+## output: binary
 
 ## usage
 ## sh c-asc-bin.sh [--length 128] $file
 ## echo -n "$ascii" | sh c-asc-bin.sh
 
 ## NOTICE length in bits
-##        length must be multiple of 8 (8 bit = 1 byte)
+##        when given; length must be multiple of 8 (8 bit = 1 byte)
 
 ## examples:
 ## sh c-asc-bin.sh --length 128 $file  ## default 128 bit line length
@@ -46,13 +46,13 @@ getargs ()
 		if [[ -f "$1" ]]; then
 
 		    ## file content is read
-		    input_b64_arg=$(cat "$1")
+		    input_asc_arg=$(cat "$1")
 		    shift
 
 		else
 
 		    ## first argument is read
-		    input_b64_arg="$1"
+		    input_asc_arg="$1"
 		    shift
 
 		fi
@@ -68,7 +68,7 @@ getstdin ()
 {
     if [[ -p /dev/stdin ]]; then
 
-	input_b64_stdin=$(cat)
+	input_asc_stdin=$(cat)
 
     fi
 }
@@ -77,19 +77,29 @@ getstdin ()
 synth_input ()
 {
     ## stdin and arg are synthesized
-    input_b64="${input_b64_stdin}${input_b64_arg}"
+    input_asc="${input_asc_stdin}${input_asc_arg}"
 }
 
 
 bin_encode ()
 {
-    # hex_cap=$(printf '%s' "${(U)input_hex}")  ## zsh
-    # hex_cap=$(printf '%s' "${input_hex^^}")  ## bash
-    ## NOTICE byte-wise conversion (input_hex must contain whole bytes)
-    output_bin="$(printf '%s' "$input_b64" | \
+    output_bin="$(printf '%s' "$input_asc" | \
     xxd --bits --cols "$line_l" --groupsize "$line_l" | \
-    awk '{for(i=2;i<=NF-1;i++) printf "%s", $i; print ""}' | \
-    tr ' ' '\n' \
+    ## CAUTION awk prints second column only
+    ## therefore no spaces in the xxd bitgroups
+    ## and always have xxd columns = xxd groupsize (1 bitstring)
+    awk '{print $2}'
+    ## this awk prints column 2 until second to last column
+    ## by skipping first (i=2) and last (i<=NF-1)
+    # awk '{
+
+    # 	for ( i=2; i<=NF-1; i++ ) {
+
+    # 	    printf "%s", $i
+    # 	    }
+
+    # 	print ""
+    # }'
     )"
 }
 
