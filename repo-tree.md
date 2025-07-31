@@ -23,10 +23,12 @@
 │   │   ├── c-hex-b64.sh
 │   │   ├── c-hex-bin.sh
 │   │   ├── command
+│   │   ├── iv.sh
 │   │   ├── key.bin
 │   │   ├── lorem-ipsum
 │   │   ├── lorem.txt
 │   │   ├── multiply.sh
+│   │   ├── sbox.sh
 │   │   ├── states.sh
 │   │   ├── xor.sh
 │   │   ├── zz2_xor.sh
@@ -153,5 +155,5 @@
     ├── trashOLD
     └── wfa.py
 
-7 directories, 146 files
+7 directories, 148 files
 ```
