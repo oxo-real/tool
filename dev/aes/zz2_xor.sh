@@ -97,51 +97,56 @@ getstdin ()
 synth_input ()
 {
     ## stdin and arg are synthesized
-    # input_states_bin="${input_states_stdin}${input_states_arg}"
-    input_states_bin=$(tr -d '\n' <<< "${input_states_stdin}${input_states_arg}")
+    input_states_bin="${input_states_stdin}${input_states_arg}"
 }
 
 
 # perform xor operation between two strings
-xor_chars ()
+xor_lines ()
 {
     # initialize xor_bin
     xor_bin=''
 
-    ## number of characters in states_bin
-    local states_l=${#input_states_bin}
-    # local input_states_bin_lines=$(wc -l <<< $input_states_bin)
-    local key_l=${#key_bin}
+    ## number of lines in states_bin
+    local input_states_bin_lines=$(wc -l <<< $input_states_bin)
+    # local key_bin_l=${#key_bin}
 
-    ## for every character in states
-    for (( i=0; i<states_l; i+=key_l )); do
+    ## for every line in states
+    for ((i=0; i<input_states_bin_lines; i++)); do
 
-	## current chunk of binary
-	local chunk=${input_states_bin:i:key_l}
-	chunk_l=${#chunk}
-    # 	## number of characters in current line
-    # 	local input_states_bin_curr_line_l=${#input_states_bin_curr_line}
+	## current line binary
+	s=$((i+1))  ## for sed
+	local input_states_bin_curr_line=$(sed -n "${s}p" <<< "$input_states_bin")
 
-    # 	## all chunks must be key_l bits long (for xor to work)
-    # 	## last chunk can be shorter; then we add padding
+	## number of characters in current line
+	local input_states_bin_curr_line_l=${#input_states_bin_curr_line}
 
-	if (( chunk_l < key_l )); then
+	## all states (lines) must be key_l bits long (for xor to work)
+	## last line can be shorter; then we add padding
 
-	    ## state is shorter than key length
-	    ## printf pads with spaces until key length is met
-	    local chunk=$(printf "%-${key_l}s" "$chunk")
-	    ## replace added spaces with 0's
-	    local chunk="${chunk// /0}"
+	if [[ "$i" -eq "$input_states_bin_lines" ]]; then
+
+	    ## last line
+	    if (( input_state_bin_curr_line_l < key_l )); then
+
+		## state is shorter than key length
+		## printf pads with spaces until key length is met
+		local input_states_bin_curr_line=$(printf "%-${key_l}s" "$input_states_bin_curr_line")
+		## replace added spaces with 0's
+		local input_states_bin_curr_line="${input_states_bin_curr_line// /0}"
+
+	    fi
 
 	fi
 
-    # 	fi
+	## rename input_states_bin_curr_line to state_bin
+	local state_bin="$input_states_bin_curr_line"
 
 	# perform bit by bit xor operation
-	for (( b=0; b<key_l; b++ )); do
+	for ((b=0; b<key_l; b++)); do
 
             # get individual bits
-            local state_bit="${chunk:$b:1}"
+            local state_bit="${state_bin:$b:1}"
             local key_bit="${key_bin:$b:1}"
 
             # xor the bits
@@ -151,6 +156,9 @@ xor_chars ()
             xor_bin+="$xor_bit"
 
 	done
+
+	## add EOL
+	# xor_bin+='\n'
 
     done
 }
@@ -168,7 +176,7 @@ main ()
     getstdin
     getargs $args
     synth_input
-    xor_chars
+    xor_lines
     output
 }
 

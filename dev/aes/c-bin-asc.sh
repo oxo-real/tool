@@ -3,9 +3,21 @@
 ## input: binary string
 ## output: ascii string
 
+## usage
+## sh c-bin-asc.sh $file
+## echo -n "$binary" | sh c-bin-asc.sh
+
+## NOTICE length in bits
+##        length must be multiple of 8 (8 bit = 1 byte)
+
+## examples:
+## sh c-asc-bin.sh --length 128 $file  ## default 128 bit line length
+## echo -n dGVzdAo= | sh c-asc-bin.sh --length 8  ## custom 8 bit length
+
 ## usage: b642str dGVzdAo=
 ## or: echo -n dGVzdAo= | sh b642str.sh
 
+## NOTICE ascii is stored in 8 bit format
 ## default chunk size is 8 bits (1 byte or 2 nibbles)
 chunk_l=8
 
@@ -68,12 +80,12 @@ bin_decode ()
     	    binary = $0
     	    bin_l = length(binary)
 
-	    	for (i = 1; i <= bin_l; i += slice) {
+	    	for ( i=1; i<=bin_l; i+=slice ) {
 
 	      	    byte = substr(binary, i, slice)
 		    decimal = 0
 
-		    for (j = 1; j <= length(byte); j++) {
+		    for ( j=1; j<=length(byte); j++ ) {
 
 		    	decimal = decimal * 2 + (substr(byte, j, 1) == "1")
 			}

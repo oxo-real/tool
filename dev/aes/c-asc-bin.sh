@@ -3,8 +3,16 @@
 ## input: base64 encoded string
 ## output: binary string with 128 bits default line length
 
-## usage: b642str dGVzdAo=
-## or: echo -n dGVzdAo= | sh b642str.sh
+## usage
+## sh c-asc-bin.sh [--length 128] $file
+## echo -n "$ascii" | sh c-asc-bin.sh
+
+## NOTICE length in bits
+##        length must be multiple of 8 (8 bit = 1 byte)
+
+## examples:
+## sh c-asc-bin.sh --length 128 $file  ## default 128 bit line length
+## echo -n dGVzdAo= | sh c-asc-bin.sh --length 8  ## custom 8 bit length
 
 
 ## default line length (16 bytes = 128 bit)

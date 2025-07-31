@@ -24,9 +24,12 @@
 │   │   ├── c-str-b64.sh
 │   │   ├── key.bin
 │   │   ├── lorem-ipsum
+│   │   ├── lorem.txt
 │   │   ├── multiply.sh
 │   │   ├── states.sh
 │   │   ├── xor.sh
+│   │   ├── zz2_xor.sh
+│   │   ├── zz3_xorbash.sh
 │   │   └── zzz_xor
 │   ├── copy-packages.sh
 │   ├── copy_packages.sh
@@ -149,5 +152,5 @@
     ├── trashOLD
     └── wfa.py
 
-7 directories, 142 files
+7 directories, 145 files
 ```

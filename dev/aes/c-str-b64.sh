@@ -64,7 +64,7 @@ synth_input ()
 # combine all arguments into a single base64 input string
 base64_encode ()
 {
-    output_b64="$(printf '%s' "$input_str" | base64)"
+    output_b64="$(printf '%s' "$input_str" | base64 --wrap 0)"
 }
 
 
