@@ -23,17 +23,16 @@
 │   │   ├── c-hex-b64.sh
 │   │   ├── c-hex-bin.sh
 │   │   ├── command
-│   │   ├── iv.sh
 │   │   ├── key.bin
-│   │   ├── lorem-ipsum
-│   │   ├── lorem.txt
 │   │   ├── multiply.sh
 │   │   ├── sbox.sh
-│   │   ├── states.sh
+│   │   ├── sha3-512sums
 │   │   ├── xor.sh
-│   │   ├── zz2_xor.sh
-│   │   ├── zz3_xorbash.sh
-│   │   └── zzz_xor
+│   │   └── zzz_deprecated
+│   │       ├── states.sh
+│   │       ├── zz2_xor.sh
+│   │       ├── zz3_xorbash.sh
+│   │       └── zzz_xor
 │   ├── copy-packages.sh
 │   ├── copy_packages.sh
 │   ├── cryptr2
@@ -155,5 +154,5 @@
     ├── trashOLD
     └── wfa.py
 
-7 directories, 148 files
+8 directories, 146 files
 ```
