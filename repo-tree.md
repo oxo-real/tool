@@ -23,9 +23,12 @@
 │   │   ├── c-hex-b64.sh
 │   │   ├── c-hex-bin.sh
 │   │   ├── command
-│   │   ├── key.bin
+│   │   ├── key-128.bin
+│   │   ├── key-256.bin
 │   │   ├── multiply.sh
 │   │   ├── sbox.sh
+│   │   ├── schedulebu.sh
+│   │   ├── schedule.sh
 │   │   ├── sha3-512sums
 │   │   ├── xor.sh
 │   │   └── zzz_deprecated
@@ -154,5 +157,5 @@
     ├── trashOLD
     └── wfa.py
 
-8 directories, 146 files
+8 directories, 149 files
 ```

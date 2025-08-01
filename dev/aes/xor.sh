@@ -3,11 +3,6 @@
 ## input: input (bin)
 ## output: sha3-512 xor-ed input (bin)
 
-## the initialisation vector is used to xor the first chunk of plaintext before being encrypted (xor-ed with the secret key)
-## it is a random number the same size as key_l
-## it is stored as the first key_l bits in the cipher text
-
-
 ## usage: sh iv.sh $input
 ## example: sh iv.sh -k 1111 1000
 
@@ -25,10 +20,8 @@ getargs ()
 		;;
 
 	    --key | -k )
-		## script handles only one arg (which can be a file)
+		## NOTICE arg can be a file
 		shift
-
-		#TODO create key bin from 129 bit hash of paswword
 
 		if [[ -f "$1" ]]; then
 
@@ -46,7 +39,7 @@ getargs ()
 		;;
 
 	    * )
-		## script handles only one arg (which can be a file)
+		## NOTICE arg can be a file
 		if [[ -f "$1" ]]; then
 
 		    ## file content is read
