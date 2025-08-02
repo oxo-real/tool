@@ -25,13 +25,18 @@
 │   │   ├── command
 │   │   ├── key-128.bin
 │   │   ├── key-256.bin
+│   │   ├── key-expansion.sh
 │   │   ├── multiply.sh
+│   │   ├── plain-128.txt
 │   │   ├── sbox.sh
-│   │   ├── schedulebu.sh
-│   │   ├── schedule.sh
 │   │   ├── sha3-512sums
+│   │   ├── substitute.sh
+│   │   ├── test.sh
 │   │   ├── xor.sh
 │   │   └── zzz_deprecated
+│   │       ├── schedule_bu.sh
+│   │       ├── schedulebu.sh
+│   │       ├── schedule.sh
 │   │       ├── states.sh
 │   │       ├── zz2_xor.sh
 │   │       ├── zz3_xorbash.sh
@@ -157,5 +162,5 @@
     ├── trashOLD
     └── wfa.py
 
-8 directories, 149 files
+8 directories, 154 files
 ```

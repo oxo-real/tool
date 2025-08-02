@@ -1,13 +1,12 @@
 #! /usr/bin/env sh
 
-## input: input (bin)
-## output: sha3-512 xor-ed input (bin)
+## input: input (bin), key (bin)
+## output: key xor-ed input (bin)
 
-## usage: sh iv.sh $input
+## usage: echo 1100 | sh xor.sh --key 1100
 ## example: sh iv.sh -k 1111 1000
 
 
-## check if an input string is provided
 args="$@"
 getargs ()
 {
@@ -74,7 +73,6 @@ getstdin ()
 synth_input ()
 {
     ## stdin and arg are synthesized
-    # input_states_bin="${input_states_stdin}${input_states_arg}"
     input_bin=$(tr -d '\n' <<< "${input_stdin}${input_arg}")
 }
 

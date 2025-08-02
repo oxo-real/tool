@@ -2,15 +2,19 @@
 
 ## input: key (bin)
 ## output: key-schedule (bin)
-## 128 bits key > 11 round keys
-## 192 bits key > 13 round keys
-## 256 bits key > 15 round keys
 
 ## usage: key-schedule key.bin
 ## or: echo $key | key-schedule
 
+# words_arr=()
+# declare -A words_arr
+# typeset -A words_arr
+## TODO DEV why does this not work?
+## LEARN always initalize array in global scope (main body)
+## (not inside functions)
 
-## check if an input string is provided
+typeset -A words_arr
+
 args="$@"
 getargs ()
 {
@@ -34,7 +38,6 @@ getargs ()
 		:
 		;;
 
-#TODO if key is ascii or hex convert to bin
 	    --bin-key )
 		key_format=bin
 		shift
@@ -109,17 +112,23 @@ key_analysis ()
     case $key_bin_l in
 
 	128 )
+	    rows=4
 	    cols=4
+	    col_l=8
 	    rounds=11
 	    ;;
 
 	192 )
+	    rows=4
 	    cols=6
+	    col_l=8
 	    rounds=13
 	    ;;
 
 	256 )
+	    rows=4
 	    cols=8
+	    col_l=8
 	    rounds=15
 	    ;;
 
@@ -129,18 +138,16 @@ key_analysis ()
 
 create_words_arr ()
 {
-    words_arr=()
+    index=0
 
-    # fill array with 8-bit binary values from key_bin
-    for (( row=0; row<4; row++ )); do
+    ## array fills first columns then rows
+    for (( col=0; col<"${cols}"; col++ )); do
 
-	for (( col=0; col<"${cols}"; col++ )); do
+	for (( row=0; row<"${rows}"; row++ )); do
 
-            index=$(( row * "${cols}" + col ))
+            words_arr[$round,$row,$col]="${key_bin:$(( index * $col_l )):$col_l}"
 
-            current_byte="${key_bin:$(( index * 8 )):8}"
-
-            words_arr[$index]=$current_byte
+	    ((index++))
 
 	done
 
@@ -148,25 +155,27 @@ create_words_arr ()
 }
 
 
-get_word ()
+running_rounds ()
 {
-    local row=$1
-    local col=$2
+    for (( round=0; round<"${rounds}"; round++ )); do
 
-    echo ${words_arr[$(( row * "${cols}" + col))]}
+	create_words_arr
+	output_matrix
 
-    # printf '%s ' "${words_arr[$row,$col]}"
+    done
+
 }
 
 
 output_matrix ()
 {
+    printf 'key %s\n' "$round"
     ## print the entire array
-    for (( row=0; row<4; row++ )); do
+    for (( row=0; row<"${rows}"; row++ )); do
 
 	for (( col=0; col<"${cols}"; col++ )); do
 
-            printf '%s ' "$(get_word $row $col)"
+            printf '%s ' "${words_arr[$row,$col]}"
 
 	done
 
@@ -182,7 +191,7 @@ main ()
     getargs $args
     synth_input
     key_analysis
-    create_words_arr
+    running_rounds
     output_matrix
 }
 

@@ -59,7 +59,7 @@ synth_input ()
 }
 
 
-b64_encode ()
+hex2bin ()
 {
     # hex_cap=$(printf '%s' "${(U)input_hex}")  ## zsh
     # hex_cap=$(printf '%s' "${input_hex^^}")  ## bash
@@ -69,6 +69,7 @@ b64_encode ()
     xxd --bits | \
     awk '!($1="")' | \
     tr --complement --delete '01')"
+    #TDOD DEV echo a | sh c-hex-bin.sh is not working
 }
 
 
@@ -84,7 +85,7 @@ main ()
     getstdin
     getargs $args
     synth_input
-    b64_encode
+    hex2bin
     output
 }
 
