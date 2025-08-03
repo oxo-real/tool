@@ -174,7 +174,6 @@ output ()
     done
     # '
 
-    printf '%s\n' "$state_in"
     printf '%s' "$state_out"
 }
 
@@ -185,7 +184,7 @@ main ()
     getargs $args
     synth_input
     validate_input
-    create_state_array
+    # create_state_array
     shift_rows
     output
 }

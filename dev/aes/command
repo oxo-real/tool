@@ -2,11 +2,14 @@ cat /home/oxo/.local/share/a/media/web/lorem-ipsum | sh c-asc-bin.sh | sh xor.sh
 
 ## first state array
 ## add secret key to plaintext (plaintext xor-ed with secret key)
-cat plain-128.txt | sh c-asc-bin.sh | sh xor.sh -k key-128.bin 
+cat plain-128.txt | sh c-asc-bin.sh | sh xor.sh -k key-128.bin
 
 ## key scheduler
-## create round keys 
+## create round keys
 ### substitution
 cat plain-128.txt | sh c-asc-bin.sh | sh xor.sh -k key-128.bin | sh substitute.sh
 
 ### shift rows
+cat plain-128.txt | sh c-asc-bin.sh | sh xor.sh -k key-128.bin | sh substitute.sh | sh shift-rows.sh
+
+### mix columns
