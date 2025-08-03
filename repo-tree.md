@@ -30,14 +30,15 @@
 │   │   ├── plain-128.txt
 │   │   ├── sbox.sh
 │   │   ├── sha3-512sums
+│   │   ├── shift-rows.sh
 │   │   ├── substitute.sh
-│   │   ├── test.sh
 │   │   ├── xor.sh
 │   │   └── zzz_deprecated
 │   │       ├── schedule_bu.sh
 │   │       ├── schedulebu.sh
 │   │       ├── schedule.sh
 │   │       ├── states.sh
+│   │       ├── test.sh
 │   │       ├── zz2_xor.sh
 │   │       ├── zz3_xorbash.sh
 │   │       └── zzz_xor
@@ -162,5 +163,5 @@
     ├── trashOLD
     └── wfa.py
 
-8 directories, 154 files
+8 directories, 155 files
 ```

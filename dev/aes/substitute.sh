@@ -152,13 +152,19 @@ substitute_bytes ()
     done
 }
 
-output_matrix ()
+
+output ()
 {
+    ## matrix
+    : '
     for (( row=0; row<"${rows}"; row++ )); do
 
 	for (( col=0; col<"${cols}"; col++ )); do
 
+	    ## binary
             printf '%s ' "${state_1_bin_arr[$row,$col]}"
+
+	    ## hex
             # printf '%s ' "${state_1_hex_arr[$row,$col]}"
 
 	done
@@ -166,6 +172,20 @@ output_matrix ()
 	echo
 
     done
+    # '
+
+    ## string
+    #: '
+    for (( row=0; row<"${rows}"; row++ )); do
+
+	for (( col=0; col<"${cols}"; col++ )); do
+
+	    printf '%s' "${state_1_bin_arr[$row,$col]}"
+
+	done
+
+    done
+    # '
 }
 
 
@@ -177,7 +197,7 @@ main ()
     validate_input
     create_state_array
     substitute_bytes
-    output_matrix
+    output
 }
 
 main
