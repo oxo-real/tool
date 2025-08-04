@@ -26,6 +26,8 @@
 │   │   ├── key-128.bin
 │   │   ├── key-256.bin
 │   │   ├── key-expansion.sh
+│   │   ├── mix-columns.sh
+│   │   ├── mp-matrix.sh
 │   │   ├── multiply.sh
 │   │   ├── plain-128.txt
 │   │   ├── sbox.sh
@@ -163,5 +165,5 @@
     ├── trashOLD
     └── wfa.py
 
-8 directories, 155 files
+8 directories, 157 files
 ```
