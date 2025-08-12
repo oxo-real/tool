@@ -26,9 +26,12 @@
 │   │   ├── key-128.bin
 │   │   ├── key-256.bin
 │   │   ├── key-expansion.sh
+│   │   ├── key-exp-old
+│   │   ├── keyexpold
 │   │   ├── mix-columns.sh
 │   │   ├── mp-matrix.sh
 │   │   ├── plain-128.txt
+│   │   ├── rcon.sh
 │   │   ├── sbox.sh
 │   │   ├── sha3-512sums
 │   │   ├── shift-rows.sh
@@ -36,6 +39,7 @@
 │   │   ├── testmp.sh
 │   │   ├── xor.sh
 │   │   └── zzz_deprecated
+│   │       ├── rcon.sh
 │   │       ├── schedule_bu.sh
 │   │       ├── schedulebu.sh
 │   │       ├── schedule.sh
@@ -165,5 +169,5 @@
     ├── trashOLD
     └── wfa.py
 
-8 directories, 157 files
+8 directories, 161 files
 ```

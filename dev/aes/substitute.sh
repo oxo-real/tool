@@ -95,7 +95,36 @@ validate_input ()
 {
     ## input must be 128 bits
     state_l=${#state}
-    [[ "$state_l" -eq "$state_length" ]] || exit 70
+    if [[ "$state_l" -ne "$state_length" ]]; then
+
+	simple_substitution "$state"
+	exit 0
+
+    fi
+}
+
+
+simple_substitution ()
+{
+    ## take every eight bits (byte) from input, substitute
+    sub_state=
+    byte=8
+    # for (( i=0; i<state_l; i+=nibble )); do
+    for (( i=0; i<state_l; i+=byte )); do
+
+	## get binary byte
+        local substr_bin=${state:i:byte}
+
+	## convert to hex
+	local substr_hex=$(printf "%02x" "$(( 2#$substr_bin ))")
+
+	## sbox lookup
+	converted_hex=${s_box[$substr_hex]}
+	converted_bin=$(echo "obase=02; ibase=16; $(echo $converted_hex | tr a-z A-Z)" | bc)
+
+	sub_state+=${converted_bin}
+
+    done
 }
 
 

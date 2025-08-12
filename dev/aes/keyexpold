@@ -13,9 +13,7 @@
 ## LEARN always initalize array in global scope (main body)
 ## (not inside functions)
 
-working_dir=/home/oxo/.local/share/c/git/code/tool/dev/aes
-source "$working_dir"/rcon.sh
-source "$working_dir"/sbox.sh
+source /home/oxo/.local/share/c/git/code/tool/dev/aes/rcon.sh
 typeset -A word_arr
 
 args="$@"
@@ -158,36 +156,35 @@ add_to_word_arr ()
     round=$1
     key_value=$2
 
-    ## output adds 32 bit words to a word_array [word_id]=word_value
+    ## output adds words to a word_rray [word_id,byte_index]=word_value
 
     ## a (sub-)key consists of 128/192/256 bits (16/24/32 bytes)
     ## a (sub-)key holds 4 32 bit long words (w0, w1, ...)
-    words=$(( rounds * 4 ))
+    ## a word holds 4 1 byte (8 bit) long (b0, b1, ...)
+    ## words are named word_arr[word#,byte#]
 
     ## first four words: w0, w1, w2, w3 (same as key_bin)
-    for (( word_id=0; word_id<"${words}"; word_id++ )); do
+    # for (( byte_number=0; byte_number<"${key_bytes}"; byte_number++ )); do
+    for (( word_number=0; word_number<"${key_bytes}"; byte_number++ )); do
 
 	## Calculate the starting index for the byte
-	bit_start=$((word_id * 32))
+	bit_start=$((byte_number * 8))
 	# Extract the byte (8 bits)
-	word_value=${key_bin:bit_start:32}
+	word_value=${key_bin:bit_start:8}
 
-	## store the word in the associative array
-	if [[ -n "$word_value" ]]; then
+	## determine the word and byte id for the associative array
+	## NOTICE byte_number of for loop is not byte_id of array
+	word_id=$(( round * 4 + byte_number / 4 ))
+	byte_id=$(( byte_number % 4 + (word_id * 4) ))
 
-	    word_arr[$word_id]="$word_value"
-
-	else
-
-	    break
-
-	fi
+	# Store the byte in the associative array
+	word_arr[$word_id,$byte_id]="$word_value"
 
     done
 
-    #DEV
     printf "DEV$LINENO %s\n" "${round}"
     pea word_arr | sort --numeric-sort
+    # exit 255
 }
 
 
@@ -196,77 +193,40 @@ pea () { declare -n __p="$1"; for k in "${!__p[@]}"; do printf "%s=%s\n" "$k" "$
 
 g_function ()
 {
-    ## input: first and last word of previous round
-    ## output: first word of current round
-    rotate_bits=8
-    word_value=$1
-
-    ## left rotate last word
-    left_rotate $rotate_bits $word_value
-printf "DEV$LINENO %s\n" "${word_rotated}"
+printf "DEV$LINENO %s\n" "${1}"
+printf "DEV$LINENO %s\n" "${2}"
+printf "DEV$LINENO %s\n" "${prev_word_3}"
+printf "DEV$LINENO %s\n" "${curr_word_0}"
+    ## rotate word
 
     ## substitute word
-    substitute $word_rotated
-printf "DEV$LINENO %s\n" "${word_substituted}"
-
     ## round constant
-#TODO
-}
-
-
-left_rotate ()
-{
-    local rotate_bits=$1
-    local word_value=$2
-
-    ## perform left rotation
-    word_rotated=${word_value:$rotate_bits}${word_value:0:$rotate_bits}
-}
-
-
-substitute ()
-{
-    ## take eight bits (byte) from input, substitute
-    local word_rotated=$1
-    local word_rotated_l=${#word_rotated}
-    local byte=8
-
-    for (( i=0; i<word_rotated_l; i+=byte )); do
-
-	## get binary byte
-        local substr_bin=${word_rotated:i:byte}
-
-	## convert to hex
-	local substr_hex=$(printf "%02x" "$(( 2#$substr_bin ))")
-
-	## sbox lookup
-	converted_hex=${s_box[$substr_hex]}
-	converted_bin=$(echo "obase=02; ibase=16; $(echo $converted_hex | tr a-z A-Z)" | bc)
-	local converted_bin=$(printf "%08d" "$converted_bin")
-
-	word_substituted+=${converted_bin}
-
-    done
-
 }
 
 
 key_expansion ()
 {
-    ## round > 0
+    ## subkey_id 0,1,2,3 is original secret key (key_bin)
+    ## subkey_id >3 is an expanded key
+    ## subkey_id n = total number of rounds
     for (( round=1; round<"${rounds}"; round++ )); do
 
-	## identify words of previous round (input for g-function)
+	## last word of previous round (input for g-function)
 	prev_round=$(( round - 1 ))
-	first_word_pr=$(( prev_round * 4 ))
 	last_word_pr=$(( prev_round * 4 + 3 ))
+	last_byte_pr=$(( prev_round * 16 + 15 ))
+	prev_word_3=${word_arr[${last_word_pr},${prst_byte_pr}]}
 
-	## getting word values
-	first_word_pr_value=${word_arr[$first_word_pr]}
-	last_word_pr_value=${word_arr[$last_word_pr]}
+	## first word of previous round (input for g-function)
+	prev_round_fw_id=$(( prev_round * 4 ))
+	prev_round_fb_id=$(( prev_round * 16 ))
+	prev_word_3=${word_arr[${prev_round_fw_id},${prev_round_fb_id}]}
+	# prev_round_byte_id=15
+	# curr_word_byte_id=0
+	# curr_word_0=${word_arr[${round},${curr_word_byte_id}]}
 
-	g_function ${first_word_pr_value} ${last_word_pr_value}
-
+	g_function ${prev_word_3} ${curr_word_0}
+exit 255
     done
 }
 
