@@ -1,73 +1,113 @@
 #! /usr/bin/env sh
-#
-##
+
 ###                 _
 ###  _ __ ___   ___| |_ __ _ _ __
 ### | '_ ` _ \ / _ \ __/ _` | '__|
 ### | | | | | |  __/ || (_| | |
 ### |_| |_| |_|\___|\__\__,_|_|
-###  _    _
-### (_)><(_)
 ###
-### metar
-### get metar
-### include taf, pirep, airsigmet optionally
-### source: [avwx rest api](https://info.avwx.rest/)
 ###
-### (c) 2020 - 2023  |  oxo
+###  # # # # # #
+###       #
+###  # # # # # #
 ###
-##
-#
+
+: '
+metar
+get metar
+include taf, pirep, airsigmet optionally
+source: [avwx rest api](https://info.avwx.rest/)
+copyright (c) 2020 - 2025  |  oxo
+----------------------------------------------------------------------
+GNU GPLv3 GENERAL PUBLIC LICENSE
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+https://www.gnu.org/licenses/gpl-3.0.txt
+
+@oxo@qoto.org
+======================================================================
 
 # usage:
 # metar [taf] $ident_1 [$ident_n]
-# metar [taf] [near $lat,$lon]
+# metar [taf] [near] $lat $lon | $ident_1
 
+## examples
+## meatar KLAX
+## metar near KLAX
+## metar taf near 34 -118
+
+# '
 
 args="$@"
 
 
 # variable initialization
-script_name="metar"
-developer='oxo'
-initial_release='2020'
+script_name=metar
+developer=oxo
+initial_release=2020
 
-avwx_domain="https://avwx.rest/api"
+avwx_domain=https://avwx.rest/api
 avwx_api_key='Authorization: BEARER 4mLFIAd0-TzYNLNGJVWS0-zf87wQNzFvaT5uAN_8jVg'
 
 ## declare globally
 show_taf=0
 near=0
 
-args_fetch()
+args_fetch ()
 {
     while [[ "$1" ]]; do
 
 	case "$1" in
 
-	    taf)
+	    taf )
 		## include taf
 		show_taf=1
 		shift
 		;;
 
-	    near)
+	    near )
 		## fetch nearby stations
 		near=1
 		shift
-		## decimal coordinates; i.e. 50.0,-10
-		latlon="$1"
-		lat=$(printf '%s' "$latlon" | awk -F ',' '{print $1}')
-		lon=$(printf '%s' "$latlon" | awk -F ',' '{print $2}')
-		shift
-		## number of stations
-		#n=$1
-		nearby_stations "$latlon"
+		## one decimal coordinate pair; i.e. 50.0 -10
+		lat="$1"
+
+		if [[ ! "$lat" =~ [a-zA-Z] ]]; then
+
+		    ## arg is lat
+		    shift
+		    lon="$1"
+
+		else
+
+		    ## presume arg (lat) is station
+		    ident="$lat"
+
+		    station_data_retrieval
+
+		    ## get stations' lat lon
+		    lat=$(printf '%s' "$station_raw" | jq '.latitude')
+		    lon=$(printf '%s' "$station_raw" | jq '.longitude')
+
+		fi
+
+		nearby_stations "$lat" "$lon"
 		;;
 
-	    *)
+	    * )
 		## arg is station
 		ident="$1"
+
 		station_data_retrieval
 		shift
 		;;
@@ -78,17 +118,16 @@ args_fetch()
 }
 
 
-station_data_retrieval()
+station_data_retrieval ()
 {
-    station_raw=$(curl -sSL --request GET --url "$avwx_domain/station/$ident" --header 'Authorization: BEARER 4mLFIAd0-TzYNLNGJVWS0-zf87wQNzFvaT5uAN_8jVg')
-    # [TODO] api key
-    #station_raw=$(curl -sSL --request GET --url "$avwx_domain/station/$ident" --header 'Authorization: BEARER "$avwx_api_key"')
-    metar_raw=$(curl -sSL --request GET --url "$avwx_domain/metar/$ident" --header 'Authorization: BEARER 4mLFIAd0-TzYNLNGJVWS0-zf87wQNzFvaT5uAN_8jVg')
+    station_raw=$(curl -sSL --request GET --url "$avwx_domain/station/$ident" --header "$avwx_api_key")
+
+    metar_raw=$(curl -sSL --request GET --url "$avwx_domain/metar/$ident" --header "$avwx_api_key")
 
     case $show_taf in
 
-	1)
-	    taf_raw=$(curl -sSL --request GET --url "$avwx_domain/taf/$ident" --header 'Authorization: BEARER 4mLFIAd0-TzYNLNGJVWS0-zf87wQNzFvaT5uAN_8jVg')
+	1 )
+	    taf_raw=$(curl -sSL --request GET --url "$avwx_domain/taf/$ident" --header "$avwx_api_key")
 	    ;;
 
     esac
@@ -96,7 +135,7 @@ station_data_retrieval()
     # distance and direction from $latlon
     case $near in
 
-	1)
+	1 )
 	    station_lat=$(printf '%s' "$station_raw" | jq '.latitude')
 	    station_lon=$(printf '%s' "$station_raw" | jq '.longitude')
 
@@ -105,16 +144,19 @@ station_data_retrieval()
 
     esac
 
-    #pirep_raw=$(curl -sSL --request GET --url "$avwx_domain/pirep/$ident" --header 'Authorization: BEARER 4mLFIAd0-TzYNLNGJVWS0-zf87wQNzFvaT5uAN_8jVg')
-    #airsigmet_raw=$(curl -sSL --request GET --url "$avwx_domain/airsigmet/$ident" --header 'Authorization: BEARER 4mLFIAd0-TzYNLNGJVWS0-zf87wQNzFvaT5uAN_8jVg')
-    #notam_raw=$(curl -sSL --request GET --url "$avwx_domain/notam/$ident" --header 'Authorization: BEARER 4mLFIAd0-TzYNLNGJVWS0-zf87wQNzFvaT5uAN_8jVg')
-    #nbm_raw=$(curl -sSL --request GET --url "$avwx_domain/nbm/report/$ident" --header 'Authorization: BEARER 4mLFIAd0-TzYNLNGJVWS0-zf87wQNzFvaT5uAN_8jVg')
+    ## avwx enterprise plan
+    # avwx_api_ent_key='Authorization: BEARER 4mLFIAd0-TzYNLNGJVWS0-zf87wQNzFvaT5uAN_8jVg'
+    # pirep_raw=$(curl --include --header "Content-Type: text/plain" --header "$avwx_api_ent_key" "$avwx_domain"/pirep/"$ident")
+    # airsigmet_raw=$(curl --include --header "Content-Type: text/plain" --header "$avwx_api_ent_key" "$avwx_domain"/airsigmet/"$ident")
+    # notam_raw=$(curl --include --header "Content-Type: text/plain" --header "$avwx_api_ent_key" "$avwx_domain"/notam/"$ident")
+    # nbm_raw=$(curl --include --header "Content-Type: text/plain" --header "$avwx_api_ent_key" "$avwx_domain"/nbm/"$ident")
+    # gfsmav_raw=$(curl --include --header "Content-Type: text/plain" --header "$avwx_api_ent_key" "$avwx_domain"/gfs/mav/"$ident")
 }
 
 
-nearby_stations()
+nearby_stations ()
 {
-    near_raw=$(curl -sSL --request GET --url "$avwx_domain/station/near/${latlon}" --header 'Authorization: BEARER 4mLFIAd0-TzYNLNGJVWS0-zf87wQNzFvaT5uAN_8jVg')
+    near_raw=$(curl -sSL --request GET --url "$avwx_domain/station/near/${lat},${lon}" --header "$avwx_api_key")
     station_list=$(printf '%s' "$near_raw" | jq '.[].station.icao' | tr -d '"' | sed '/null/d')
 
     while IFS= read -r ident; do
@@ -128,7 +170,7 @@ nearby_stations()
 }
 
 
-data_presentation()
+data_presentation ()
 {
     ## station data
     station_pretty_id=$(printf '%s' "$station_raw" | jq '.name + ", " + .city + " " + .country + " " + (.latitude|tostring) + " " + (.longitude|tostring) + " " + (.elevation_m|tostring) + "m"' | tr -d '"')
@@ -137,7 +179,7 @@ data_presentation()
 
     case $near in
 
-	1)
+	1 )
 	    station_dist=$(printf '%s' "$dist_bear" | cut -d ' ' -f 1)
 	    station_bear=$(printf '%s' "$dist_bear" | cut -d ' ' -f 2)
 
@@ -155,7 +197,7 @@ data_presentation()
 	    printf '%skm %s°\n' "$station_dist" "$station_bear"
 	    ;;
 
-	*)
+	* )
 	    echo
 	    ;;
 
@@ -168,7 +210,7 @@ data_presentation()
     ## taf data
     case $show_taf in
 
-	1)
+	1 )
 	    taf=$(printf '%s' "$taf_raw" | jq '.raw' | tr -d '"')
 	    printf '  taf %s\n' "$taf"
 	    ;;
@@ -179,7 +221,7 @@ data_presentation()
 }
 
 
-haversine()
+haversine ()
 {
     if test "$#" -ne 4; then
 	echo >&2 "E: syntax: $0 lat1 lon1 lat2 lon2"
@@ -234,7 +276,7 @@ haversine()
 	if (x >= 1) return (1)
 	return (sqrt(x))
 	}
-/* WGS84 reference ellipsoid: große Halbachse (metres), Abplattung */
+/* WGS84 reference ellipsoid: semimajor axis (metres), flattening */
 i = 6378137.000
 x = 1/298.257223563
 /* other axis */
@@ -262,7 +304,7 @@ EOF
 }
 
 
-distance_bearing()
+distance_bearing ()
 {
     dist_bear=$(\
 		awk -v lat1="$1" -v lat2="$3" -v lon1="$2" -v lon2="$4" '
@@ -320,7 +362,7 @@ distance_bearing()
 }
 
 
-main()
+main ()
 {
     args_fetch $args
     station_data_retrieval

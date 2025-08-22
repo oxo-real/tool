@@ -3,7 +3,7 @@
 ## input: input (bin), key (bin)
 ## output: key xor-ed input (bin)
 
-## usage: echo 1100 | sh xor.sh --key 1100
+## usage: echo 1000 | sh xor.sh --key 1100
 ## example: sh iv.sh -k 1111 1000
 
 

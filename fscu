@@ -14,7 +14,7 @@ get_reply() {
 
 run_c2b() {
     # backup $XDG_DATA_HOME/c and $XDG_CONFIG_HOME
-    printf "\n${YELLOW}>>>${NOC} %s\n" 'c2b  (C-c exit)'
+    printf "\n${fg_yellow}>>>${st_def} %s\n" 'c2b  (C-c exit)'
     get_reply
     c2b --links --dry-run
 }
@@ -33,9 +33,9 @@ run_qb_cleanup() {
 
 run_env() {
     ## XDG_CACHE_HOME
-    [[ $TEMPDIR ]] ||  export TEMPDIR="$XDG_CACHE_HOME/temp"
-    [[ $TESTDIR ]] ||  export TESTDIR="$XDG_CACHE_HOME/test"
-    [[ $TRASHDIR ]] || export TRASHDIR="$XDG_CACHE_HOME/trash"
+    [[ $DIR_TEMP ]] ||  export DIR_TEMP="$XDG_CACHE_HOME/temp"
+    [[ $DIR_TEST ]] ||  export DIR_TEST="$XDG_CACHE_HOME/test"
+    [[ $DIR_TRASH ]] || export DIR_TRASH="$XDG_CACHE_HOME/trash"
 }
 
 # trash management

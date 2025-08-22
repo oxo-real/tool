@@ -6,6 +6,13 @@
 ## usage: key-expansion.sh key.bin
 ## or: echo $key | key-expansion.sh
 
+# words_arr=()
+# declare -A words_arr
+# typeset -A words_arr
+## TODO DEV why does this not work?
+## LEARN always initalize array in global scope (main body)
+## (not inside functions)
+
 working_dir=/home/oxo/.local/share/c/git/code/tool/dev/aes
 source "$working_dir"/rcon.sh
 source "$working_dir"/sbox.sh
@@ -141,55 +148,44 @@ key_analysis ()
     ## round 0
     ## copy 4 words from key_bin and adds them to word_arr
     ## word_arr[0,0] to word_arr[3,15]
-    # add_to_word_arr 0 $key_bin
-    create_state_array $key_bin
+    add_to_word_arr 0 $key_bin
 }
 
 
 create_state_array ()
 {
-    local key_bin=$1
-    local index=0
+    index=0
 
     ## array fills first columns then rows
     for (( col=0; col<"${cols}"; col++ )); do
 
 	for (( row=0; row<"${rows}"; row++ )); do
 
-            key_bin_arr[$row,$col]="${key_bin:$(( index * $col_l )):$col_l}"
+            state_in_bin_arr[$row,$col]="${state_in:$(( index * $col_l )):$col_l}"
 
 	    ((index++))
 
 	done
 
     done
-
-    convert_bin_cells_to_hex
 }
 
 
 convert_bin_cells_to_hex ()
 {
-    for cell in "${!key_bin_arr[@]}"; do
+    for cell in "${!state_in_bin_arr[@]}"; do
 	## for every cell (key) in the associative array
 
 	## get the binary value
-	cell_value_bin=${key_bin_arr[$cell]}
+	cell_value_bin=${state_in_bin_arr[$cell]}
 
 	## convert bin to hex value
 	cell_value_hex=$(echo "obase=16; ibase=2; $cell_value_bin" | bc)
 
 	## populate state_in_arr_hex
-	key_hex_arr[$cell]=0x$cell_value_hex
+	state_in_hex_arr[$cell]=0x$cell_value_hex
 
     done
-
-    #DEV
-    printf "DEV$LINENO %s\n" "${v}"
-    pea key_bin_arr
-    printf "DEV$LINENO %s\n" "${v}"
-    pea key_hex_arr
-    exit 255
 }
 
 
