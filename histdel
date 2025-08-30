@@ -65,7 +65,12 @@ select_action ()
 		alt_delim )
 		    ## alternative delimiter
 		    printf '%s ' 'delimiter:'
-		    read -r -n 1 delimiter
+
+		    ## multiple
+		    read -r delimiter
+
+		    ## single
+		    # read -r -n 1 delimiter
 
 		    ## add space to delimiter
 		    ## (this way space is always a delimiter)

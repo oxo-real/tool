@@ -187,6 +187,7 @@ internet_conn_check ()
 	else
 
 	    nmconn
+	    sleep 5
 	    internet_conn_check
 
 	fi

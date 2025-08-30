@@ -14,9 +14,7 @@
 
 : '
 metar
-get metar
-include taf, pirep, airsigmet optionally
-source: [avwx rest api](https://info.avwx.rest/)
+get metar (optionally taf, notam, pirep, airsigmet, nbm and gfsmav)
 copyright (c) 2020 - 2025  |  oxo
 ----------------------------------------------------------------------
 GNU GPLv3 GENERAL PUBLIC LICENSE
@@ -57,7 +55,7 @@ developer=oxo
 initial_release=2020
 
 avwx_domain=https://avwx.rest/api
-avwx_api_key='Authorization: BEARER 4mLFIAd0-TzYNLNGJVWS0-zf87wQNzFvaT5uAN_8jVg'
+source $XDG_DATA_HOME/c/keys/api/avwx
 
 ## declare globally
 show_taf=0
@@ -144,8 +142,7 @@ station_data_retrieval ()
 
     esac
 
-    ## avwx enterprise plan
-    # avwx_api_ent_key='Authorization: BEARER 4mLFIAd0-TzYNLNGJVWS0-zf87wQNzFvaT5uAN_8jVg'
+    ## avwx enterprise key
     # pirep_raw=$(curl --include --header "Content-Type: text/plain" --header "$avwx_api_ent_key" "$avwx_domain"/pirep/"$ident")
     # airsigmet_raw=$(curl --include --header "Content-Type: text/plain" --header "$avwx_api_ent_key" "$avwx_domain"/airsigmet/"$ident")
     # notam_raw=$(curl --include --header "Content-Type: text/plain" --header "$avwx_api_ent_key" "$avwx_domain"/notam/"$ident")

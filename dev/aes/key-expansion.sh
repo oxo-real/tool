@@ -185,11 +185,11 @@ convert_bin_cells_to_hex ()
     done
 
     #DEV
-    printf "DEV$LINENO %s\n" "${v}"
-    pea key_bin_arr
-    printf "DEV$LINENO %s\n" "${v}"
-    pea key_hex_arr
-    exit 255
+    # printf "DEV$LINENO %s\n" "${v}"
+    # pea key_bin_arr
+    # printf "DEV$LINENO %s\n" "${v}"
+    # pea key_hex_arr
+    # exit 255
 }
 
 
@@ -328,6 +328,38 @@ output_matrix ()
 	echo
 
     done
+}
+
+
+output ()
+{
+    ## matrix
+    : '
+    for (( row=0; row<"${rows}"; row++ )); do
+
+	for (( col=0; col<"${cols}"; col++ )); do
+
+            printf '%s ' "${words_arr[$row,$col]}"
+
+	done
+
+	echo
+
+    done
+    # '
+
+    ## string
+    #: '
+    for (( row=0; row<"${rows}"; row++ )); do
+
+	for (( col=0; col<"${cols}"; col++ )); do
+
+	    printf '%s' "${words_arr[$row,$col]}"
+
+	done
+
+    done
+    # '
 }
 
 
