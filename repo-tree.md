@@ -83,7 +83,9 @@
 │   ├── tix_clock_int_v2
 │   ├── tix_clock.sh
 │   ├── trng
-│   └── unicode.sh
+│   ├── unicode.sh
+│   ├── wkd-recurr03.sh
+│   └── wkd-recurr.sh
 ├── diffdir
 ├── diritems
 ├── dividir
@@ -170,5 +172,5 @@
     ├── trashOLD
     └── wfa.py
 
-8 directories, 162 files
+8 directories, 164 files
 ```
