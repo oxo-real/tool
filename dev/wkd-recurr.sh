@@ -29,13 +29,13 @@ fi
 
 # weekday abbreviations
 declare -A weekday_abbr=(
-    [mo]=1
-    [tu]=2
-    [we]=3
-    [th]=4
-    [fr]=5
-    [sa]=6
-    [su]=7
+    [m]=1
+    [t]=2
+    [w]=3
+    [h]=4
+    [f]=5
+    [s]=6
+    [u]=7
 )
 
 # Convert period start and end dates to epoch for comparison
