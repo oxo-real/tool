@@ -131,6 +131,7 @@ initialize ()
     # initializing variables
 
     timestamp="$(date +%Y%m%d_%H%M%S_%N_%z_%Z_%V)"
+    # timestamp="$(date +%Y%m%d_%H%M%S_%N_%z_%Z_%V)"
     dotfbu_log="$XDG_LOGS_HOME/dotfbu/rsync_$timestamp.log"
 
     ## not all of .config has to be uploaded to the public repository;
